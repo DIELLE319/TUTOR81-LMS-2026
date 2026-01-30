@@ -55,9 +55,8 @@ export async function registerRoutes(
           lastName: schema.users.lastName,
           email: schema.users.email,
         })
-          .from(schema.companyUsers)
-          .innerJoin(schema.users, eq(schema.companyUsers.userId, schema.users.id))
-          .where(eq(schema.companyUsers.companyId, tutor.id));
+          .from(schema.users)
+          .where(eq(schema.users.idcompany, tutor.id));
         
         return { ...tutor, admins };
       }));
