@@ -1,16 +1,38 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
-import { Search, Plus, Building, ChevronRight, Users, MapPin, FileText } from 'lucide-react';
+import { Search, Plus, Building, MapPin, FileText, Pause, Pencil, Trash2 } from 'lucide-react';
 import type { Company } from '@shared/schema';
+import { Button } from '@/components/ui/button';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Tutors() {
   const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
 
   const { data: tutors = [], isLoading } = useQuery<Company[]>({
     queryKey: ['/api/tutors'],
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/companies/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tutors'] });
+      toast({ title: 'Ente eliminato', description: 'L\'ente formativo è stato eliminato.' });
+    },
+  });
+
+  const handleDelete = (id: number, name: string) => {
+    if (confirm(`Sei sicuro di voler eliminare "${name}"?`)) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const handleSuspend = (id: number, name: string) => {
+    toast({ title: 'Funzione in sviluppo', description: `Sospensione di "${name}" sarà disponibile presto.` });
+  };
 
   const filteredTutors = tutors.filter(t => 
     t.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,13 +93,13 @@ export default function Tutors() {
               className="bg-[#1e1e1e] rounded-xl border border-gray-800 p-4 hover:border-yellow-500/50 transition-colors cursor-pointer"
               data-testid={`card-tutor-${tutor.id}`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
                     <Building size={24} className="text-yellow-500" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white">{tutor.businessName}</h3>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-white truncate">{tutor.businessName}</h3>
                     <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                       {tutor.city && (
                         <span className="flex items-center gap-1">
@@ -94,7 +116,40 @@ export default function Tutors() {
                     </div>
                   </div>
                 </div>
-                <ChevronRight size={20} className="text-gray-600" />
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-700 text-gray-400 hover:text-yellow-500 hover:border-yellow-500"
+                    onClick={(e) => { e.stopPropagation(); handleSuspend(tutor.id, tutor.businessName); }}
+                    data-testid={`button-suspend-tutor-${tutor.id}`}
+                  >
+                    <Pause size={14} className="mr-1" />
+                    Sospendi
+                  </Button>
+                  <Link href={`/companies/${tutor.id}/edit`}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-gray-700 text-gray-400 hover:text-blue-500 hover:border-blue-500"
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`button-edit-tutor-${tutor.id}`}
+                    >
+                      <Pencil size={14} className="mr-1" />
+                      Modifica
+                    </Button>
+                  </Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-gray-700 text-gray-400 hover:text-red-500 hover:border-red-500"
+                    onClick={(e) => { e.stopPropagation(); handleDelete(tutor.id, tutor.businessName); }}
+                    data-testid={`button-delete-tutor-${tutor.id}`}
+                  >
+                    <Trash2 size={14} className="mr-1" />
+                    Elimina
+                  </Button>
+                </div>
               </div>
             </motion.div>
           ))}
