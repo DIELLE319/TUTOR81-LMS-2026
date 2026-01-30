@@ -32,6 +32,7 @@ interface GroupedSales {
 
 export default function Sales() {
   const [selectedTutorId, setSelectedTutorId] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   const { data: tutors = [] } = useQuery<Company[]>({
     queryKey: ['/api/tutors'],
@@ -51,12 +52,36 @@ export default function Sales() {
 
   const selectedTutor = tutors.find(t => t.id.toString() === selectedTutorId);
 
+  const monthNames = ['GENNAIO', 'FEBBRAIO', 'MARZO', 'APRILE', 'MAGGIO', 'GIUGNO', 
+                      'LUGLIO', 'AGOSTO', 'SETTEMBRE', 'OTTOBRE', 'NOVEMBRE', 'DICEMBRE'];
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    sales.forEach(sale => {
+      if (!sale.date) return;
+      const date = new Date(sale.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+      months.add(monthKey);
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a)).map(key => {
+      const [year, month] = key.split('-');
+      return { key, label: `${monthNames[parseInt(month)]} ${year}` };
+    });
+  }, [sales]);
+
   const groupedByMonth = useMemo(() => {
     const groups: GroupedSales = {};
-    const monthNames = ['GENNAIO', 'FEBBRAIO', 'MARZO', 'APRILE', 'MAGGIO', 'GIUGNO', 
-                        'LUGLIO', 'AGOSTO', 'SETTEMBRE', 'OTTOBRE', 'NOVEMBRE', 'DICEMBRE'];
     
-    sales.forEach(sale => {
+    const filteredSales = selectedMonth === 'all' 
+      ? sales 
+      : sales.filter(sale => {
+          if (!sale.date) return false;
+          const date = new Date(sale.date);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+          return monthKey === selectedMonth;
+        });
+    
+    filteredSales.forEach(sale => {
       if (!sale.date) return;
       const date = new Date(sale.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
@@ -72,7 +97,7 @@ export default function Sales() {
     return Object.entries(groups)
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([key, value]) => ({ key, ...value }));
-  }, [sales]);
+  }, [sales, selectedMonth]);
 
   const totalOrders = sales.length;
 
@@ -111,9 +136,24 @@ export default function Sales() {
             </Select>
           </div>
           {selectedTutorId && (
-            <div className="bg-gray-100 px-4 py-2 rounded-lg">
-              <span className="text-gray-600 text-sm">Totale Ordini: </span>
-              <span className="font-bold text-gray-900" data-testid="text-total-orders">{totalOrders}</span>
+            <div className="flex items-center gap-4">
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-[200px] bg-gray-100 border-0" data-testid="select-month">
+                  <SelectValue placeholder="Tutti i mesi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutti i mesi</SelectItem>
+                  {availableMonths.map(m => (
+                    <SelectItem key={m.key} value={m.key} data-testid={`option-month-${m.key}`}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="bg-gray-100 px-4 py-2 rounded-lg">
+                <span className="text-gray-600 text-sm">Totale Ordini: </span>
+                <span className="font-bold text-gray-900" data-testid="text-total-orders">{totalOrders}</span>
+              </div>
             </div>
           )}
         </div>
