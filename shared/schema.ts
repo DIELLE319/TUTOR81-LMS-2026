@@ -128,11 +128,150 @@ export const companyUsersRelations = relations(companyUsers, ({ one }) => ({
   }),
 }));
 
+// Content Management Tables
+export const courses = pgTable("courses", {
+  id: serial("id").primaryKey(),
+  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  thumbnailUrl: text("thumbnail_url"),
+  isPublished: boolean("is_published").default(false),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const modules = pgTable("modules", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull().references(() => courses.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const lessons = pgTable("lessons", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").notNull().references(() => modules.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  contentType: text("content_type").default("video"), // video, audio, document, scorm
+  contentUrl: text("content_url"),
+  duration: integer("duration").default(0), // in minutes
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const learningObjects = pgTable("learning_objects", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  objectType: text("object_type").notNull(), // video, audio, document, scorm, image
+  fileUrl: text("file_url"),
+  mimeType: text("mime_type"),
+  fileSize: integer("file_size"),
+  duration: integer("duration"), // for video/audio
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const tests = pgTable("tests", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").references(() => courses.id),
+  moduleId: integer("module_id").references(() => modules.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  passingScore: integer("passing_score").default(60),
+  timeLimit: integer("time_limit"), // in minutes
+  maxAttempts: integer("max_attempts").default(3),
+  shuffleQuestions: boolean("shuffle_questions").default(true),
+  isPublished: boolean("is_published").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const questions = pgTable("questions", {
+  id: serial("id").primaryKey(),
+  testId: integer("test_id").notNull().references(() => tests.id),
+  questionText: text("question_text").notNull(),
+  questionType: text("question_type").default("single"), // single, multiple, true_false
+  points: integer("points").default(1),
+  sortOrder: integer("sort_order").default(0),
+  explanation: text("explanation"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const answers = pgTable("answers", {
+  id: serial("id").primaryKey(),
+  questionId: integer("question_id").notNull().references(() => questions.id),
+  answerText: text("answer_text").notNull(),
+  isCorrect: boolean("is_correct").default(false),
+  sortOrder: integer("sort_order").default(0),
+});
+
+// Relations for Content Management
+export const coursesRelations = relations(courses, ({ one, many }) => ({
+  learningProject: one(learningProjects, {
+    fields: [courses.learningProjectId],
+    references: [learningProjects.id],
+  }),
+  modules: many(modules),
+  tests: many(tests),
+}));
+
+export const modulesRelations = relations(modules, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [modules.courseId],
+    references: [courses.id],
+  }),
+  lessons: many(lessons),
+  tests: many(tests),
+}));
+
+export const lessonsRelations = relations(lessons, ({ one }) => ({
+  module: one(modules, {
+    fields: [lessons.moduleId],
+    references: [modules.id],
+  }),
+}));
+
+export const testsRelations = relations(tests, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [tests.courseId],
+    references: [courses.id],
+  }),
+  module: one(modules, {
+    fields: [tests.moduleId],
+    references: [modules.id],
+  }),
+  questions: many(questions),
+}));
+
+export const questionsRelations = relations(questions, ({ one, many }) => ({
+  test: one(tests, {
+    fields: [questions.testId],
+    references: [tests.id],
+  }),
+  answers: many(answers),
+}));
+
+export const answersRelations = relations(answers, ({ one }) => ({
+  question: one(questions, {
+    fields: [answers.questionId],
+    references: [questions.id],
+  }),
+}));
+
 export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true });
 export const insertLearningProjectSchema = createInsertSchema(learningProjects).omit({ id: true, createdAt: true });
 export const insertTutorsPurchaseSchema = createInsertSchema(tutorsPurchases).omit({ id: true, createdAt: true });
 export const insertCompanyUserSchema = createInsertSchema(companyUsers).omit({ id: true, createdAt: true });
 export const insertCertificateSchema = createInsertSchema(certificates).omit({ id: true, createdAt: true });
+export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertModuleSchema = createInsertSchema(modules).omit({ id: true, createdAt: true });
+export const insertLessonSchema = createInsertSchema(lessons).omit({ id: true, createdAt: true });
+export const insertLearningObjectSchema = createInsertSchema(learningObjects).omit({ id: true, createdAt: true });
+export const insertTestSchema = createInsertSchema(tests).omit({ id: true, createdAt: true });
+export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true, createdAt: true });
+export const insertAnswerSchema = createInsertSchema(answers).omit({ id: true });
 
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
@@ -148,3 +287,24 @@ export type InsertCompanyUser = z.infer<typeof insertCompanyUserSchema>;
 
 export type Certificate = typeof certificates.$inferSelect;
 export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
+
+export type Course = typeof courses.$inferSelect;
+export type InsertCourse = z.infer<typeof insertCourseSchema>;
+
+export type Module = typeof modules.$inferSelect;
+export type InsertModule = z.infer<typeof insertModuleSchema>;
+
+export type Lesson = typeof lessons.$inferSelect;
+export type InsertLesson = z.infer<typeof insertLessonSchema>;
+
+export type LearningObject = typeof learningObjects.$inferSelect;
+export type InsertLearningObject = z.infer<typeof insertLearningObjectSchema>;
+
+export type Test = typeof tests.$inferSelect;
+export type InsertTest = z.infer<typeof insertTestSchema>;
+
+export type Question = typeof questions.$inferSelect;
+export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
+
+export type Answer = typeof answers.$inferSelect;
+export type InsertAnswer = z.infer<typeof insertAnswerSchema>;
