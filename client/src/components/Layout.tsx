@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import * as Icons from 'lucide-react';
@@ -7,10 +6,28 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+const getRoleName = (role: number | null | undefined): string => {
+  switch (role) {
+    case 1000: return 'SUPER ADMIN';
+    case 1: return 'VENDITORE';
+    case 2: return 'REFERENTE';
+    default: return 'UTENTE';
+  }
+};
+
+const getRoleColor = (role: number | null | undefined): string => {
+  switch (role) {
+    case 1000: return 'text-red-400';
+    case 1: return 'text-yellow-400';
+    case 2: return 'text-blue-400';
+    default: return 'text-gray-400';
+  }
+};
+
 export default function Layout({ children }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const userRole = user?.role ?? 0;
 
   const getIcon = (name: keyof typeof Icons) => {
     const IconComponent = Icons[name] as React.ComponentType<{ size?: number }>;
@@ -45,6 +62,10 @@ export default function Layout({ children }: LayoutProps) {
     </div>
   );
 
+  const isSuperAdmin = userRole === 1000;
+  const isVenditore = userRole === 1;
+  const isReferente = userRole === 2;
+
   return (
     <div className='flex h-screen bg-black font-sans text-gray-300'>
       
@@ -66,13 +87,15 @@ export default function Layout({ children }: LayoutProps) {
             )}
           </div>
           <div className="overflow-hidden">
-            <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">SUPERADMIN</div>
+            <div className={`text-[10px] uppercase font-bold tracking-wider ${getRoleColor(userRole)}`}>
+              {getRoleName(userRole)}
+            </div>
             <div className="text-xs truncate text-gray-400">{user?.email || 'assistenza@tutor81.it'}</div>
             <div className="flex gap-2 mt-1">
               <Icons.LogOut 
                 size={12} 
                 className="cursor-pointer hover:text-white" 
-                onClick={logout}
+                onClick={() => logout()}
                 data-testid="button-logout"
               />
             </div>
@@ -84,22 +107,57 @@ export default function Layout({ children }: LayoutProps) {
             
             <SectionHeader title="HOME" />
             <MenuItem to="/dashboard" label="Home Page" iconName="Home" />
-            <MenuItem to="/tutors" label="Enti Formativi" iconName="Building" />
-            <MenuItem to="/clients" label="Aziende Clienti" iconName="Users" />
+            
+            {/* Super Admin: vede tutto */}
+            {isSuperAdmin && (
+              <>
+                <MenuItem to="/tutors" label="Enti Formativi" iconName="Building" />
+                <MenuItem to="/clients" label="Aziende Clienti" iconName="Users" />
+              </>
+            )}
+            
+            {/* Venditore: vede solo le sue aziende clienti */}
+            {isVenditore && (
+              <MenuItem to="/clients" label="Le Mie Aziende" iconName="Users" />
+            )}
+            
+            {/* Referente: vede la sua azienda */}
+            {isReferente && (
+              <MenuItem to="/my-company" label="La Mia Azienda" iconName="Building2" />
+            )}
 
-            <SectionHeader title="VENDITA" />
-            <MenuItem to="/companies/new" label="Crea Cliente" color="text-gray-300" iconName="UserPlus" />
-            <MenuItem to="/catalog" label="Iscrivi ai Corsi" color="text-gray-300" iconName="ShoppingCart" />
-            <MenuItem to="/sales" label="Corsi Venduti" iconName="FileText" />
+            {/* VENDITA - Solo Super Admin e Venditore */}
+            {(isSuperAdmin || isVenditore) && (
+              <>
+                <SectionHeader title="VENDITA" />
+                <MenuItem to="/companies/new" label="Crea Cliente" color="text-gray-300" iconName="UserPlus" />
+                <MenuItem to="/catalog" label="Iscrivi ai Corsi" color="text-gray-300" iconName="ShoppingCart" />
+                <MenuItem to="/sales" label="Corsi Venduti" iconName="FileText" />
+              </>
+            )}
 
+            {/* CORSI LMS - Tutti vedono */}
             <SectionHeader title="CORSI (LMS)" />
             <MenuItem to="/courses/active" label="Attivati" iconName="Activity" />
             <MenuItem to="/certificates" label="Attestati" iconName="CheckCircle" />
             <MenuItem to="/courses/expiring" label="Da Ripetere" iconName="Clock" />
 
-            <SectionHeader title="ARCHIVIO" />
-            <MenuItem to="/users" label="Elenco Utenti" iconName="User" />
-            <MenuItem to="/users/import" label="Importa Utenti" iconName="Upload" />
+            {/* ARCHIVIO - Solo Super Admin e Venditore */}
+            {(isSuperAdmin || isVenditore) && (
+              <>
+                <SectionHeader title="ARCHIVIO" />
+                <MenuItem to="/users" label="Elenco Utenti" iconName="User" />
+                <MenuItem to="/users/import" label="Importa Utenti" iconName="Upload" />
+              </>
+            )}
+            
+            {/* Referente: gestisce utenti della sua azienda */}
+            {isReferente && (
+              <>
+                <SectionHeader title="UTENTI AZIENDA" />
+                <MenuItem to="/company-users" label="Utenti Azienda" iconName="Users" />
+              </>
+            )}
 
           </ul>
         </nav>
