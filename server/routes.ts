@@ -48,7 +48,21 @@ export async function registerRoutes(
         .where(eq(schema.companies.isTutor, true))
         .orderBy(schema.companies.businessName);
       
-      res.json(tutors);
+      const tutorsWithAdmins = await Promise.all(tutors.map(async (tutor) => {
+        const admins = await db.select({
+          id: schema.users.id,
+          firstName: schema.users.firstName,
+          lastName: schema.users.lastName,
+          email: schema.users.email,
+        })
+          .from(schema.companyUsers)
+          .innerJoin(schema.users, eq(schema.companyUsers.userId, schema.users.id))
+          .where(eq(schema.companyUsers.companyId, tutor.id));
+        
+        return { ...tutor, admins };
+      }));
+      
+      res.json(tutorsWithAdmins);
     } catch (error) {
       console.error("Tutors error:", error);
       res.status(500).json({ error: "Failed to fetch tutors" });

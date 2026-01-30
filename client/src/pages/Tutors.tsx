@@ -2,8 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
-import { Search, Plus, Building, MapPin, FileText, Pause, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, Building, MapPin, FileText, Pause, Pencil, Trash2, User } from 'lucide-react';
 import type { Company } from '@shared/schema';
+
+type TutorWithAdmins = Company & {
+  admins: { id: number; firstName: string | null; lastName: string | null; email: string }[];
+};
 import { Button } from '@/components/ui/button';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +16,7 @@ export default function Tutors() {
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
 
-  const { data: tutors = [], isLoading } = useQuery<Company[]>({
+  const { data: tutors = [], isLoading } = useQuery<TutorWithAdmins[]>({
     queryKey: ['/api/tutors'],
   });
 
@@ -100,7 +104,7 @@ export default function Tutors() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-white truncate">{tutor.businessName}</h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                    <div className="flex items-center gap-4 text-sm text-gray-500 mt-1 flex-wrap">
                       {tutor.city && (
                         <span className="flex items-center gap-1">
                           <MapPin size={14} />
@@ -114,6 +118,14 @@ export default function Tutors() {
                         </span>
                       )}
                     </div>
+                    {tutor.admins && tutor.admins.length > 0 && (
+                      <div className="flex items-center gap-1 text-sm text-yellow-500/80 mt-1">
+                        <User size={14} />
+                        <span>
+                          {tutor.admins.map(a => `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.email).join(', ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
