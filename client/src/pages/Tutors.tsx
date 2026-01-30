@@ -103,7 +103,10 @@ export default function Tutors() {
                     <Building size={24} className="text-yellow-500" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-white truncate">{tutor.businessName}</h3>
+                    <h3 className="font-bold text-white truncate">
+                      <span className="text-gray-500 font-normal mr-2">#{tutor.id}</span>
+                      {tutor.businessName}
+                    </h3>
                     <div className="flex items-center gap-4 text-sm text-gray-500 mt-1 flex-wrap">
                       {tutor.city && (
                         <span className="flex items-center gap-1">

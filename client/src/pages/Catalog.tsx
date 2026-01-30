@@ -154,18 +154,18 @@ export default function Catalog() {
                   <>
                     <tr 
                       key={`header-${group.category}`}
-                      className="bg-gray-100 cursor-pointer hover:bg-gray-200"
+                      className="bg-blue-600 cursor-pointer hover:bg-blue-700"
                       onClick={() => toggleCategory(group.category)}
                     >
-                      <td colSpan={8} className="px-3 py-2">
-                        <div className="flex items-center gap-2">
+                      <td colSpan={8} className="px-4 py-3">
+                        <div className="flex items-center gap-3">
                           {expandedCategories.has(group.category) ? (
-                            <ChevronUp size={16} className="text-gray-500" />
+                            <ChevronUp size={18} className="text-white" />
                           ) : (
-                            <ChevronDown size={16} className="text-gray-500" />
+                            <ChevronDown size={18} className="text-white" />
                           )}
-                          <span className="font-bold text-gray-700">{group.category}</span>
-                          <span className="text-gray-400 text-xs">({group.courses.length})</span>
+                          <span className="font-bold text-white text-sm uppercase tracking-wide">{group.category}</span>
+                          <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">{group.courses.length}</span>
                         </div>
                       </td>
                     </tr>
