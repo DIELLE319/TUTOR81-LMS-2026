@@ -1,33 +1,54 @@
 import { db } from "../server/db";
 import { learningProjects } from "../shared/schema";
 import * as fs from "fs";
+import { sql } from "drizzle-orm";
 
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
+function parseCSVWithMultiline(content: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
   let inQuotes = false;
   
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const nextChar = content[i + 1];
     
     if (char === '"') {
-      inQuotes = !inQuotes;
+      if (inQuotes && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
     } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
+      currentRow.push(currentField);
+      currentField = '';
+    } else if (char === '\n' && !inQuotes) {
+      currentRow.push(currentField);
+      if (currentRow.length > 1 || currentRow[0] !== '') {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentField = '';
+    } else if (char === '\r' && !inQuotes) {
+      // Skip carriage return
     } else {
-      current += char;
+      currentField += char;
     }
   }
-  result.push(current);
   
-  return result;
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField);
+    rows.push(currentRow);
+  }
+  
+  return rows;
 }
 
 function cleanHtml(text: string): string {
   if (!text) return '';
   return text
-    .replace(/<[^>]*>/g, '')
+    .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&egrave;/g, 'è')
     .replace(/&agrave;/g, 'à')
@@ -41,75 +62,85 @@ function cleanHtml(text: string): string {
     .replace(/&rdquo;/g, '"')
     .replace(/&ldquo;/g, '"')
     .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
 async function importCourses() {
-  console.log("Starting courses import...");
+  console.log("Starting courses import with multiline support...");
 
   const coursesRaw = fs.readFileSync("attached_assets/courses_1769813362686.csv", "utf-8");
-  const lines = coursesRaw.split("\n");
-  const header = parseCSVLine(lines[0]);
-  console.log("Columns:", header.slice(0, 10));
-
-  const courses: any[] = [];
+  const rows = parseCSVWithMultiline(coursesRaw);
   
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.trim()) continue;
+  console.log(`Parsed ${rows.length} rows`);
+  
+  const header = rows[0];
+  console.log("Columns:", header.slice(0, 5).join(", "));
+  
+  const idIdx = 0;
+  const titleIdx = 1;
+  const maxTimeIdx = 2;
+  const descIdx = 3;
+  
+  const existingIds = new Set<number>();
+  const existing = await db.select({ id: learningProjects.id }).from(learningProjects);
+  existing.forEach(e => existingIds.add(e.id));
+  console.log(`Existing courses: ${existingIds.size}`);
+  
+  let imported = 0;
+  let skipped = 0;
+  let errors = 0;
+  
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (row.length < 4) continue;
     
-    const parts = parseCSVLine(line);
-    if (parts.length < 10) continue;
+    const id = parseInt(row[idIdx]) || null;
+    const title = row[titleIdx]?.trim() || null;
+    const description = cleanHtml(row[descIdx] || '').substring(0, 5000) || null;
+    const maxTime = parseInt(row[maxTimeIdx]) || 0;
+    const hours = Math.ceil(maxTime / 60);
     
-    const id = parts[0];
-    const title = parts[1];
-    const maxExecutionTime = parts[2];
-    const description = cleanHtml(parts[3]);
-    const lawReference = parts[4];
-    
-    // Skip if no title or closed
-    if (!title || title === 'NULL') continue;
-    
-    // Parse hours from max_execution_time (in minutes)
-    let hours = 0;
-    const minutes = parseInt(maxExecutionTime);
-    if (!isNaN(minutes) && minutes > 0) {
-      hours = Math.ceil(minutes / 60);
+    if (!id || !title || title === 'NULL') {
+      skipped++;
+      continue;
     }
     
-    courses.push({
-      id: parseInt(id),
-      title: title,
-      description: description || null,
-      category: lawReference || null,
-      hours: hours,
-      isPublished: true,
-    });
-  }
-
-  console.log(`Found ${courses.length} courses`);
-  if (courses.length > 0) {
-    console.log("Sample:", courses[0]);
-  }
-
-  // Insert in batches
-  console.log("Inserting courses...");
-  let inserted = 0;
-  for (let i = 0; i < courses.length; i += 50) {
-    const batch = courses.slice(i, i + 50);
+    if (existingIds.has(id)) {
+      skipped++;
+      continue;
+    }
+    
     try {
-      await db.insert(learningProjects).values(batch).onConflictDoNothing();
-      inserted += batch.length;
-      if (i % 500 === 0) {
-        console.log(`Progress: ${i}/${courses.length}`);
+      await db.execute(sql`
+        INSERT INTO learning_projects (id, title, description, hours, is_published, created_at)
+        VALUES (${id}, ${title}, ${description}, ${hours}, true, NOW())
+        ON CONFLICT (id) DO NOTHING
+      `);
+      imported++;
+      existingIds.add(id);
+      
+      if (imported % 500 === 0) {
+        console.log(`Imported ${imported} courses...`);
       }
-    } catch (err: any) {
-      console.error(`Error batch ${i}: ${err.message}`);
+    } catch (err) {
+      errors++;
+      if (errors < 3) {
+        console.error(`Error on row ${i} (id=${id}):`, err);
+      }
     }
   }
   
-  console.log(`Courses inserted: ${inserted}`);
-  console.log("Import completed!");
+  await db.execute(sql`SELECT setval('learning_projects_id_seq', (SELECT COALESCE(MAX(id), 1) FROM learning_projects))`);
+  
+  console.log(`\nImport complete!`);
+  console.log(`Imported: ${imported}`);
+  console.log(`Skipped: ${skipped}`);
+  console.log(`Errors: ${errors}`);
+  
+  const [count] = await db.select({ count: sql<number>`count(*)` }).from(learningProjects);
+  console.log(`Total courses in DB: ${count?.count}`);
+  
   process.exit(0);
 }
 
