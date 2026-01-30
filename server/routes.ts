@@ -178,7 +178,9 @@ export async function registerRoutes(
 
   app.get("/api/sales", isAuthenticated, async (req, res) => {
     try {
-      const sales = await db.select({
+      const tutorIdParam = req.query.tutorId as string | undefined;
+      
+      let query = db.select({
         id: schema.tutorsPurchases.id,
         date: schema.tutorsPurchases.createdAt,
         qty: schema.tutorsPurchases.qta,
@@ -187,15 +189,27 @@ export async function registerRoutes(
         clientId: schema.tutorsPurchases.customerCompanyId,
         courseId: schema.tutorsPurchases.learningProjectId,
         tutorId: schema.tutorsPurchases.tutorId,
+        userCompanyRef: schema.tutorsPurchases.userCompanyRef,
       })
-        .from(schema.tutorsPurchases)
-        .orderBy(desc(schema.tutorsPurchases.createdAt))
-        .limit(1000);
+        .from(schema.tutorsPurchases);
+      
+      let sales;
+      if (tutorIdParam) {
+        sales = await query
+          .where(eq(schema.tutorsPurchases.tutorId, parseInt(tutorIdParam)))
+          .orderBy(desc(schema.tutorsPurchases.createdAt))
+          .limit(2000);
+      } else {
+        sales = await query
+          .orderBy(desc(schema.tutorsPurchases.createdAt))
+          .limit(2000);
+      }
       
       const enrichedSales = await Promise.all(sales.map(async (sale) => {
         let client = 'N/A';
         let course = 'N/A';
         let tutorName = 'N/A';
+        let user = 'N/A';
         
         if (sale.clientId) {
           const [clientData] = await db.select({ name: schema.companies.businessName })
@@ -218,14 +232,27 @@ export async function registerRoutes(
           tutorName = tutorData?.name || 'N/A';
         }
         
+        if (sale.userCompanyRef) {
+          const [userData] = await db.select({ 
+            firstName: schema.users.firstName,
+            lastName: schema.users.lastName,
+          })
+            .from(schema.users)
+            .where(eq(schema.users.id, sale.userCompanyRef));
+          if (userData) {
+            user = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'N/A';
+          }
+        }
+        
         return {
           id: sale.id,
-          user: 'N/A',
+          user,
           client,
           date: sale.date,
           course,
           qty: sale.qty,
           listPrice: parseFloat(String(sale.listPrice || 0)),
+          tutorId: sale.tutorId,
           tutorName,
         };
       }));
