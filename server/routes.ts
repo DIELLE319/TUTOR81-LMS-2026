@@ -133,6 +133,21 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/companies/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid company ID" });
+      }
+      
+      await db.delete(schema.companies).where(eq(schema.companies.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete company error:", error);
+      res.status(500).json({ error: "Failed to delete company" });
+    }
+  });
+
   app.get("/api/catalog", isAuthenticated, async (req, res) => {
     try {
       const courses = await db.select()
