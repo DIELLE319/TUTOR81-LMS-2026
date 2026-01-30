@@ -140,7 +140,13 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid company ID" });
       }
       
+      // Delete related records first (cascade manually)
+      await db.delete(schema.enrollments).where(eq(schema.enrollments.companyId, id));
+      await db.delete(schema.tutorsPurchases).where(eq(schema.tutorsPurchases.tutorId, id));
+      await db.delete(schema.tutorsPurchases).where(eq(schema.tutorsPurchases.customerCompanyId, id));
+      await db.delete(schema.users).where(eq(schema.users.idcompany, id));
       await db.delete(schema.companies).where(eq(schema.companies.id, id));
+      
       res.json({ success: true });
     } catch (error) {
       console.error("Delete company error:", error);
