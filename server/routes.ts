@@ -70,29 +70,55 @@ export async function registerRoutes(
 
   app.get("/api/clients", isAuthenticated, async (req, res) => {
     try {
-      const search = req.query.search as string | undefined;
+      // Get all clients with their tutor relationship from tutors_purchases
+      const clientsWithTutors = await db.execute(sql`
+        SELECT DISTINCT 
+          c.id, c.business_name, c.city, c.email, c.phone, c.address, c.vat_number,
+          t.id as tutor_id, t.business_name as tutor_name
+        FROM companies c
+        LEFT JOIN tutors_purchases tp ON tp.customer_company_id = c.id
+        LEFT JOIN companies t ON t.id = tp.tutor_id
+        WHERE c.is_tutor = false
+        ORDER BY COALESCE(t.business_name, 'ZZZ_Senza Ente'), c.business_name
+      `);
       
-      let query = db.select()
-        .from(schema.companies)
-        .where(eq(schema.companies.isTutor, false))
-        .orderBy(schema.companies.businessName);
+      // Group by tutor
+      const grouped: Record<string, { tutorId: number | null; tutorName: string; clients: any[] }> = {};
       
-      if (search) {
-        const clients = await db.select()
-          .from(schema.companies)
-          .where(and(
-            eq(schema.companies.isTutor, false),
-            or(
-              ilike(schema.companies.businessName, `%${search}%`),
-              ilike(schema.companies.city, `%${search}%`)
-            )
-          ))
-          .orderBy(schema.companies.businessName);
-        return res.json(clients);
+      for (const row of clientsWithTutors.rows) {
+        const tutorKey = row.tutor_id ? String(row.tutor_id) : 'none';
+        const tutorName = row.tutor_name as string || 'Senza Ente Formativo';
+        
+        if (!grouped[tutorKey]) {
+          grouped[tutorKey] = {
+            tutorId: row.tutor_id as number | null,
+            tutorName,
+            clients: []
+          };
+        }
+        
+        // Avoid duplicates
+        if (!grouped[tutorKey].clients.find((c: any) => c.id === row.id)) {
+          grouped[tutorKey].clients.push({
+            id: row.id,
+            businessName: row.business_name,
+            city: row.city,
+            email: row.email,
+            phone: row.phone,
+            address: row.address,
+            vatNumber: row.vat_number
+          });
+        }
       }
       
-      const clients = await query;
-      res.json(clients);
+      // Convert to array and sort by tutor name
+      const result = Object.values(grouped).sort((a, b) => {
+        if (a.tutorId === null) return 1;
+        if (b.tutorId === null) return -1;
+        return a.tutorName.localeCompare(b.tutorName);
+      });
+      
+      res.json(result);
     } catch (error) {
       console.error("Clients error:", error);
       res.status(500).json({ error: "Failed to fetch clients" });
