@@ -1,0 +1,36 @@
+@CHARSET "ISO-8859-1";
+
+#sidebar {
+	display:none;
+}
+
+.hidden-print,
+#sidebar,
+#tutor-selection,
+#company-selection dt,
+#show-company-home,
+#workspace .title-page small a,
+#workspace .title-page small span {
+	display: none;
+}
+
+.visible-print-inline,
+#workspace .title-page small a.active {
+	display: inline;
+}
+
+.visible-print-block {
+	display: block;
+}
+
+.filter-category a.active {
+	font-weight: bold; text-decoration: underline;
+}
+
+ul.course_detail > div {
+	page-break-inside: avoid;
+}
+
+a[href]:after {
+	content: none !important;
+}

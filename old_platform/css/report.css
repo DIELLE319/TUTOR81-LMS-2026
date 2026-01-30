@@ -1,0 +1,103 @@
+@CHARSET "ISO-8859-1";
+
+/* SESSIONI */
+ul.sessions_report {
+    margin-left: 0;
+}
+ul.sessions_report li {
+    list-style: none;
+}
+li.course_title {
+    background-color: #23abdd;
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px 5px 0 0;
+    margin-top: 15px;
+}
+ul.course_detail {
+    border: 1px solid #23abdd;
+    margin-left: 0;
+    padding: 0px 10px;
+    border-radius: 0 0 5px 5px;
+}
+ul.session_detail{
+	page-break-inside: avoid;
+}
+li.session_start {
+    border: 1px solid #c3c3c3;
+    clear: both;
+    background-color: #DBDBDB;
+    padding: 5px;
+		margin-top: 10px;
+}
+li.session_end {
+    border: 1px solid #c3c3c3;
+    margin-bottom: 10px;
+    text-align: right;
+    background-color: #F0F0F0;
+    padding: 5px;
+}
+#sessioni span.datetime{
+    font-style: italic;
+    font-size: smaller;
+}
+span.session_start {
+    float: right;
+}
+span.session_start:before{
+    content: "Inizio sessione: ";
+}
+span.session_duration {
+	margin-right: 20px;
+}
+span.session_duration:before {
+	content: "duarata: ";
+}
+span.session_end{
+    font-style: italic;
+    font-size: smaller;
+}
+span.session_end:before {
+    content: "Fine sessione: ";
+}
+span.session_end:after{
+    clear:both;
+}
+ul.session_detail {
+    background-color: #F1F1F1;
+    margin-left: 0;
+    border-right: 1px solid #c3c3c3;
+    border-left: 1px solid #c3c3c3;
+}
+li.object_detail {
+    padding: 0 20px;
+    margin-left: 0;
+}
+span.object_title {
+    text-transform: uppercase;
+}
+span.object_start {
+    float: right;
+}
+span.object_end {
+    float: right;
+}
+span.object_duration{
+		float:right;
+    margin-right: 20px;
+}
+span.object_duration:before{
+	content: "";
+}
+span.object_start:before {
+    content: "";
+}
+span.object_start:after {
+		font-family: 'Glyphicons Halflings';
+    content: "\E092";
+    margin-left: 5px;
+    margin-right: 5px;
+}
+span.object_end:before {
+    content: "";
+}

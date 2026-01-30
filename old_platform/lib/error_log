@@ -1,0 +1,201 @@
+[19-Jun-2013 10:25:06] PHP Warning:  Missing argument 3 for iWDPurchase::createNewLicense(), called in /home/tutor81/public_html/admin/lib/manage_license.php on line 15 and defined in /home/tutor81/public_html/admin/lib/class_purchase.php on line 53
+[28-Jun-2013 18:39:43] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 170
+[28-Jun-2013 18:54:32] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:54:34] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:54:38] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:56:51] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:56:54] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:56:55] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:56:55] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:56:55] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:56:56] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:56:59] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:57:01] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:58:02] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:58:42] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:58:44] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[28-Jun-2013 18:59:00] PHP Warning:  implode() [<a href='function.implode'>function.implode</a>]: Invalid arguments passed in /home/tutor81/public_html/admin/lib/class_learning_project.php on line 187
+[30-Jul-2013 17:09:59] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:11:32] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_company.php on line 74
+[30-Jul-2013 17:11:32] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/tutor81/public_html/admin/lib/class_company.php:74) in /home/tutor81/public_html/admin/lib/report-purchases-xls.php on line 153
+[30-Jul-2013 17:11:32] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/tutor81/public_html/admin/lib/class_company.php:74) in /home/tutor81/public_html/admin/lib/report-purchases-xls.php on line 154
+[30-Jul-2013 17:11:32] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/tutor81/public_html/admin/lib/class_company.php:74) in /home/tutor81/public_html/admin/lib/report-purchases-xls.php on line 155
+[30-Jul-2013 17:11:32] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/tutor81/public_html/admin/lib/class_company.php:74) in /home/tutor81/public_html/admin/lib/report-purchases-xls.php on line 157
+[30-Jul-2013 17:11:32] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/tutor81/public_html/admin/lib/class_company.php:74) in /home/tutor81/public_html/admin/lib/report-purchases-xls.php on line 160
+[30-Jul-2013 17:11:32] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/tutor81/public_html/admin/lib/class_company.php:74) in /home/tutor81/public_html/admin/lib/report-purchases-xls.php on line 161
+[30-Jul-2013 17:11:32] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/tutor81/public_html/admin/lib/class_company.php:74) in /home/tutor81/public_html/admin/lib/report-purchases-xls.php on line 162
+[30-Jul-2013 17:11:32] PHP Warning:  Cannot modify header information - headers already sent by (output started at /home/tutor81/public_html/admin/lib/class_company.php:74) in /home/tutor81/public_html/admin/lib/report-purchases-xls.php on line 163
+[30-Jul-2013 17:25:16] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:16] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:16] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:16] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:16] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:16] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:16] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:16] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:17] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:18] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:19] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:20] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:21] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:22] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:23] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:24] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:25] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:26] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:27] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:27] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:27] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:27] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[30-Jul-2013 17:25:27] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[31-Jul-2013 16:56:36] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[01-Aug-2013 09:31:15] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[01-Aug-2013 09:31:28] PHP Notice:  Undefined offset:  0 in /home/tutor81/public_html/admin/lib/class_report.php on line 61
+[16-Aug-2013 11:56:28] PHP Fatal error:  Call to undefined method iWDUser::getUserPurchaseById() in /home/tutor81/public_html/admin/lib/manage_user.php on line 44
+[16-Aug-2013 12:01:59] PHP Fatal error:  Class 'Tutor81Notification' not found in /home/tutor81/public_html/admin/lib/manage_user.php on line 49
+[05-Sep-2013 16:15:55] PHP Warning:  require_once(class_dbmysql.php) [<a href='function.require-once'>function.require-once</a>]: failed to open stream: No such file or directory in /home/tutor81/public_html/admin/lib/class_attestato.php on line 2
+[05-Sep-2013 16:15:55] PHP Fatal error:  require_once() [<a href='function.require'>function.require</a>]: Failed opening required 'class_dbmysql.php' (include_path='.:/usr/lib/php:/usr/local/lib/php') in /home/tutor81/public_html/admin/lib/class_attestato.php on line 2
+[05-Sep-2013 16:16:21] PHP Warning:  require_once(class_learning_event.php) [<a href='function.require-once'>function.require-once</a>]: failed to open stream: No such file or directory in /home/tutor81/public_html/admin/lib/class_attestato.php on line 9
+[05-Sep-2013 16:16:21] PHP Fatal error:  require_once() [<a href='function.require'>function.require</a>]: Failed opening required 'class_learning_event.php' (include_path='.:/usr/lib/php:/usr/local/lib/php') in /home/tutor81/public_html/admin/lib/class_attestato.php on line 9
+[05-Sep-2013 16:16:54] PHP Warning:  require_once(class_dbmysql.php) [<a href='function.require-once'>function.require-once</a>]: failed to open stream: No such file or directory in /home/tutor81/public_html/admin/lib/class_learning_event.php on line 2
+[05-Sep-2013 16:16:54] PHP Fatal error:  require_once() [<a href='function.require'>function.require</a>]: Failed opening required 'class_dbmysql.php' (include_path='.:/usr/lib/php:/usr/local/lib/php') in /home/tutor81/public_html/admin/lib/class_learning_event.php on line 2
+[05-Sep-2013 16:17:08] PHP Fatal error:  Class 'Tutor81UserObj' not found in /home/tutor81/public_html/admin/lib/class_attestato.php on line 85
+[05-Sep-2013 16:18:30] PHP Fatal error:  Class 'Tutor81UserObj' not found in /home/tutor81/public_html/admin/lib/class_attestato.php on line 85
+[05-Sep-2013 16:18:51] PHP Fatal error:  Call to undefined method iWDUser::getUserDetail() in /home/tutor81/public_html/admin/lib/class_attestato.php on line 86
+[05-Sep-2013 16:19:28] PHP Fatal error:  Call to undefined method iWDLearningProject::getCourseDetailFromLearningProject() in /home/tutor81/public_html/admin/lib/class_attestato.php on line 88
+[05-Sep-2013 16:20:01] PHP Fatal error:  Call to undefined method iWDLearningProject::getListLessons() in /home/tutor81/public_html/admin/lib/class_attestato.php on line 90
+[05-Sep-2013 16:20:49] PHP Fatal error:  Call to undefined method iWDUser::getUserCompany() in /home/tutor81/public_html/admin/lib/class_attestato.php on line 92
+[05-Sep-2013 16:21:10] PHP Parse error:  syntax error, unexpected $end, expecting ')' in /home/tutor81/public_html/admin/lib/class_attestato.php on line 256
+[05-Sep-2013 16:27:02] PHP Fatal error:  Call to undefined method iWDUser::getUserDetail() in /home/tutor81/public_html/admin/lib/class_attestato.php on line 208
+[05-Sep-2013 16:37:12] PHP Fatal error:  Call to undefined method Tutor81QuestionObj::getAnswerFromQuestion() in /home/tutor81/public_html/admin/lib/class_attestato.php on line 292
+[05-Sep-2013 16:39:06] PHP Fatal error:  Call to undefined method Tutor81QuestionObj::getAnswerFromQuestion() in /home/tutor81/public_html/admin/lib/class_attestato.php on line 292

@@ -1,0 +1,12 @@
+
+small i.text-muted {
+    display: none;
+}
+
+a.buttonAcquista {
+    display: none;
+}
+
+.row .acquista-btn {
+    background-color: #000;
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>readme</title>
+<style type="text/css">/*...*/</style>
+</head>
+<body>
+<h1>Tutor81 - TutorItalia</h1><p>Piattaforma gestionale elearning</p><h2>Description</h2><p>Sito per l'amministrazione della piattaforma gestionale di corsi in elearning e in aula di Tutor81 e TutorItalia.</p><h2>Routing</h2><h3>codifica URL</h3>
+<pre><code>http://hub.tutor81.com/area/page/section/
+</code></pre><p>dove <strong>area</strong> può assumere i seguanti valori:</p>
+<ul>
+  <li>user</li>
+  <li>company</li>
+  <li>tutor</li>
+  <li>member</li>
+  <li>admin</li>
+</ul><p>A seconda del valore assunto verrà visualizzata l'interfaccia grafica relativa.</p><p>L'area viene utilizzata per decidere quale file</p>
+<pre><code>content-area.php
+</code></pre><p>caricare nel container principale. In questi file, tramite un ciclo switch si decide quale pagina caricare in base ai parametri <strong>page</strong> e <strong>section</strong> dell'URL</p><p>Ad esempio nella home page dell'area company vengono visulizzati i pannelli per la gestione degli utenti e lo stato di avanzamento dei corsi e l'eneco dei corsi da selezionare per acquistarli.</p><h2>Struttura delle directory</h2>
+<ul>
+  <li>api <em>//embrione di un API da utilizzare con l'ecommerce</em></li>
+  <li>css</li>
+  <li>download <em>//contiene file scaricabili</em></li>
+  <li>fonts</li>
+  <li>graphs <em>//grafici</em></li>
+  <li>img</li>
+  <li>js</li>
+  <li>lib <em>//classi per l'interrogazione del database</em></li>
+  <li>manage <em>//file che gestiscono le chiamate ajax(POST) a cui restituiscono i dati richiesti</em></li>
+  <li>modals <em>//struttura e, a volte, contenuto di modals bootstrap</em></li>
+  <li>pages <em>//pagine principali</em>
+  <ul>
+    <li>sections <em>//pannelli e menu contenuti in genere nelle pages</em></li>
+  </ul></li>
+  <li>report <em>//alcune pagine di report</em></li>
+</ul>
+</body>
+</html>

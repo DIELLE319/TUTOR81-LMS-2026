@@ -1,0 +1,9 @@
+@CHARSET "UTF-8";
+
+li.course_title {
+	background-color: #d30013;
+}
+
+ul.course_detail {
+	border-color: #d30013;
+}
