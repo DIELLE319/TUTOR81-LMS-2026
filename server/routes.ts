@@ -1,250 +1,326 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./replit_integrations/auth";
-import { registerAuthRoutes } from "./replit_integrations/auth";
-import { storage } from "./storage";
-import { api } from "@shared/routes";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { db } from "./db";
+import * as schema from "@shared/schema";
+import { eq, and, desc, sql, ilike, or } from "drizzle-orm";
 import { z } from "zod";
-import { isAuthenticated } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Setup auth first
   await setupAuth(app);
   registerAuthRoutes(app);
 
-  // === SEED DATA ===
-  async function seedDatabase() {
-    const existingCourses = await storage.getCourses();
-    if (existingCourses.length === 0) {
-      console.log("Seeding database...");
+  app.get("/api/stats", isAuthenticated, async (req, res) => {
+    try {
+      const [tutorsResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.companies)
+        .where(eq(schema.companies.isTutor, true));
       
-      const reactCourse = await storage.createCourse({
-        title: "Mastering React",
-        description: "A comprehensive guide to building modern web applications with React.",
-        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/1200px-React-icon.svg.png",
-        price: 0,
-        isPublished: true,
-        instructorId: null // No instructor initially
-      });
+      const [clientsResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.companies)
+        .where(eq(schema.companies.isTutor, false));
+      
+      const [salesResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.tutorsPurchases);
+      
+      const [usersResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.users);
 
-      const module1 = await storage.createModule({
-        courseId: reactCourse.id,
-        title: "Introduction to React",
-        order: 1
+      res.json({
+        tutors: Number(tutorsResult?.count ?? 0),
+        clients: Number(clientsResult?.count ?? 0),
+        sales: Number(salesResult?.count ?? 0),
+        users: Number(usersResult?.count ?? 0),
       });
+    } catch (error) {
+      console.error("Stats error:", error);
+      res.json({ tutors: 0, clients: 0, sales: 0, users: 0 });
+    }
+  });
 
-      await storage.createLesson({
-        moduleId: module1.id,
-        title: "What is React?",
-        content: "React is a JavaScript library for building user interfaces.",
-        videoUrl: "https://www.youtube.com/embed/Tn6-PIqc4UM", // Embed URL
-        order: 1,
-        duration: 10
-      });
+  app.get("/api/tutors", isAuthenticated, async (req, res) => {
+    try {
+      const tutors = await db.select()
+        .from(schema.companies)
+        .where(eq(schema.companies.isTutor, true))
+        .orderBy(schema.companies.businessName);
+      
+      res.json(tutors);
+    } catch (error) {
+      console.error("Tutors error:", error);
+      res.status(500).json({ error: "Failed to fetch tutors" });
+    }
+  });
 
-      await storage.createLesson({
-        moduleId: module1.id,
-        title: "JSX and Components",
-        content: "JSX is a syntax extension for JavaScript.",
-        videoUrl: "https://www.youtube.com/embed/SqcY0GlETPk",
-        order: 2,
-        duration: 15
-      });
+  app.get("/api/clients", isAuthenticated, async (req, res) => {
+    try {
+      const search = req.query.search as string | undefined;
+      
+      let query = db.select()
+        .from(schema.companies)
+        .where(eq(schema.companies.isTutor, false))
+        .orderBy(schema.companies.businessName);
+      
+      if (search) {
+        const clients = await db.select()
+          .from(schema.companies)
+          .where(and(
+            eq(schema.companies.isTutor, false),
+            or(
+              ilike(schema.companies.businessName, `%${search}%`),
+              ilike(schema.companies.city, `%${search}%`)
+            )
+          ))
+          .orderBy(schema.companies.businessName);
+        return res.json(clients);
+      }
+      
+      const clients = await query;
+      res.json(clients);
+    } catch (error) {
+      console.error("Clients error:", error);
+      res.status(500).json({ error: "Failed to fetch clients" });
+    }
+  });
 
-      const nodeCourse = await storage.createCourse({
-        title: "Node.js Fundamentals",
-        description: "Learn how to build scalable backend applications with Node.js.",
-        imageUrl: "https://nodejs.org/static/images/logo.svg",
-        price: 0,
-        isPublished: true,
-        instructorId: null
-      });
+  app.post("/api/companies", isAuthenticated, async (req, res) => {
+    try {
+      const result = schema.insertCompanySchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.errors[0].message });
+      }
+      const companyData = result.data;
+      
+      const [newCompany] = await db.insert(schema.companies).values({
+        businessName: companyData.businessName,
+        address: companyData.address || null,
+        city: companyData.city || null,
+        cap: companyData.cap || null,
+        province: companyData.province || null,
+        vatNumber: companyData.vatNumber || null,
+        fiscalCode: companyData.fiscalCode || null,
+        phone: companyData.phone || null,
+        email: companyData.email || null,
+        pec: companyData.pec || null,
+        website: companyData.website || null,
+        regionalAuthorization: companyData.regionalAuthorization || null,
+        licenseType: companyData.licenseType || null,
+        isTutor: companyData.isTutor || false,
+        contactPerson: companyData.contactPerson || null,
+        notes: companyData.notes || null,
+      }).returning();
 
-       const nodeModule1 = await storage.createModule({
-        courseId: nodeCourse.id,
-        title: "Getting Started with Node.js",
-        order: 1
-      });
+      res.status(201).json(newCompany);
+    } catch (error) {
+      console.error("Create company error:", error);
+      res.status(500).json({ error: "Failed to create company" });
+    }
+  });
 
-      await storage.createLesson({
-        moduleId: nodeModule1.id,
-        title: "Installing Node.js",
-        content: "Learn how to install Node.js on your machine.",
-        videoUrl: "https://www.youtube.com/embed/TlB_eWDSMt4",
-        order: 1,
-        duration: 5
-      });
+  app.get("/api/catalog", isAuthenticated, async (req, res) => {
+    try {
+      const courses = await db.select()
+        .from(schema.learningProjects)
+        .where(eq(schema.learningProjects.isPublished, true))
+        .orderBy(schema.learningProjects.title);
+      
+      res.json(courses);
+    } catch (error) {
+      console.error("Catalog error:", error);
+      res.json([]);
+    }
+  });
 
-      console.log("Database seeded!");
+  app.post("/api/catalog", isAuthenticated, async (req, res) => {
+    try {
+      const result = schema.insertLearningProjectSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.errors[0].message });
+      }
+      const courseData = result.data;
+      
+      const [newCourse] = await db.insert(schema.learningProjects).values({
+        title: courseData.title,
+        description: courseData.description || null,
+        category: courseData.category || null,
+        riskLevel: courseData.riskLevel || null,
+        sector: courseData.sector || null,
+        language: courseData.language || 'IT',
+        hours: courseData.hours || 0,
+        modality: courseData.modality || 'Online',
+        listPrice: courseData.listPrice || '0',
+        tutorCost: courseData.tutorCost || '0',
+        isPublished: courseData.isPublished ?? true,
+      }).returning();
+
+      res.status(201).json(newCourse);
+    } catch (error) {
+      console.error("Create course error:", error);
+      res.status(500).json({ error: "Failed to create course" });
+    }
+  });
+
+  app.get("/api/sales", isAuthenticated, async (req, res) => {
+    try {
+      const sales = await db.select({
+        id: schema.tutorsPurchases.id,
+        date: schema.tutorsPurchases.createdAt,
+        qty: schema.tutorsPurchases.qta,
+        listPrice: schema.tutorsPurchases.price,
+        status: schema.tutorsPurchases.status,
+        clientId: schema.tutorsPurchases.customerCompanyId,
+        courseId: schema.tutorsPurchases.learningProjectId,
+        tutorId: schema.tutorsPurchases.tutorId,
+      })
+        .from(schema.tutorsPurchases)
+        .orderBy(desc(schema.tutorsPurchases.createdAt))
+        .limit(1000);
+      
+      const enrichedSales = await Promise.all(sales.map(async (sale) => {
+        let client = 'N/A';
+        let course = 'N/A';
+        let tutorName = 'N/A';
+        
+        if (sale.clientId) {
+          const [clientData] = await db.select({ name: schema.companies.businessName })
+            .from(schema.companies)
+            .where(eq(schema.companies.id, sale.clientId));
+          client = clientData?.name || 'N/A';
+        }
+        
+        if (sale.courseId) {
+          const [courseData] = await db.select({ title: schema.learningProjects.title })
+            .from(schema.learningProjects)
+            .where(eq(schema.learningProjects.id, sale.courseId));
+          course = courseData?.title || 'N/A';
+        }
+        
+        if (sale.tutorId) {
+          const [tutorData] = await db.select({ name: schema.companies.businessName })
+            .from(schema.companies)
+            .where(eq(schema.companies.id, sale.tutorId));
+          tutorName = tutorData?.name || 'N/A';
+        }
+        
+        return {
+          id: sale.id,
+          user: 'N/A',
+          client,
+          date: sale.date,
+          course,
+          qty: sale.qty,
+          listPrice: parseFloat(String(sale.listPrice || 0)),
+          tutorName,
+        };
+      }));
+
+      res.json(enrichedSales);
+    } catch (error) {
+      console.error("Sales error:", error);
+      res.json([]);
+    }
+  });
+
+  app.get("/api/platform-users", isAuthenticated, async (req, res) => {
+    try {
+      const users = await db.select()
+        .from(schema.users)
+        .orderBy(desc(schema.users.createdAt))
+        .limit(500);
+      
+      res.json(users);
+    } catch (error) {
+      console.error("Users error:", error);
+      res.json([]);
+    }
+  });
+
+  app.get("/api/certificates", isAuthenticated, async (req, res) => {
+    try {
+      const certificates = await db.select()
+        .from(schema.certificates)
+        .orderBy(desc(schema.certificates.completedAt))
+        .limit(500);
+      
+      res.json(certificates);
+    } catch (error) {
+      console.error("Certificates error:", error);
+      res.json([]);
+    }
+  });
+
+  async function seedSampleData() {
+    const existingCourses = await db.select().from(schema.learningProjects).limit(1);
+    
+    if (existingCourses.length === 0) {
+      console.log("Seeding sample courses...");
+      
+      await db.insert(schema.learningProjects).values([
+        {
+          title: "Sicurezza sul lavoro - Formazione Generale",
+          description: "Corso base sulla sicurezza nei luoghi di lavoro",
+          category: "SICUREZZA",
+          riskLevel: "basso",
+          sector: "Tutti",
+          hours: 4,
+          modality: "Online",
+          listPrice: "50.00",
+          tutorCost: "25.00",
+        },
+        {
+          title: "HACCP - Alimentaristi",
+          description: "Corso di formazione per operatori alimentari",
+          category: "HACCP",
+          riskLevel: "medio",
+          sector: "Alimentare",
+          hours: 8,
+          modality: "Online",
+          listPrice: "80.00",
+          tutorCost: "40.00",
+        },
+        {
+          title: "Primo Soccorso - Gruppo B/C",
+          description: "Formazione addetti primo soccorso",
+          category: "SICUREZZA",
+          riskLevel: "alto",
+          sector: "Tutti",
+          hours: 12,
+          modality: "Aula",
+          listPrice: "150.00",
+          tutorCost: "75.00",
+        },
+        {
+          title: "Antincendio - Rischio Basso",
+          description: "Corso per addetti antincendio",
+          category: "SICUREZZA",
+          riskLevel: "basso",
+          sector: "Uffici",
+          hours: 4,
+          modality: "Online",
+          listPrice: "60.00",
+          tutorCost: "30.00",
+        },
+        {
+          title: "Privacy GDPR",
+          description: "Formazione sulla protezione dei dati personali",
+          category: "INFORMATICA",
+          riskLevel: "basso",
+          sector: "Tutti",
+          hours: 2,
+          modality: "Online",
+          listPrice: "40.00",
+          tutorCost: "20.00",
+        },
+      ]);
+      
+      console.log("Sample courses seeded!");
     }
   }
 
-  // === COURSES ===
-  
-  app.get(api.courses.list.path, async (req, res) => {
-    // Only show published courses unless user is instructor/admin (TODO: check roles)
-    const courses = await storage.getCourses(true); 
-    res.json(courses);
-  });
-
-  app.get(api.courses.get.path, async (req, res) => {
-    const courseId = Number(req.params.id);
-    const course = await storage.getCourse(courseId);
-    if (!course) {
-      return res.status(404).json({ message: "Course not found" });
-    }
-
-    const modules = await storage.getModules(courseId);
-    const modulesWithLessons = await Promise.all(modules.map(async (m) => {
-      const lessons = await storage.getLessons(m.id);
-      return { ...m, lessons };
-    }));
-
-    res.json({ ...course, modules: modulesWithLessons });
-  });
-
-  app.post(api.courses.create.path, isAuthenticated, async (req, res) => {
-    try {
-      const input = api.courses.create.input.parse(req.body);
-      // Automatically assign instructor (current user)
-      const user = req.user as any;
-      const course = await storage.createCourse({ ...input, instructorId: user.claims.sub });
-      res.status(201).json(course);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
-      throw err;
-    }
-  });
-
-  app.put(api.courses.update.path, isAuthenticated, async (req, res) => {
-    const courseId = Number(req.params.id);
-    const existing = await storage.getCourse(courseId);
-    if (!existing) return res.status(404).json({ message: "Course not found" });
-
-    // Check ownership
-    const user = req.user as any;
-    if (existing.instructorId !== user.claims.sub) {
-       // Allow for now for demo purposes, or check logic
-       // return res.status(403).json({ message: "Forbidden" });
-    }
-
-    try {
-      const input = api.courses.update.input.parse(req.body);
-      const updated = await storage.updateCourse(courseId, input);
-      res.json(updated);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
-      throw err;
-    }
-  });
-
-  app.delete(api.courses.delete.path, isAuthenticated, async (req, res) => {
-    const courseId = Number(req.params.id);
-    await storage.deleteCourse(courseId);
-    res.status(204).end();
-  });
-
-
-  // === MODULES & LESSONS ===
-
-  app.post(api.modules.create.path, isAuthenticated, async (req, res) => {
-    try {
-      const courseId = Number(req.params.courseId);
-      const input = api.modules.create.input.parse(req.body);
-      const module = await storage.createModule({ ...input, courseId });
-      res.status(201).json(module);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-         return res.status(400).json({ message: err.errors[0].message });
-      }
-      throw err;
-    }
-  });
-
-  app.post(api.lessons.create.path, isAuthenticated, async (req, res) => {
-    try {
-      const moduleId = Number(req.params.moduleId);
-      const input = api.lessons.create.input.parse(req.body);
-      const lesson = await storage.createLesson({ ...input, moduleId });
-      res.status(201).json(lesson);
-    } catch (err) {
-       if (err instanceof z.ZodError) {
-         return res.status(400).json({ message: err.errors[0].message });
-      }
-      throw err;
-    }
-  });
-
-
-  // === ENROLLMENTS ===
-
-  app.get(api.enrollments.list.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
-    const enrollments = await storage.getEnrollments(user.claims.sub);
-    res.json(enrollments);
-  });
-
-  app.post(api.enrollments.enroll.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
-    const courseId = Number(req.params.courseId);
-    
-    // Check if already enrolled
-    const existing = await storage.getEnrollment(user.claims.sub, courseId);
-    if (existing) {
-      return res.status(400).json({ message: "Already enrolled" });
-    }
-
-    const enrollment = await storage.createEnrollment(user.claims.sub, courseId);
-    res.status(201).json(enrollment);
-  });
-  
-  app.get(api.enrollments.check.path, isAuthenticated, async (req, res) => {
-      const user = req.user as any;
-      const courseId = Number(req.params.courseId);
-      const existing = await storage.getEnrollment(user.claims.sub, courseId);
-      res.json({ enrolled: !!existing });
-  });
-
-  // === PROGRESS ===
-  
-  app.post(api.progress.update.path, isAuthenticated, async (req, res) => {
-    const user = req.user as any;
-    const lessonId = Number(req.params.lessonId);
-    const { completed } = req.body;
-
-    // Find enrollment for this lesson's course
-    const lesson = await storage.getLesson(lessonId);
-    if (!lesson) return res.status(404).json({ message: "Lesson not found" });
-
-    const module = (await db.query.modules.findFirst({ where: eq(schema.modules.id, lesson.moduleId) }));
-    if (!module) return res.status(404).json({ message: "Module not found" });
-
-    const enrollment = await storage.getEnrollment(user.claims.sub, module.courseId);
-    if (!enrollment) return res.status(403).json({ message: "Not enrolled" });
-
-    const progress = await storage.updateProgress(enrollment.id, lessonId, completed);
-    res.json(progress);
-  });
-
-  // Helper needed for the progress update above to find module from lesson
-  // We can just use direct db query inside routes or add to storage. 
-  // Added basic check in logic above using db directly for brevity, but could be cleaner.
-  // Actually, I need to import schema and db to use db.query inside routes if I do that.
-  // Let's import them at the top.
-
-  // Run seed
-  seedDatabase().catch(console.error);
+  seedSampleData().catch(console.error);
 
   return httpServer;
 }
-
-import { db } from "./db";
-import * as schema from "@shared/schema";
-import { eq } from "drizzle-orm";

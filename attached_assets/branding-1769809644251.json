@@ -1,0 +1,125 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Helvetica Neue",
+      "role": "body"
+    }
+  ],
+  "colors": {
+    "primary": "#B94A48",
+    "accent": "#006DCC",
+    "background": "#F5F5F5",
+    "textPrimary": "#999999",
+    "link": "#006DCC"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Helvetica Neue",
+      "heading": "Helvetica Neue"
+    },
+    "fontStacks": {
+      "heading": [
+        "Helvetica Neue",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ],
+      "body": [
+        "Helvetica Neue",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Helvetica Neue",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "14px",
+      "h2": "31.5px",
+      "body": "14px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "4px"
+  },
+  "components": {
+    "input": {
+      "background": "#FFFFFF",
+      "textColor": "#555555",
+      "borderColor": "#CCCCCC",
+      "borderRadius": "4px",
+      "borderRadiusCorners": {
+        "topLeft": "4px",
+        "topRight": "4px",
+        "bottomRight": "4px",
+        "bottomLeft": "4px"
+      },
+      "shadow": "rgba(0, 0, 0, 0.075) 0px 1px 1px 0px inset"
+    },
+    "buttonPrimary": {
+      "background": "#006DCC",
+      "textColor": "#FFFFFF",
+      "borderColor": "#DDDDDD",
+      "borderRadius": "6px",
+      "borderRadiusCorners": {
+        "topLeft": "6px",
+        "topRight": "6px",
+        "bottomRight": "6px",
+        "bottomLeft": "6px"
+      },
+      "shadow": "rgba(255, 255, 255, 0.2) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"
+    }
+  },
+  "images": {
+    "logo": null,
+    "favicon": "https://media.tutor81.com/favicon.ico",
+    "ogImage": null
+  },
+  "__framework_hints": [
+    "bootstrap"
+  ],
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 0,
+      "text": "Accedi",
+      "reasoning": "The button with the text 'Accedi' has a vibrant blue background (#006DCC), which is a strong indicator of a primary call-to-action. The use of the class 'btn-primary' further supports this classification."
+    },
+    "secondary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "There is only one button present, so no secondary button can be identified."
+    },
+    "confidence": 1
+  },
+  "personality": {
+    "tone": "professional",
+    "energy": "low",
+    "targetAudience": "unknown"
+  },
+  "designSystem": {
+    "framework": "bootstrap",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 1,
+    "colors": 0.95,
+    "overall": 0.975
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": false,
+      "llmSucceeded": false,
+      "finalSource": "none"
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}

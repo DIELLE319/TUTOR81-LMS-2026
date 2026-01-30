@@ -1,139 +1,150 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, primaryKey, varchar, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
-// Import auth tables
 export * from "./models/auth";
 import { users } from "./models/auth";
 
-// === TABLE DEFINITIONS ===
-
-export const courses = pgTable("courses", {
+export const companies = pgTable("companies", {
   id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  imageUrl: text("image_url"), // Optional course image
-  price: integer("price").default(0), // Price in cents, 0 = free
-  isPublished: boolean("is_published").default(false),
-  instructorId: text("instructor_id").references(() => users.id), // FK to auth users
+  businessName: text("business_name").notNull(),
+  address: text("address"),
+  city: text("city"),
+  cap: text("cap"),
+  province: text("province"),
+  vatNumber: text("vat_number"),
+  fiscalCode: text("fiscal_code"),
+  phone: text("phone"),
+  email: text("email"),
+  pec: text("pec"),
+  website: text("website"),
+  regionalAuthorization: text("regional_authorization"),
+  licenseType: text("license_type"),
+  isTutor: boolean("is_tutor").default(false),
+  ownerUserId: varchar("owner_user_id").references(() => users.id),
+  parentCompanyId: integer("parent_company_id"),
+  contactPerson: text("contact_person"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const modules = pgTable("modules", {
+export const learningProjects = pgTable("learning_projects", {
   id: serial("id").primaryKey(),
-  courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
   title: text("title").notNull(),
-  order: integer("order").notNull(), // To order modules within a course
+  description: text("description"),
+  category: text("category"),
+  riskLevel: text("risk_level"),
+  sector: text("sector"),
+  language: text("language").default("IT"),
+  hours: integer("hours").default(0),
+  modality: text("modality"),
+  listPrice: decimal("list_price", { precision: 10, scale: 2 }).default("0"),
+  tutorCost: decimal("tutor_cost", { precision: 10, scale: 2 }).default("0"),
+  isPublished: boolean("is_published").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const lessons = pgTable("lessons", {
+export const tutorsPurchases = pgTable("tutors_purchases", {
   id: serial("id").primaryKey(),
-  moduleId: integer("module_id").notNull().references(() => modules.id, { onDelete: 'cascade' }),
-  title: text("title").notNull(),
-  content: text("content"), // Text content
-  videoUrl: text("video_url"), // Video URL (e.g., YouTube, Vimeo, or direct link)
-  order: integer("order").notNull(),
-  duration: integer("duration"), // Duration in minutes
+  tutorId: integer("tutor_id").references(() => companies.id),
+  customerCompanyId: integer("customer_company_id").references(() => companies.id),
+  userCompanyRef: varchar("user_company_ref").references(() => users.id),
+  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
+  qta: integer("qta").default(1),
+  price: decimal("price", { precision: 10, scale: 2 }).default("0"),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  notifyDays: integer("notify_days").default(15),
+  status: text("status").default("active"),
+  createdAt: timestamp("creation_date").defaultNow(),
 });
 
-export const enrollments = pgTable("enrollments", {
+export const companyUsers = pgTable("company_users", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
-  courseId: integer("course_id").notNull().references(() => courses.id),
-  enrolledAt: timestamp("enrolled_at").defaultNow(),
-  // Could add payment info here later
+  userId: varchar("user_id").notNull().references(() => users.id),
+  companyId: integer("company_id").notNull().references(() => companies.id),
+  role: integer("role").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const progress = pgTable("progress", {
+export const certificates = pgTable("certificates", {
   id: serial("id").primaryKey(),
-  enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id, { onDelete: 'cascade' }),
-  lessonId: integer("lesson_id").notNull().references(() => lessons.id, { onDelete: 'cascade' }),
-  completed: boolean("completed").default(false),
+  purchaseId: integer("purchase_id").references(() => tutorsPurchases.id),
+  userId: varchar("user_id").references(() => users.id),
+  courseTitle: text("course_title"),
   completedAt: timestamp("completed_at"),
+  certificateUrl: text("certificate_url"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-// === RELATIONS ===
-
-export const coursesRelations = relations(courses, ({ one, many }) => ({
-  instructor: one(users, {
-    fields: [courses.instructorId],
+export const companiesRelations = relations(companies, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [companies.ownerUserId],
     references: [users.id],
   }),
-  modules: many(modules),
-  enrollments: many(enrollments),
-}));
-
-export const modulesRelations = relations(modules, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [modules.courseId],
-    references: [courses.id],
+  parentCompany: one(companies, {
+    fields: [companies.parentCompanyId],
+    references: [companies.id],
   }),
-  lessons: many(lessons),
+  companyUsers: many(companyUsers),
+  tutorPurchases: many(tutorsPurchases, { relationName: "tutorPurchases" }),
+  clientPurchases: many(tutorsPurchases, { relationName: "clientPurchases" }),
 }));
 
-export const lessonsRelations = relations(lessons, ({ one, many }) => ({
-  module: one(modules, {
-    fields: [lessons.moduleId],
-    references: [modules.id],
+export const learningProjectsRelations = relations(learningProjects, ({ many }) => ({
+  purchases: many(tutorsPurchases),
+}));
+
+export const tutorsPurchasesRelations = relations(tutorsPurchases, ({ one }) => ({
+  tutor: one(companies, {
+    fields: [tutorsPurchases.tutorId],
+    references: [companies.id],
+    relationName: "tutorPurchases",
   }),
-  progress: many(progress),
-}));
-
-export const enrollmentsRelations = relations(enrollments, ({ one, many }) => ({
+  customer: one(companies, {
+    fields: [tutorsPurchases.customerCompanyId],
+    references: [companies.id],
+    relationName: "clientPurchases",
+  }),
   user: one(users, {
-    fields: [enrollments.userId],
+    fields: [tutorsPurchases.userCompanyRef],
     references: [users.id],
   }),
-  course: one(courses, {
-    fields: [enrollments.courseId],
-    references: [courses.id],
-  }),
-  progress: many(progress),
-}));
-
-export const progressRelations = relations(progress, ({ one }) => ({
-  enrollment: one(enrollments, {
-    fields: [progress.enrollmentId],
-    references: [enrollments.id],
-  }),
-  lesson: one(lessons, {
-    fields: [progress.lessonId],
-    references: [lessons.id],
+  learningProject: one(learningProjects, {
+    fields: [tutorsPurchases.learningProjectId],
+    references: [learningProjects.id],
   }),
 }));
 
-// === BASE SCHEMAS ===
+export const companyUsersRelations = relations(companyUsers, ({ one }) => ({
+  user: one(users, {
+    fields: [companyUsers.userId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [companyUsers.companyId],
+    references: [companies.id],
+  }),
+}));
 
-export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true });
-export const insertModuleSchema = createInsertSchema(modules).omit({ id: true });
-export const insertLessonSchema = createInsertSchema(lessons).omit({ id: true });
-export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({ id: true, enrolledAt: true });
-export const insertProgressSchema = createInsertSchema(progress).omit({ id: true });
+export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true });
+export const insertLearningProjectSchema = createInsertSchema(learningProjects).omit({ id: true, createdAt: true });
+export const insertTutorsPurchaseSchema = createInsertSchema(tutorsPurchases).omit({ id: true, createdAt: true });
+export const insertCompanyUserSchema = createInsertSchema(companyUsers).omit({ id: true, createdAt: true });
+export const insertCertificateSchema = createInsertSchema(certificates).omit({ id: true, createdAt: true });
 
-// === EXPLICIT API CONTRACT TYPES ===
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
 
-export type Course = typeof courses.$inferSelect;
-export type InsertCourse = z.infer<typeof insertCourseSchema>;
-export type CreateCourseRequest = InsertCourse;
-export type UpdateCourseRequest = Partial<InsertCourse>;
+export type LearningProject = typeof learningProjects.$inferSelect;
+export type InsertLearningProject = z.infer<typeof insertLearningProjectSchema>;
 
-export type Module = typeof modules.$inferSelect;
-export type InsertModule = z.infer<typeof insertModuleSchema>;
-export type CreateModuleRequest = InsertModule;
-export type UpdateModuleRequest = Partial<InsertModule>;
+export type TutorsPurchase = typeof tutorsPurchases.$inferSelect;
+export type InsertTutorsPurchase = z.infer<typeof insertTutorsPurchaseSchema>;
 
-export type Lesson = typeof lessons.$inferSelect;
-export type InsertLesson = z.infer<typeof insertLessonSchema>;
-export type CreateLessonRequest = InsertLesson;
-export type UpdateLessonRequest = Partial<InsertLesson>;
+export type CompanyUser = typeof companyUsers.$inferSelect;
+export type InsertCompanyUser = z.infer<typeof insertCompanyUserSchema>;
 
-export type Enrollment = typeof enrollments.$inferSelect;
-export type CreateEnrollmentRequest = { courseId: number }; // User ID comes from auth
-
-export type Progress = typeof progress.$inferSelect;
-export type UpdateProgressRequest = { completed: boolean };
-
-// For responses including relations
-export type CourseWithModules = Course & { modules: (Module & { lessons: Lesson[] })[] };
-export type CourseWithInstructor = Course & { instructor: typeof users.$inferSelect };
+export type Certificate = typeof certificates.$inferSelect;
+export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
