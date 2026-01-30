@@ -292,6 +292,121 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/enrollments", isAuthenticated, async (req, res) => {
+    try {
+      const statusFilter = req.query.status as string | undefined;
+      const companyFilter = req.query.companyId as string | undefined;
+      const search = req.query.search as string | undefined;
+
+      const enrollments = await db.select({
+        id: schema.enrollments.id,
+        userId: schema.enrollments.userId,
+        companyId: schema.enrollments.companyId,
+        learningProjectId: schema.enrollments.learningProjectId,
+        startDate: schema.enrollments.startDate,
+        endDate: schema.enrollments.endDate,
+        lastAccessAt: schema.enrollments.lastAccessAt,
+        progress: schema.enrollments.progress,
+        status: schema.enrollments.status,
+      })
+        .from(schema.enrollments)
+        .orderBy(desc(schema.enrollments.createdAt))
+        .limit(500);
+
+      const enrichedEnrollments = await Promise.all(enrollments.map(async (e) => {
+        let companyName = '';
+        let userName = '';
+        let userEmail = '';
+        let courseName = '';
+
+        if (e.companyId) {
+          const [company] = await db.select({ name: schema.companies.businessName })
+            .from(schema.companies)
+            .where(eq(schema.companies.id, e.companyId));
+          companyName = company?.name || '';
+        }
+
+        if (e.userId) {
+          const [user] = await db.select({ 
+            firstName: schema.users.firstName,
+            lastName: schema.users.lastName,
+            email: schema.users.email,
+          })
+            .from(schema.users)
+            .where(eq(schema.users.id, e.userId));
+          if (user) {
+            userName = `${user.lastName || ''} ${user.firstName || ''}`.trim();
+            userEmail = user.email || '';
+          }
+        }
+
+        if (e.learningProjectId) {
+          const [course] = await db.select({ title: schema.learningProjects.title })
+            .from(schema.learningProjects)
+            .where(eq(schema.learningProjects.id, e.learningProjectId));
+          courseName = course?.title || '';
+        }
+
+        return {
+          id: e.id,
+          companyName,
+          userName,
+          userEmail,
+          courseName,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          lastAccessAt: e.lastAccessAt,
+          progress: e.progress || 0,
+          status: e.status || 'not_started',
+        };
+      }));
+
+      let filtered = enrichedEnrollments;
+      
+      if (statusFilter === 'active') {
+        filtered = filtered.filter(e => e.progress > 0 && e.progress < 100);
+      } else if (statusFilter === 'not_started') {
+        filtered = filtered.filter(e => e.progress === 0);
+      }
+      
+      if (companyFilter) {
+        const companyId = parseInt(companyFilter);
+        filtered = filtered.filter(e => e.companyName.toLowerCase().includes(companyFilter.toLowerCase()));
+      }
+      
+      if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(e => 
+          e.userName.toLowerCase().includes(s) ||
+          e.userEmail.toLowerCase().includes(s) ||
+          e.companyName.toLowerCase().includes(s) ||
+          e.courseName.toLowerCase().includes(s)
+        );
+      }
+
+      res.json(filtered);
+    } catch (error) {
+      console.error("Enrollments error:", error);
+      res.json([]);
+    }
+  });
+
+  app.get("/api/companies-list", isAuthenticated, async (req, res) => {
+    try {
+      const companies = await db.select({ 
+        id: schema.companies.id, 
+        businessName: schema.companies.businessName 
+      })
+        .from(schema.companies)
+        .where(eq(schema.companies.isTutor, false))
+        .orderBy(schema.companies.businessName);
+      res.json(companies);
+    } catch (error) {
+      console.error("Companies list error:", error);
+      res.json([]);
+    }
+  });
+
   async function seedSampleData() {
     const existingCourses = await db.select().from(schema.learningProjects).limit(1);
     

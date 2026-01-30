@@ -14,6 +14,7 @@ import Sales from "@/pages/Sales";
 import Users from "@/pages/Users";
 import Certificates from "@/pages/Certificates";
 import CreateCompany from "@/pages/CreateCompany";
+import ActivatedCourses from "@/pages/ActivatedCourses";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -127,12 +128,7 @@ function Router() {
       </Route>
       
       <Route path="/courses/active">
-        <ProtectedRoute>
-          <div className="p-6 bg-black min-h-screen">
-            <h1 className="text-2xl font-bold text-white">Corsi Attivati</h1>
-            <p className="text-gray-500 mt-2">Funzionalità in arrivo...</p>
-          </div>
-        </ProtectedRoute>
+        <ProtectedRoute><ActivatedCourses /></ProtectedRoute>
       </Route>
       
       <Route path="/courses/expiring">

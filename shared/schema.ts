@@ -78,6 +78,39 @@ export const certificates = pgTable("certificates", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const enrollments = pgTable("enrollments", {
+  id: serial("id").primaryKey(),
+  purchaseId: integer("purchase_id").references(() => tutorsPurchases.id),
+  userId: varchar("user_id").references(() => users.id),
+  companyId: integer("company_id").references(() => companies.id),
+  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  lastAccessAt: timestamp("last_access_at"),
+  progress: integer("progress").default(0),
+  status: text("status").default("active"), // active, completed, suspended, not_started
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
+  purchase: one(tutorsPurchases, {
+    fields: [enrollments.purchaseId],
+    references: [tutorsPurchases.id],
+  }),
+  user: one(users, {
+    fields: [enrollments.userId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [enrollments.companyId],
+    references: [companies.id],
+  }),
+  learningProject: one(learningProjects, {
+    fields: [enrollments.learningProjectId],
+    references: [learningProjects.id],
+  }),
+}));
+
 export const companiesRelations = relations(companies, ({ one, many }) => ({
   owner: one(users, {
     fields: [companies.ownerUserId],
@@ -272,6 +305,10 @@ export const insertLearningObjectSchema = createInsertSchema(learningObjects).om
 export const insertTestSchema = createInsertSchema(tests).omit({ id: true, createdAt: true });
 export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true, createdAt: true });
 export const insertAnswerSchema = createInsertSchema(answers).omit({ id: true });
+export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({ id: true, createdAt: true });
+
+export type Enrollment = typeof enrollments.$inferSelect;
+export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
 
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
