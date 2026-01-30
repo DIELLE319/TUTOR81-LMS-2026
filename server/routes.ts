@@ -72,14 +72,14 @@ export async function registerRoutes(
     try {
       // Get all clients with their tutor relationship from tutors_purchases
       const clientsWithTutors = await db.execute(sql`
-        SELECT DISTINCT 
+        SELECT 
           c.id, c.business_name, c.city, c.email, c.phone, c.address, c.vat_number,
           t.id as tutor_id, t.business_name as tutor_name
         FROM companies c
         LEFT JOIN tutors_purchases tp ON tp.customer_company_id = c.id
         LEFT JOIN companies t ON t.id = tp.tutor_id
         WHERE c.is_tutor = false
-        ORDER BY COALESCE(t.business_name, 'ZZZ_Senza Ente'), c.business_name
+        ORDER BY t.business_name NULLS LAST, c.business_name
       `);
       
       // Group by tutor
