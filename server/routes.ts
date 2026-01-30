@@ -140,10 +140,28 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid company ID" });
       }
       
+      // Get all users belonging to this company
+      const companyUsersList = await db.select({ id: schema.users.id })
+        .from(schema.users)
+        .where(eq(schema.users.idcompany, id));
+      const userIds = companyUsersList.map(u => u.id);
+      
       // Delete related records first (cascade manually)
       await db.delete(schema.enrollments).where(eq(schema.enrollments.companyId, id));
       await db.delete(schema.tutorsPurchases).where(eq(schema.tutorsPurchases.tutorId, id));
       await db.delete(schema.tutorsPurchases).where(eq(schema.tutorsPurchases.customerCompanyId, id));
+      
+      // Delete company_users and certificates for each user
+      if (userIds.length > 0) {
+        for (const userId of userIds) {
+          await db.delete(schema.companyUsers).where(eq(schema.companyUsers.userId, userId));
+          await db.delete(schema.certificates).where(eq(schema.certificates.userId, userId));
+        }
+      }
+      
+      // Also delete company_users by companyId
+      await db.delete(schema.companyUsers).where(eq(schema.companyUsers.companyId, id));
+      
       await db.delete(schema.users).where(eq(schema.users.idcompany, id));
       await db.delete(schema.companies).where(eq(schema.companies.id, id));
       
