@@ -188,23 +188,37 @@ export default function ContentManagement() {
 
   const groupedProjects = useMemo(() => {
     const groups: { [key: string]: typeof filteredProjects } = {};
-    filteredProjects.forEach(project => {
-      const category = getCourseCategory(project.title);
-      if (!groups[category]) groups[category] = [];
-      groups[category].push(project);
-    });
-    const orderedCategories = [
-      'LAVORATORE', 'PREPOSTO', 'DIRIGENTE', 'RSPP/ASPP', 'RLS', 
-      'CARRELLO ELEVATORE', 'PLE', 'APPARECCHI SOLLEVAMENTO', 'LAVORI IN QUOTA',
-      'ANTINCENDIO', 'PRIMO SOCCORSO', 'HACCP', 
-      'RISCHIO ELETTRICO', 'SPAZI CONFINATI', 'AMIANTO',
-      'PRIVACY/GDPR', 'D.LGS 231', 'RISCHI PSICOSOCIALI',
-      'DEMO/TEST', 'ALTRI CORSI'
-    ];
-    return orderedCategories
-      .filter(cat => groups[cat]?.length > 0)
-      .map(cat => ({ category: cat, items: groups[cat] }));
-  }, [filteredProjects]);
+    
+    if (statusFilter === 'riservati') {
+      // Raggruppa per ente formativo
+      filteredProjects.forEach(project => {
+        const enteName = project.reservedTo ? (companyLookup[project.reservedTo] || `Ente #${project.reservedTo}`) : 'Senza Ente';
+        if (!groups[enteName]) groups[enteName] = [];
+        groups[enteName].push(project);
+      });
+      // Ordina alfabeticamente per nome ente
+      const sortedEntes = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+      return sortedEntes.map(ente => ({ category: ente, items: groups[ente] }));
+    } else {
+      // Raggruppa per categoria corso
+      filteredProjects.forEach(project => {
+        const category = getCourseCategory(project.title);
+        if (!groups[category]) groups[category] = [];
+        groups[category].push(project);
+      });
+      const orderedCategories = [
+        'LAVORATORE', 'PREPOSTO', 'DIRIGENTE', 'RSPP/ASPP', 'RLS', 
+        'CARRELLO ELEVATORE', 'PLE', 'APPARECCHI SOLLEVAMENTO', 'LAVORI IN QUOTA',
+        'ANTINCENDIO', 'PRIMO SOCCORSO', 'HACCP', 
+        'RISCHIO ELETTRICO', 'SPAZI CONFINATI', 'AMIANTO',
+        'PRIVACY/GDPR', 'D.LGS 231', 'RISCHI PSICOSOCIALI',
+        'DEMO/TEST', 'ALTRI CORSI'
+      ];
+      return orderedCategories
+        .filter(cat => groups[cat]?.length > 0)
+        .map(cat => ({ category: cat, items: groups[cat] }));
+    }
+  }, [filteredProjects, statusFilter, companyLookup]);
 
   const selectedProject = useMemo(() => {
     return projects.find(p => p.id === selectedCourseId);
@@ -308,9 +322,6 @@ export default function ContentManagement() {
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700 w-10">ID</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700">Nome Corso</th>
                     <th className="px-2 py-1.5 text-center font-semibold text-gray-700 w-14">Ore</th>
-                    {statusFilter === 'riservati' && (
-                      <th className="px-2 py-1.5 text-left font-semibold text-purple-700 w-28">Ente</th>
-                    )}
                   </tr>
                 </thead>
                 {loadingProjects ? (
@@ -368,11 +379,6 @@ export default function ContentManagement() {
                             <td className="px-2 py-1 text-center text-red-600 font-bold">
                               {getCourseDuration(project.title, project.hours)}
                             </td>
-                            {statusFilter === 'riservati' && (
-                              <td className={`px-2 py-1 text-[10px] ${isSelected ? 'text-purple-200' : 'text-purple-600'} font-medium truncate max-w-[120px]`} title={project.reservedTo ? companyLookup[project.reservedTo] : ''}>
-                                {project.reservedTo ? companyLookup[project.reservedTo] : '-'}
-                              </td>
-                            )}
                           </tr>
                         );
                       })}
