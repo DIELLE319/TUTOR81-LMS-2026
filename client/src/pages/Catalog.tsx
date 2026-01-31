@@ -95,7 +95,7 @@ export default function Catalog() {
   };
 
   const getSubcategoryLabel = (subcategory: string | null) => {
-    if (!subcategory) return { label: '-', color: 'bg-gray-400' };
+    if (!subcategory) return { label: '', color: 'hidden' };
     const labels: Record<string, { label: string; color: string }> = {
       'LAVORATORE': { label: 'LAV', color: 'bg-blue-600' },
       'PREPOSTO': { label: 'PRE', color: 'bg-purple-600' },
@@ -111,7 +111,7 @@ export default function Catalog() {
   };
 
   const getCourseTypeLabel = (courseType: string | null) => {
-    if (!courseType) return { label: '-', color: 'bg-gray-400' };
+    if (!courseType) return { label: '', color: 'hidden' };
     if (courseType.toLowerCase() === 'aggiornamento') {
       return { label: 'Agg.', color: 'bg-orange-500' };
     }
@@ -119,7 +119,7 @@ export default function Catalog() {
   };
 
   const getRiskLabel = (riskLevel: string | null) => {
-    if (!riskLevel) return { label: '-', color: 'bg-gray-400' };
+    if (!riskLevel) return { label: '', color: 'hidden' };
     const risk = riskLevel.toLowerCase();
     if (risk === 'alto') return { label: 'Alto', color: 'bg-red-500' };
     if (risk === 'medio') return { label: 'Medio', color: 'bg-yellow-500' };
