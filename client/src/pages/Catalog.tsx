@@ -151,7 +151,15 @@ export default function Catalog() {
 
     return orderedCategories
       .filter(cat => groups[cat]?.length > 0)
-      .map(cat => ({ category: cat, courses: groups[cat] }));
+      .map(cat => ({ 
+        category: cat, 
+        courses: groups[cat].sort((a, b) => {
+          const typeOrder = { 'Base': 0, 'Aggiornamento': 1 };
+          const typeA = typeOrder[a.courseType as keyof typeof typeOrder] ?? 2;
+          const typeB = typeOrder[b.courseType as keyof typeof typeOrder] ?? 2;
+          return typeA - typeB;
+        })
+      }));
   }, [filteredCourses]);
 
   const toggleCategory = (category: string) => {
