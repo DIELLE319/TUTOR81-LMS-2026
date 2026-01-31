@@ -216,13 +216,20 @@ export const lessons = pgTable("lessons", {
 
 export const learningObjects = pgTable("learning_objects", {
   id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
   title: text("title").notNull(),
-  objectType: text("object_type").notNull(), // video, audio, document, scorm, image
-  fileUrl: text("file_url"),
-  mimeType: text("mime_type"),
-  fileSize: integer("file_size"),
-  duration: integer("duration"), // for video/audio
-  metadata: jsonb("metadata"),
+  objectType: integer("object_type").default(1), // 1=video, 2=slide, 3=document
+  jwplayerCode: text("jwplayer_code"),
+  videoFilename: text("video_filename"),
+  slideFilename: text("slide_filename"),
+  documentFilename: text("document_filename"),
+  duration: integer("duration").default(0), // in minutes
+  percentageToPass: integer("percentage_to_pass").default(70),
+  argumentId: integer("argument_id").default(0),
+  languageId: integer("language_id").default(1),
+  ownerUserId: integer("owner_user_id"),
+  suspended: boolean("suspended").default(false),
+  inUse: boolean("in_use").default(true), // calculated: is this object used in active courses?
   createdAt: timestamp("created_at").defaultNow(),
 });
 

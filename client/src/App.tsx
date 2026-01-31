@@ -18,6 +18,7 @@ import ActivatedCourses from "@/pages/ActivatedCourses";
 import Invoicing from "@/pages/Invoicing";
 import ContentManagement from "@/pages/ContentManagement";
 import EmailPreview from "@/pages/EmailPreview";
+import LearningObjects from "@/pages/LearningObjects";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -158,6 +159,10 @@ function Router() {
 
       <Route path="/content-management">
         <ProtectedRoute><ContentManagement /></ProtectedRoute>
+      </Route>
+
+      <Route path="/learning-objects">
+        <ProtectedRoute><LearningObjects /></ProtectedRoute>
       </Route>
 
       <Route path="/email-preview">

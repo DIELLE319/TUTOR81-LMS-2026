@@ -1497,6 +1497,36 @@ export async function registerRoutes(
 
   seedSampleData().catch(console.error);
 
+  // Learning Objects API
+  app.get("/api/learning-objects", isAuthenticated, async (req, res) => {
+    try {
+      const objects = await db.select()
+        .from(schema.learningObjects)
+        .orderBy(desc(schema.learningObjects.id));
+      
+      res.json(objects);
+    } catch (error) {
+      console.error("Learning objects error:", error);
+      res.status(500).json({ error: "Failed to fetch learning objects" });
+    }
+  });
+
+  app.patch("/api/learning-objects/:id/suspend", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { suspended } = req.body;
+      
+      await db.update(schema.learningObjects)
+        .set({ suspended: suspended })
+        .where(eq(schema.learningObjects.id, parseInt(id)));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Suspend learning object error:", error);
+      res.status(500).json({ error: "Failed to update learning object" });
+    }
+  });
+
   // Email tracking pixel - traccia apertura email
   app.get("/api/email-track/:trackingId", async (req, res) => {
     try {

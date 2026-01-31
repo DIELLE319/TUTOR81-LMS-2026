@@ -157,6 +157,7 @@ export default function Layout({ children }: LayoutProps) {
               <>
                 <SectionHeader title="CONTENT MANAGEMENT" />
                 <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" />
+                <MenuItem to="/learning-objects" label="Oggetti Multimediali" iconName="Video" />
               </>
             )}
             
