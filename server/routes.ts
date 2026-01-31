@@ -360,11 +360,10 @@ export async function registerRoutes(
           tp.creation_date,
           tp.qta,
           tp.price,
-          lp.title as course_title,
+          tp.learning_project_id as course_id,
           c.business_name as client_name,
           c.id as client_id
         FROM tutors_purchases tp
-        LEFT JOIN learning_projects lp ON lp.id = tp.learning_project_id
         LEFT JOIN companies c ON c.id = tp.customer_company_id
         WHERE tp.tutor_id = ${tutorId}
           AND tp.creation_date >= ${startDate}
@@ -372,21 +371,21 @@ export async function registerRoutes(
         ORDER BY tp.creation_date
       `);
       
-      // Group by course and calculate totals
-      const coursesSummary: Record<string, { title: string; qty: number; unitPrice: number; total: number }> = {};
+      // Group by course ID and calculate totals
+      const coursesSummary: Record<number, { courseId: number; qty: number; unitPrice: number; total: number }> = {};
       let grandTotal = 0;
       
       for (const sale of sales.rows) {
-        const title = (sale.course_title as string) || 'Corso sconosciuto';
+        const courseId = (sale.course_id as number) || 0;
         const qty = (sale.qta as number) || 1;
         const price = parseFloat(String(sale.price || 0));
         const lineTotal = qty * price;
         
-        if (!coursesSummary[title]) {
-          coursesSummary[title] = { title, qty: 0, unitPrice: price, total: 0 };
+        if (!coursesSummary[courseId]) {
+          coursesSummary[courseId] = { courseId, qty: 0, unitPrice: price, total: 0 };
         }
-        coursesSummary[title].qty += qty;
-        coursesSummary[title].total += lineTotal;
+        coursesSummary[courseId].qty += qty;
+        coursesSummary[courseId].total += lineTotal;
         grandTotal += lineTotal;
       }
       
