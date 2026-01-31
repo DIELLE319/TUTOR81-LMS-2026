@@ -49,10 +49,7 @@ export default function LearningObjects() {
 
   const suspendMutation = useMutation({
     mutationFn: async ({ id, suspended }: { id: number; suspended: boolean }) => {
-      return apiRequest(`/api/learning-objects/${id}/suspend`, {
-        method: "PATCH",
-        body: JSON.stringify({ suspended }),
-      });
+      return apiRequest("PATCH", `/api/learning-objects/${id}/suspend`, { suspended });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/learning-objects"] });
