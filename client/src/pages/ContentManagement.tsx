@@ -28,6 +28,18 @@ export default function ContentManagement() {
     queryKey: ['/api/learning-projects'],
   });
 
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ['/api/companies'],
+  });
+
+  const companyLookup = useMemo(() => {
+    const lookup: Record<number, string> = {};
+    companies.forEach(c => {
+      lookup[c.id] = c.businessName || `Ente #${c.id}`;
+    });
+    return lookup;
+  }, [companies]);
+
   const publishMutation = useMutation({
     mutationFn: async (projectId: number) => {
       return apiRequest('POST', `/api/learning-projects/${projectId}/publish`);
@@ -296,6 +308,9 @@ export default function ContentManagement() {
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700 w-10">ID</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700">Nome Corso</th>
                     <th className="px-2 py-1.5 text-center font-semibold text-gray-700 w-14">Ore</th>
+                    {statusFilter === 'riservati' && (
+                      <th className="px-2 py-1.5 text-left font-semibold text-purple-700 w-28">Ente</th>
+                    )}
                   </tr>
                 </thead>
                 {loadingProjects ? (
@@ -353,6 +368,11 @@ export default function ContentManagement() {
                             <td className="px-2 py-1 text-center text-red-600 font-bold">
                               {getCourseDuration(project.title, project.hours)}
                             </td>
+                            {statusFilter === 'riservati' && (
+                              <td className={`px-2 py-1 text-[10px] ${isSelected ? 'text-purple-200' : 'text-purple-600'} font-medium truncate max-w-[120px]`} title={project.reservedTo ? companyLookup[project.reservedTo] : ''}>
+                                {project.reservedTo ? companyLookup[project.reservedTo] : '-'}
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
