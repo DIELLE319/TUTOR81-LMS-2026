@@ -157,7 +157,12 @@ export default function Catalog() {
           const typeOrder = { 'Base': 0, 'Aggiornamento': 1 };
           const typeA = typeOrder[a.courseType as keyof typeof typeOrder] ?? 2;
           const typeB = typeOrder[b.courseType as keyof typeof typeOrder] ?? 2;
-          return typeA - typeB;
+          if (typeA !== typeB) return typeA - typeB;
+          
+          const riskOrder = { 'Basso': 0, 'Medio': 1, 'Alto': 2 };
+          const riskA = riskOrder[a.riskLevel as keyof typeof riskOrder] ?? 3;
+          const riskB = riskOrder[b.riskLevel as keyof typeof riskOrder] ?? 3;
+          return riskA - riskB;
         })
       }));
   }, [filteredCourses]);
