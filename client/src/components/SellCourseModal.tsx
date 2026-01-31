@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 
 interface Company {
   id: number;
-  business_name: string;
+  businessName: string;
 }
 
 interface CompanyUser {
@@ -102,13 +102,13 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   const filteredCompanies = useMemo(() => {
     return companies
-      .filter(c => c.business_name && !c.business_name.toLowerCase().includes('tutor'))
-      .sort((a, b) => (a.business_name || '').localeCompare(b.business_name || ''));
+      .filter(c => c.businessName && !c.businessName.toLowerCase().includes('tutor'))
+      .sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''));
   }, [companies]);
 
   const selectedCompanyName = useMemo(() => {
     const company = companies.find(c => c.id.toString() === selectedCompanyId);
-    return company?.business_name || '';
+    return company?.businessName || '';
   }, [companies, selectedCompanyId]);
 
   const filteredExistingUsers = useMemo(() => {
@@ -257,7 +257,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                       {filteredCompanies.map(company => (
                         <CommandItem
                           key={company.id}
-                          value={company.business_name}
+                          value={company.businessName}
                           onSelect={() => {
                             setSelectedCompanyId(company.id.toString());
                             setCompanySearchOpen(false);
@@ -270,7 +270,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                               selectedCompanyId === company.id.toString() ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          {company.business_name}
+                          {company.businessName}
                         </CommandItem>
                       ))}
                     </CommandGroup>
