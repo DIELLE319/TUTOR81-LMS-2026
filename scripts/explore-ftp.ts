@@ -14,46 +14,34 @@ async function exploreFTP() {
     
     console.log("=== Connected to FTP ===\n");
     
-    // Explore attestati folder
     const attestatiPath = "/media/media/attestati";
     
-    try {
-      const list = await client.list(attestatiPath);
-      console.log(`${attestatiPath} (${list.length} items):`);
-      
-      // Show first 50 items
-      for (const item of list.slice(0, 50)) {
-        const type = item.isDirectory ? "[DIR]" : "[FILE]";
-        const size = item.size ? ` (${Math.round(item.size/1024)}KB)` : "";
-        console.log(`  ${type} ${item.name}${size}`);
-      }
-      if (list.length > 50) {
-        console.log(`  ... and ${list.length - 50} more`);
-      }
-      
-      // If first item is a directory, explore it
-      const firstDir = list.find(i => i.isDirectory);
-      if (firstDir) {
-        const subPath = `${attestatiPath}/${firstDir.name}`;
-        const subList = await client.list(subPath);
-        console.log(`\n${subPath} (${subList.length} items):`);
-        for (const item of subList.slice(0, 20)) {
-          const type = item.isDirectory ? "[DIR]" : "[FILE]";
-          console.log(`  ${type} ${item.name}`);
-        }
-      }
-      
-      // Show PDF file pattern
-      const pdfFiles = list.filter(f => f.name.endsWith('.pdf'));
-      if (pdfFiles.length > 0) {
-        console.log(`\nPDF file examples:`);
-        for (const pdf of pdfFiles.slice(0, 10)) {
-          console.log(`  ${pdf.name}`);
-        }
-      }
-      
-    } catch (e: any) {
-      console.log(`Error: ${e.message}`);
+    const list = await client.list(attestatiPath);
+    console.log(`${attestatiPath} - Totale: ${list.length} files\n`);
+    
+    // Count PDF files
+    const pdfFiles = list.filter(f => f.name.endsWith('.pdf'));
+    console.log(`PDF files: ${pdfFiles.length}`);
+    
+    // Show first 100 files
+    console.log(`\nPrimi 100 files:`);
+    for (const item of pdfFiles.slice(0, 100)) {
+      const sizeKB = Math.round((item.size || 0) / 1024);
+      console.log(`  ${item.name} (${sizeKB}KB)`);
+    }
+    
+    // Extract IDs to check range
+    const ids = pdfFiles
+      .map(f => {
+        const match = f.name.match(/attestato_licenza_(\d+)\.pdf/);
+        return match ? parseInt(match[1]) : null;
+      })
+      .filter(id => id !== null) as number[];
+    
+    if (ids.length > 0) {
+      console.log(`\n--- Statistiche ID ---`);
+      console.log(`ID minimo: ${Math.min(...ids)}`);
+      console.log(`ID massimo: ${Math.max(...ids)}`);
     }
     
   } catch (err) {
