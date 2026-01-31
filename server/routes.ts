@@ -264,7 +264,6 @@ export async function registerRoutes(
   app.get("/api/learning-projects/:id/structure", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id as string);
-      const useLegacy = req.query.legacy === 'true';
       
       if (isNaN(projectId)) {
         return res.status(400).json({ error: "ID corso non valido" });
@@ -273,8 +272,8 @@ export async function registerRoutes(
       // Ottieni info del learning project
       const [project] = await db.select().from(schema.learningProjects).where(eq(schema.learningProjects.id, projectId));
       
-      // Cerca per legacy_course_id o learning_project_id
-      const searchId = useLegacy ? projectId : (project?.legacyCourseId || projectId);
+      // Cerca per legacy_course_id (che corrisponde a sortOrder) o learning_project_id
+      const legacyCourseId = project?.sortOrder || projectId;
 
       // Query per ottenere la struttura completa
       const structure = await db.execute(sql`
@@ -304,7 +303,7 @@ export async function registerRoutes(
         LEFT JOIN lessons l ON l.id = ml.lesson_id
         LEFT JOIN lesson_learning_objects llo ON llo.lesson_id = l.id
         LEFT JOIN learning_objects lo ON lo.id = llo.learning_object_id
-        WHERE cm.legacy_course_id = ${searchId} OR cm.learning_project_id = ${projectId}
+        WHERE cm.legacy_course_id = ${legacyCourseId} OR cm.learning_project_id = ${projectId}
         ORDER BY cm.position, ml.position, llo.position
       `);
 
