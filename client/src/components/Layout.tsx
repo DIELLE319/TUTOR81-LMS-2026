@@ -57,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
   );
 
   const SectionHeader = ({ title }: { title: string }) => (
-    <div className="px-4 py-2 mt-4 text-gray-600 uppercase text-[10px] font-bold tracking-widest">
+    <div className="px-4 py-2 mt-4 text-black/50 uppercase text-[10px] font-bold tracking-widest">
       {title}
     </div>
   );
@@ -130,8 +130,8 @@ export default function Layout({ children }: LayoutProps) {
             {(isSuperAdmin || isVenditore) && (
               <>
                 <SectionHeader title="VENDITA" />
-                <MenuItem to="/companies/new" label="Crea Cliente" color="text-gray-300" iconName="UserPlus" />
-                <MenuItem to="/catalog" label="Invia avvio corso" color="text-gray-300" iconName="ShoppingCart" />
+                <MenuItem to="/companies/new" label="Crea Cliente" iconName="UserPlus" />
+                <MenuItem to="/catalog" label="Invia avvio corso" iconName="ShoppingCart" />
                 <MenuItem to="/sales" label="Corsi Venduti" iconName="FileText" />
                 <MenuItem to="/invoicing" label="Fatturazione" iconName="Receipt" />
               </>
@@ -156,7 +156,7 @@ export default function Layout({ children }: LayoutProps) {
             {isSuperAdmin && (
               <>
                 <SectionHeader title="CONTENT MANAGEMENT" />
-                <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" color="text-cyan-400" />
+                <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" />
               </>
             )}
             
