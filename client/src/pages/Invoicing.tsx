@@ -251,7 +251,7 @@ export default function Invoicing() {
                     data-testid="button-save-invoice"
                   >
                     <Save size={18} className="mr-2" />
-                    {saveInvoiceMutation.isPending ? 'Salvataggio...' : 'Salva'}
+                    {saveInvoiceMutation.isPending ? 'Archiviazione...' : 'Chiudi e Archivia'}
                   </Button>
                 );
               })()}
