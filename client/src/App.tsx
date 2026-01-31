@@ -17,6 +17,7 @@ import CreateCompany from "@/pages/CreateCompany";
 import ActivatedCourses from "@/pages/ActivatedCourses";
 import Invoicing from "@/pages/Invoicing";
 import ContentManagement from "@/pages/ContentManagement";
+import EmailPreview from "@/pages/EmailPreview";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -157,6 +158,10 @@ function Router() {
 
       <Route path="/content-management">
         <ProtectedRoute><ContentManagement /></ProtectedRoute>
+      </Route>
+
+      <Route path="/email-preview">
+        <EmailPreview />
       </Route>
 
       <Route path="/">
