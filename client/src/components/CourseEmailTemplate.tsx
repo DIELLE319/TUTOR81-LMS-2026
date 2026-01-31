@@ -1,6 +1,8 @@
 interface CourseEmailTemplateProps {
   tutorLogo?: string;
   tutorName: string;
+  tutorAddress?: string;
+  tutorEmail?: string;
   courseName: string;
   userName: string;
   userEmail: string;
@@ -10,20 +12,23 @@ interface CourseEmailTemplateProps {
   referentEmail?: string;
   username: string;
   courseUrl?: string;
+  instructionsUrl?: string;
 }
 
 export default function CourseEmailTemplate({
   tutorLogo,
   tutorName,
+  tutorAddress,
+  tutorEmail,
   courseName,
   userName,
-  userEmail,
   startDate,
   endDate,
   referentName,
   referentEmail,
   username,
-  courseUrl = '#'
+  courseUrl = '#',
+  instructionsUrl = '#'
 }: CourseEmailTemplateProps) {
   return (
     <div style={{ 
@@ -156,17 +161,68 @@ export default function CourseEmailTemplate({
       </div>
 
       <div style={{ 
+        backgroundColor: '#FCD34D', 
+        padding: '30px', 
+        textAlign: 'center' as const,
+        borderTop: '3px solid #000'
+      }}>
+        <a 
+          href={instructionsUrl}
+          style={{
+            color: '#000',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            textDecoration: 'underline'
+          }}
+        >
+          ISTRUZIONI PER IL CORSO
+        </a>
+      </div>
+
+      <div style={{ 
+        backgroundColor: '#FCD34D', 
+        padding: '25px 30px',
+        color: '#000',
+        fontSize: '14px',
+        lineHeight: '1.8',
+        borderTop: '2px solid #000'
+      }}>
+        <p style={{ margin: '0 0 15px 0' }}>
+          Il tuo referente per questo corso può essere contattato per E-Mail scrivendo a <strong>{tutorName}</strong>
+          {tutorAddress && <><br />{tutorAddress}</>}
+          {tutorEmail && <><br />E-Mail: <a href={`mailto:${tutorEmail}`} style={{ color: '#000' }}>{tutorEmail}</a></>}
+        </p>
+        
+        <p style={{ margin: '0 0 15px 0' }}>
+          Al termine del corso potrai scaricare il tracciato di avvenuta formazione
+        </p>
+        
+        <p style={{ margin: '0 0 15px 0' }}>
+          <strong>IL CORSO PUÒ ESSERE INTERROTTO</strong> con il pulsante ESCI in alto a sinistra. Riaccendendo al corso questo ripartirà dall'ultimo punto utile.
+        </p>
+        
+        <p style={{ margin: '0 0 15px 0' }}>
+          <strong>PAUSA:</strong> puoi fermare temporaneamente il corso con il pulsante Ferma, ma solo per 30 secondi, terminati i quali il corso viene interrotto.
+        </p>
+        
+        <p style={{ margin: '0' }}>
+          <strong>ASSISTENZA TECNICA:</strong> In ogni momento è possibile inviare una segnalazione anche tramite mail dal pulsante Richiedi Assistenza oppure scrivete a{' '}
+          {tutorEmail && <a href={`mailto:${tutorEmail}`} style={{ color: '#000' }}>{tutorEmail}</a>}
+        </p>
+      </div>
+
+      <div style={{ 
         backgroundColor: '#000', 
         padding: '15px', 
-        textAlign: 'center' as const,
-        borderTop: '2px solid #FCD34D'
+        textAlign: 'center' as const
       }}>
         <p style={{ 
-          color: '#666', 
+          color: '#FCD34D', 
           margin: '0',
-          fontSize: '12px'
+          fontSize: '14px',
+          fontWeight: 'bold'
         }}>
-          Questa email è stata inviata automaticamente da {tutorName}
+          {tutorName}{tutorAddress && ` - ${tutorAddress}`}
         </p>
       </div>
     </div>
@@ -248,9 +304,40 @@ export function generateEmailHTML(props: CourseEmailTemplateProps): string {
       </a>
     </div>
 
-    <div style="background-color: #000; padding: 15px; text-align: center; border-top: 2px solid #FCD34D;">
-      <p style="color: #666; margin: 0; font-size: 12px;">
-        Questa email è stata inviata automaticamente da ${props.tutorName}
+    <div style="background-color: #FCD34D; padding: 30px; text-align: center; border-top: 3px solid #000;">
+      <a href="${props.instructionsUrl || '#'}" style="color: #000; font-size: 18px; font-weight: bold; text-decoration: underline;">
+        ISTRUZIONI PER IL CORSO
+      </a>
+    </div>
+
+    <div style="background-color: #FCD34D; padding: 25px 30px; color: #000; font-size: 14px; line-height: 1.8; border-top: 2px solid #000;">
+      <p style="margin: 0 0 15px 0;">
+        Il tuo referente per questo corso può essere contattato per E-Mail scrivendo a <strong>${props.tutorName}</strong>
+        ${props.tutorAddress ? `<br />${props.tutorAddress}` : ''}
+        ${props.tutorEmail ? `<br />E-Mail: <a href="mailto:${props.tutorEmail}" style="color: #000;">${props.tutorEmail}</a>` : ''}
+      </p>
+      
+      <p style="margin: 0 0 15px 0;">
+        Al termine del corso potrai scaricare il tracciato di avvenuta formazione
+      </p>
+      
+      <p style="margin: 0 0 15px 0;">
+        <strong>IL CORSO PUÒ ESSERE INTERROTTO</strong> con il pulsante ESCI in alto a sinistra. Riaccendendo al corso questo ripartirà dall'ultimo punto utile.
+      </p>
+      
+      <p style="margin: 0 0 15px 0;">
+        <strong>PAUSA:</strong> puoi fermare temporaneamente il corso con il pulsante Ferma, ma solo per 30 secondi, terminati i quali il corso viene interrotto.
+      </p>
+      
+      <p style="margin: 0;">
+        <strong>ASSISTENZA TECNICA:</strong> In ogni momento è possibile inviare una segnalazione anche tramite mail dal pulsante Richiedi Assistenza oppure scrivete a 
+        ${props.tutorEmail ? `<a href="mailto:${props.tutorEmail}" style="color: #000;">${props.tutorEmail}</a>` : ''}
+      </p>
+    </div>
+
+    <div style="background-color: #000; padding: 15px; text-align: center;">
+      <p style="color: #FCD34D; margin: 0; font-size: 14px; font-weight: bold;">
+        ${props.tutorName}${props.tutorAddress ? ` - ${props.tutorAddress}` : ''}
       </p>
     </div>
   </div>
