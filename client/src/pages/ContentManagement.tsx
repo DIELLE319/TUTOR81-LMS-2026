@@ -1118,10 +1118,16 @@ export default function ContentManagement() {
             
             <div className="p-6">
               {/* Info base */}
-              <div className="grid grid-cols-3 gap-4 text-sm mb-6">
-                <div>
+              <div className="grid grid-cols-4 gap-4 text-sm mb-6">
+                <div className="col-span-2">
                   <label className="text-xs font-medium text-gray-500">Titolo</label>
                   <p className="text-gray-800 font-semibold">{selectedLO.title}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Stato</label>
+                  <p className={selectedLO.suspended ? 'text-gray-500' : selectedLO.inUse ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                    {selectedLO.suspended ? 'Sospeso' : selectedLO.inUse ? 'Attivo' : 'Non in uso'}
+                  </p>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500">Tipo</label>
@@ -1143,12 +1149,6 @@ export default function ContentManagement() {
                     <option value="231">231</option>
                     <option value="hr">HR</option>
                   </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-500">Stato</label>
-                  <p className={selectedLO.suspended ? 'text-gray-500' : selectedLO.inUse ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                    {selectedLO.suspended ? 'Sospeso' : selectedLO.inUse ? 'Attivo' : 'Non in uso'}
-                  </p>
                 </div>
               </div>
 
