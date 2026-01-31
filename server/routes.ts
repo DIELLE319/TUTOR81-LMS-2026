@@ -392,6 +392,9 @@ export async function registerRoutes(
       const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 
                           'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
       
+      // Sort courses by ID
+      const sortedCourses = Object.values(coursesSummary).sort((a, b) => a.courseId - b.courseId);
+      
       res.json({
         tutor: {
           id: tutor.id,
@@ -407,7 +410,7 @@ export async function registerRoutes(
           monthName: monthNames[month - 1],
           label: `${monthNames[month - 1]} ${year}`
         },
-        courses: Object.values(coursesSummary),
+        courses: sortedCourses,
         totalSales: sales.rows.length,
         grandTotal,
         generatedAt: new Date().toISOString(),
