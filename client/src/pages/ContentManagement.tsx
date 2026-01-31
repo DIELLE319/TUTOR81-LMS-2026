@@ -180,11 +180,11 @@ export default function ContentManagement() {
           <aside className="w-[380px] bg-white border-r border-gray-300 flex flex-col shadow-sm">
             <div className="p-3 border-b border-gray-200 bg-gray-50">
               <div className="flex gap-3 mb-3">
-                <TabButton active={viewMode === 'progetti'} onClick={() => setViewMode('progetti')}>
-                  PROGETTI
-                </TabButton>
                 <TabButton active={viewMode === 'corsi'} onClick={() => setViewMode('corsi')}>
                   CORSI
+                </TabButton>
+                <TabButton active={viewMode === 'progetti'} onClick={() => setViewMode('progetti')}>
+                  PROGETTI
                 </TabButton>
               </div>
 
