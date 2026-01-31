@@ -296,7 +296,7 @@ export async function registerRoutes(
           llo.position as lo_position,
           lo.id as lo_id,
           lo.title as lo_title,
-          lo.type as lo_type,
+          lo.object_type as lo_type,
           lo.duration as lo_duration
         FROM course_modules cm
         JOIN modules m ON m.id = cm.module_id
@@ -342,10 +342,17 @@ export async function registerRoutes(
           const lesson = module.lessons.get(lessonId);
           const loExists = lesson.learningObjects.some((lo: any) => lo.id === row.lo_id);
           if (!loExists) {
+            // Mappa object_type numerico a tipo testuale
+            const objectTypeMap: Record<number, string> = {
+              1: 'video',
+              2: 'slide',
+              3: 'document',
+              4: 'test'
+            };
             lesson.learningObjects.push({
               id: row.lo_id,
               title: row.lo_title,
-              type: row.lo_type,
+              type: objectTypeMap[row.lo_type as number] || 'video',
               duration: row.lo_duration,
               position: row.lo_position
             });
