@@ -1068,89 +1068,99 @@ export default function ContentManagement() {
               </div>
             )}
             
-            {/* Pannello dettaglio Learning Object */}
-            {selectedLO && (
-              <div className="mt-6 border border-gray-200 rounded bg-gray-50 p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-gray-800">Dettaglio Oggetto #{selectedLO.legacyId || selectedLO.id}</h3>
-                  <button 
-                    onClick={() => setSelectedLO(null)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <XCircle size={20} />
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">ID Legacy:</span>
-                      <span className="text-gray-800">{selectedLO.legacyId || '-'}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Titolo:</span>
-                      <span className="text-gray-800 font-semibold">{selectedLO.title}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Tipo:</span>
-                      <span className="text-gray-800">
-                        {selectedLO.objectType === 1 ? 'Video' : selectedLO.objectType === 2 ? 'Slide' : 'Documento'}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Durata:</span>
-                      <span className="text-gray-800">{selectedLO.duration} minuti</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">% Superamento:</span>
-                      <span className="text-gray-800">{selectedLO.percentageToPass}%</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">JWPlayer Code:</span>
-                      <span className="text-gray-800 font-mono">{selectedLO.jwplayerCode || '-'}</span>
-                    </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Dettaglio Learning Object */}
+      {selectedLO && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedLO(null)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b bg-[#4a90a4] text-white rounded-t-lg">
+              <h3 className="text-lg font-bold">Learning Object #{selectedLO.legacyId || selectedLO.id}</h3>
+              <button 
+                onClick={() => setSelectedLO(null)}
+                className="text-white hover:text-gray-200"
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-6 text-sm">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">ID Legacy</label>
+                    <p className="text-gray-800">{selectedLO.legacyId || '-'}</p>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Video File:</span>
-                      <span className="text-gray-800 font-mono text-[10px]">{selectedLO.videoFilename || '-'}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Slide File:</span>
-                      <span className="text-gray-800 font-mono text-[10px]">{selectedLO.slideFilename || '-'}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Document File:</span>
-                      <span className="text-gray-800 font-mono text-[10px]">{selectedLO.documentFilename || '-'}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Argomento ID:</span>
-                      <span className="text-gray-800">{selectedLO.argumentId || '-'}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Lingua ID:</span>
-                      <span className="text-gray-800">{selectedLO.languageId || 1}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="font-medium text-gray-500 w-32">Stato:</span>
-                      <span className={selectedLO.suspended ? 'text-gray-500' : selectedLO.inUse ? 'text-green-600' : 'text-red-600'}>
-                        {selectedLO.suspended ? 'Sospeso' : selectedLO.inUse ? 'Attivo' : 'Non in uso'}
-                      </span>
-                    </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Titolo</label>
+                    <p className="text-gray-800 font-semibold">{selectedLO.title}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Tipo</label>
+                    <p className="text-gray-800">
+                      {selectedLO.objectType === 1 ? 'Video' : selectedLO.objectType === 2 ? 'Slide' : 'Documento'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Durata (minuti)</label>
+                    <p className="text-gray-800">{selectedLO.duration}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">% Superamento</label>
+                    <p className="text-gray-800">{selectedLO.percentageToPass}%</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">JWPlayer Code</label>
+                    <p className="text-gray-800 font-mono">{selectedLO.jwplayerCode || '-'}</p>
                   </div>
                 </div>
                 
-                <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
-                  <button className="px-3 py-1.5 text-xs bg-[#4a90a4] text-white rounded hover:bg-[#3a7084]">
-                    Modifica
-                  </button>
-                  <button className={`px-3 py-1.5 text-xs rounded ${selectedLO.suspended ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-red-500 text-white hover:bg-red-600'}`}>
-                    {selectedLO.suspended ? 'Riattiva' : 'Sospendi'}
-                  </button>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Video File</label>
+                    <p className="text-gray-800 font-mono text-xs break-all">{selectedLO.videoFilename || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Slide File</label>
+                    <p className="text-gray-800 font-mono text-xs break-all">{selectedLO.slideFilename || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Document File</label>
+                    <p className="text-gray-800 font-mono text-xs break-all">{selectedLO.documentFilename || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Argomento ID</label>
+                    <p className="text-gray-800">{selectedLO.argumentId || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Lingua ID</label>
+                    <p className="text-gray-800">{selectedLO.languageId || 1}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Stato</label>
+                    <p className={selectedLO.suspended ? 'text-gray-500' : selectedLO.inUse ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                      {selectedLO.suspended ? 'Sospeso' : selectedLO.inUse ? 'Attivo' : 'Non in uso'}
+                    </p>
+                  </div>
                 </div>
               </div>
-            )}
+              
+              <div className="mt-6 pt-4 border-t border-gray-200 flex gap-3">
+                <button className="px-4 py-2 text-sm bg-[#4a90a4] text-white rounded hover:bg-[#3a7084]">
+                  Modifica
+                </button>
+                <button className={`px-4 py-2 text-sm rounded ${selectedLO.suspended ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-red-500 text-white hover:bg-red-600'}`}>
+                  {selectedLO.suspended ? 'Riattiva' : 'Sospendi'}
+                </button>
+                <button 
+                  onClick={() => setSelectedLO(null)}
+                  className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 ml-auto"
+                >
+                  Chiudi
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
