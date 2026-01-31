@@ -125,6 +125,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const [selectedExistingUsers, setSelectedExistingUsers] = useState<Set<string>>(new Set());
   const [existingUserSearch, setExistingUserSearch] = useState('');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const enrollMutation = useMutation({
     mutationFn: async (data: { courseId: number; companyId: number; corsisti: CorsistaRow[] }) => {
@@ -132,12 +133,8 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
       return response.json();
     },
     onSuccess: (data) => {
-      toast({
-        title: "Codici inviati!",
-        description: `${data.created || 0} iscrizioni create con successo. Le email sono state inviate.`,
-      });
+      setSuccessMessage(`${data.created || 0} iscrizioni create con successo!\nLe email sono state inviate.`);
       queryClient.invalidateQueries({ queryKey: ['/api/enrollments'] });
-      onClose();
     },
     onError: (error: Error) => {
       toast({
@@ -187,6 +184,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
       setErrors({});
       setSelectedExistingUsers(new Set());
       setExistingUserSearch('');
+      setSuccessMessage(null);
     }
   }, [isOpen]);
 
@@ -229,7 +227,14 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
     const newErrors: Record<string, boolean> = {};
     const cfErrors: string[] = [];
     
-    if (!selectedCompanyId) newErrors.company = true;
+    if (!selectedCompanyId) {
+      newErrors.company = true;
+      toast({
+        title: "Campo obbligatorio",
+        description: "Seleziona un'azienda cliente",
+        variant: "destructive",
+      });
+    }
     
     if (userMode === 'new') {
       const seenCFs = new Set<string>();
@@ -319,6 +324,29 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   };
 
   if (!course) return null;
+
+  if (successMessage) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-lg bg-white border-yellow-500 border-4 text-black p-0 overflow-hidden">
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-6">
+              <Check size={48} className="text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-green-600 mb-4">Invio Completato!</h2>
+            <p className="text-xl text-gray-700 whitespace-pre-line mb-8">{successMessage}</p>
+            <Button 
+              onClick={onClose}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 py-3 text-lg"
+              data-testid="button-close-success"
+            >
+              Chiudi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
