@@ -937,11 +937,13 @@ export default function ContentManagement() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-gray-200 text-left">
+                      <th className="py-2 px-2 font-medium text-gray-500 w-8"></th>
                       <th className="py-2 px-2 font-medium text-gray-500">ID</th>
                       <th className="py-2 px-2 font-medium text-gray-500">Tipo</th>
                       <th className="py-2 px-2 font-medium text-gray-500">Titolo</th>
                       <th className="py-2 px-2 font-medium text-gray-500">Durata</th>
                       <th className="py-2 px-2 font-medium text-gray-500">Stato</th>
+                      <th className="py-2 px-2 font-medium text-gray-500">Azione</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -950,6 +952,11 @@ export default function ContentManagement() {
                         key={lo.id} 
                         className={`border-b border-gray-100 hover:bg-gray-50 ${!lo.inUse ? 'bg-red-50' : ''}`}
                       >
+                        <td className="py-2 px-2 text-center">
+                          {lo.objectType === 1 && <Film size={14} className="text-blue-500" />}
+                          {lo.objectType === 2 && <FileText size={14} className="text-purple-500" />}
+                          {lo.objectType === 3 && <Book size={14} className="text-orange-500" />}
+                        </td>
                         <td className="py-2 px-2 text-gray-600">{lo.legacyId || lo.id}</td>
                         <td className="py-2 px-2">
                           {lo.objectType === 1 && <span className="text-blue-600">Video</span>}
@@ -968,6 +975,17 @@ export default function ContentManagement() {
                           ) : (
                             <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-[10px]">Non usato</span>
                           )}
+                        </td>
+                        <td className="py-2 px-2">
+                          <button 
+                            className={`px-2 py-0.5 text-[10px] rounded ${
+                              lo.suspended 
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
+                          >
+                            {lo.suspended ? 'Riattiva' : 'Sospendi'}
+                          </button>
                         </td>
                       </tr>
                     ))}
