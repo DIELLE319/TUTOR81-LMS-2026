@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 
 type Tab = 'catalogo' | 'lezioni' | 'learningObjects';
-type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati';
+type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati' | 'riservati';
 
 export default function ContentManagement() {
   const [activeTab, setActiveTab] = useState<Tab>('catalogo');
@@ -167,6 +167,8 @@ export default function ContentManagement() {
         matchesStatus = p.isPublishedInEcommerce === 0;
       } else if (statusFilter === 'sospesi') {
         matchesStatus = p.isPublishedInEcommerce === 2;
+      } else if (statusFilter === 'riservati') {
+        matchesStatus = !!(p.reservedTo && p.reservedTo > 0);
       }
       return matchesSearch && matchesStatus;
     });
@@ -200,7 +202,8 @@ export default function ContentManagement() {
     const attivi = projects.filter(p => p.isPublishedInEcommerce === 1).length;
     const nonPubblicati = projects.filter(p => p.isPublishedInEcommerce === 0).length;
     const sospesi = projects.filter(p => p.isPublishedInEcommerce === 2).length;
-    return { attivi, sospesi, nonPubblicati };
+    const riservati = projects.filter(p => p.reservedTo && p.reservedTo > 0).length;
+    return { attivi, sospesi, nonPubblicati, riservati };
   }, [projects]);
 
   return (
@@ -263,6 +266,13 @@ export default function ContentManagement() {
                   onClick={() => setStatusFilter('nonPubblicati')}
                 >
                   Non Pubblicati
+                </StatusButton>
+                <StatusButton 
+                  active={statusFilter === 'riservati'} 
+                  color="purple"
+                  onClick={() => setStatusFilter('riservati')}
+                >
+                  Riservati ({activeCounts.riservati})
                 </StatusButton>
               </div>
 
@@ -559,13 +569,14 @@ function TabButton({ children, active, onClick }: { children: React.ReactNode; a
 function StatusButton({ children, active, color, onClick }: { 
   children: React.ReactNode; 
   active: boolean; 
-  color: 'green' | 'orange' | 'red';
+  color: 'green' | 'orange' | 'red' | 'purple';
   onClick: () => void;
 }) {
   const colors = {
     green: active ? 'bg-green-500 text-white border-green-500' : 'bg-white text-green-600 border-green-300 hover:bg-green-50',
     orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-orange-600 border-orange-300 hover:bg-orange-50',
     red: active ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-600 border-red-300 hover:bg-red-50',
+    purple: active ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-purple-600 border-purple-300 hover:bg-purple-50',
   };
   
   return (
