@@ -8,10 +8,13 @@ The platform supports multiple user roles including administrators, tutors, and 
 
 ## Recent Changes (January 31, 2026)
 
-- **Course Structure Imported**: Full hierarchical structure from legacy system
-  - **Junction Tables**: `course_modules` (644), `module_lessons` (2505), `lesson_learning_objects` (6769)
-  - **Data**: 649 modules, 1603 lessons imported with legacy_id mapping
-  - **Mapping**: legacy_course_id → learning_project_id (634/644 resolved via fuzzy title matching)
+- **CRITICAL FIX: LP → Course → Module Mapping Corrected**
+  - **Root Cause**: OVH has separate tables: `learning_project` → `unities_lo` → `course` → `course_course_modules` → `modules`
+  - **Solution**: Script `scripts/fix_lp_course_mapping.cjs` uses `unities_lo` to find which `course_id` belongs to each `learning_project_id`, then maps modules via `relations.course_course_modules`
+  - **Final Junction Tables**: `course_modules` (548), `module_lessons` (2505), `lesson_learning_objects` (6769)
+  - **OVH Data Structure**:
+    - `unities_lo.json`: Maps LP → Course (e.g., LP 263 → Course 324)
+    - `relations.course_course_modules`: Maps Course → Modules (e.g., Course 324 → Module 593)
   - **View Page**: `/course-structure/:id` - shows modules > lessons > learning objects tree
   
 - **Legacy Course Structure Display** (from old system):
