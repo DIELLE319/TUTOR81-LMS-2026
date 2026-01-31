@@ -655,10 +655,14 @@ export default function ContentManagement() {
                           title="Caratteristiche tecniche della piattaforma" 
                           content="Il metodo Tutor81 prevede una percentuale minima pari al 60% di filmati e l'integrazione di slide interattive. In ogni oggetto multimediale è inserita uno o più domande (temporizzate) rilasciate in modalità random."
                         />
-                        <ContentSection 
-                          title="Programma del corso" 
-                          content={stripHtml(selectedProject.courseProgram || selectedProject.description) || 'Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza.'}
-                        />
+                        <div className="border-l-4 border-[#4a90a4] pl-3 bg-blue-50 p-3 rounded-r">
+                          <h3 className="font-bold text-gray-800 text-[13px] mb-2">Programma del corso</h3>
+                          <div className="max-h-[300px] overflow-y-auto">
+                            <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+                              {stripHtml(selectedProject.courseProgram || selectedProject.description) || 'Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza.'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
