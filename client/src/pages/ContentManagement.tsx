@@ -29,6 +29,7 @@ export default function ContentManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [selectedLOs, setSelectedLOs] = useState<Set<number>>(new Set());
+  const [selectedLO, setSelectedLO] = useState<LearningObject | null>(null);
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
@@ -1003,7 +1004,8 @@ export default function ContentManagement() {
                     {learningObjects.slice(0, 100).map(lo => (
                       <tr 
                         key={lo.id} 
-                        className={`border-b border-gray-100 hover:bg-gray-50 ${!lo.inUse ? 'bg-red-50' : ''} ${selectedLOs.has(lo.id) ? 'bg-blue-50' : ''}`}
+                        className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!lo.inUse ? 'bg-red-50' : ''} ${selectedLOs.has(lo.id) ? 'bg-blue-50' : ''} ${selectedLO?.id === lo.id ? 'ring-2 ring-[#4a90a4]' : ''}`}
+                        onClick={() => setSelectedLO(lo)}
                       >
                         <td className="py-2 px-2">
                           <input 
@@ -1063,6 +1065,90 @@ export default function ContentManagement() {
                 {learningObjects.length > 100 && (
                   <p className="text-center text-gray-400 text-xs py-2">Mostrati primi 100 di {learningObjects.length}</p>
                 )}
+              </div>
+            )}
+            
+            {/* Pannello dettaglio Learning Object */}
+            {selectedLO && (
+              <div className="mt-6 border border-gray-200 rounded bg-gray-50 p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">Dettaglio Oggetto #{selectedLO.legacyId || selectedLO.id}</h3>
+                  <button 
+                    onClick={() => setSelectedLO(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <XCircle size={20} />
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">ID Legacy:</span>
+                      <span className="text-gray-800">{selectedLO.legacyId || '-'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Titolo:</span>
+                      <span className="text-gray-800 font-semibold">{selectedLO.title}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Tipo:</span>
+                      <span className="text-gray-800">
+                        {selectedLO.objectType === 1 ? 'Video' : selectedLO.objectType === 2 ? 'Slide' : 'Documento'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Durata:</span>
+                      <span className="text-gray-800">{selectedLO.duration} minuti</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">% Superamento:</span>
+                      <span className="text-gray-800">{selectedLO.percentageToPass}%</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">JWPlayer Code:</span>
+                      <span className="text-gray-800 font-mono">{selectedLO.jwplayerCode || '-'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Video File:</span>
+                      <span className="text-gray-800 font-mono text-[10px]">{selectedLO.videoFilename || '-'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Slide File:</span>
+                      <span className="text-gray-800 font-mono text-[10px]">{selectedLO.slideFilename || '-'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Document File:</span>
+                      <span className="text-gray-800 font-mono text-[10px]">{selectedLO.documentFilename || '-'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Argomento ID:</span>
+                      <span className="text-gray-800">{selectedLO.argumentId || '-'}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Lingua ID:</span>
+                      <span className="text-gray-800">{selectedLO.languageId || 1}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="font-medium text-gray-500 w-32">Stato:</span>
+                      <span className={selectedLO.suspended ? 'text-gray-500' : selectedLO.inUse ? 'text-green-600' : 'text-red-600'}>
+                        {selectedLO.suspended ? 'Sospeso' : selectedLO.inUse ? 'Attivo' : 'Non in uso'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-gray-200 flex gap-2">
+                  <button className="px-3 py-1.5 text-xs bg-[#4a90a4] text-white rounded hover:bg-[#3a7084]">
+                    Modifica
+                  </button>
+                  <button className={`px-3 py-1.5 text-xs rounded ${selectedLO.suspended ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-red-500 text-white hover:bg-red-600'}`}>
+                    {selectedLO.suspended ? 'Riattiva' : 'Sospendi'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
