@@ -8,6 +8,12 @@ The platform supports multiple user roles including administrators, tutors, and 
 
 ## Recent Changes (January 31, 2026)
 
+- **Database Restructure**: Merged `courses` table into `learning_projects`
+  - Unified 293 records (1:1 relationship previously)
+  - `modules` and `tests` now reference `learning_project_id` instead of `course_id`
+  - Added new columns to `learning_projects`: `subcategory`, `course_type`, `destinatario`, `destination`, `course_validity`, `external_integration`, `law_reference`, `total_elearning`, `max_execution_time`, `percentage_to_pass`, `producers`, `professors`, `didactics`, `objectives`, `target_audience`, `prerequisites`, `course_program`, `owner_user_id`
+  - Removed `courses` table entirely
+- **API Updates**: Endpoints changed from `/api/courses/:id/publish` to `/api/learning-projects/:id/publish`
 - **Attestati (Certificates)**: Integrated FTP access to download PDF certificates from Vultr server
   - FTP Path: `/media/media/attestati/` (24,584 PDF files)
   - File naming: `attestato_licenza_{legacy_id}.pdf`
@@ -54,9 +60,9 @@ Preferred communication style: Simple, everyday language.
 ### Key Database Entities
 - **companies**: Stores both tutors (training providers) and client companies
 - **users**: User accounts with authentication data
-- **learningProjects**: Course catalog with pricing and metadata
+- **learningProjects**: Unified course catalog with pricing, content metadata, and course details (merged from courses table)
 - **tutorsPurchases**: Sales/purchase records between tutors and clients
-- **courses/modules/lessons**: Hierarchical course content structure
+- **modules/lessons**: Hierarchical course content structure (modules reference learning_project_id)
 - **enrollments/progress**: Student enrollment and progress tracking
 
 ### Project Structure

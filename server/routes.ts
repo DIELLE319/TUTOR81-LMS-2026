@@ -204,46 +204,6 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/courses", isAuthenticated, async (req, res) => {
-    try {
-      const allCourses = await db.select().from(schema.courses);
-      res.json(allCourses);
-    } catch (error) {
-      console.error("Get courses error:", error);
-      res.status(500).json({ error: "Failed to fetch courses" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/link-course", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { courseId } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "Invalid project ID" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ id: projectId }) // Just a placeholder if we were using a join table, but we link in courses
-        .where(eq(schema.learningProjects.id, projectId));
-
-      await db.update(schema.courses)
-        .set({ learningProjectId: null })
-        .where(eq(schema.courses.learningProjectId, projectId));
-
-      if (courseId) {
-        await db.update(schema.courses)
-          .set({ learningProjectId: projectId })
-          .where(eq(schema.courses.id, courseId));
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Link course error:", error);
-      res.status(500).json({ error: "Failed to link course" });
-    }
-  });
-
   app.get("/api/learning-projects", isAuthenticated, async (req, res) => {
     try {
       const projects = await db.select().from(schema.learningProjects);
@@ -254,116 +214,63 @@ export async function registerRoutes(
     }
   });
 
-  // Pubblica un corso come Learning Project
-  app.post("/api/courses/:id/publish", isAuthenticated, async (req, res) => {
+  // Pubblica un learning project (stato 1 = attivo)
+  app.post("/api/learning-projects/:id/publish", isAuthenticated, async (req, res) => {
     try {
-      const courseId = parseInt(req.params.id as string);
+      const projectId = parseInt(req.params.id as string);
       
-      if (isNaN(courseId)) {
-        return res.status(400).json({ error: "ID corso non valido" });
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
       }
 
-      // Recupera il corso
-      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, courseId));
-      
-      if (!course) {
-        return res.status(404).json({ error: "Corso non trovato" });
-      }
+      await db.update(schema.learningProjects)
+        .set({ isPublishedInEcommerce: 1, isPublished: true })
+        .where(eq(schema.learningProjects.id, projectId));
 
-      // Se il corso è già collegato a un learning project, aggiorna solo lo stato
-      if (course.learningProjectId) {
-        await db.update(schema.learningProjects)
-          .set({ isPublishedInEcommerce: 1 }) // 1 = attivo
-          .where(eq(schema.learningProjects.id, course.learningProjectId));
-        
-        await db.update(schema.courses)
-          .set({ isPublished: true })
-          .where(eq(schema.courses.id, courseId));
-        
-        return res.json({ 
-          success: true, 
-          message: "Corso pubblicato", 
-          learningProjectId: course.learningProjectId 
-        });
-      }
-
-      // Crea un nuovo Learning Project dal corso
-      const [newProject] = await db.insert(schema.learningProjects).values({
-        title: course.title,
-        description: course.description,
-        isPublishedInEcommerce: 1, // 1 = attivo
-        hours: 0,
-        language: 'IT',
-      }).returning();
-
-      // Collega il corso al nuovo learning project e marcalo come pubblicato
-      await db.update(schema.courses)
-        .set({ 
-          learningProjectId: newProject.id,
-          isPublished: true 
-        })
-        .where(eq(schema.courses.id, courseId));
-
-      res.json({ 
-        success: true, 
-        message: "Corso pubblicato come nuovo progetto formativo", 
-        learningProjectId: newProject.id 
-      });
+      res.json({ success: true, message: "Corso pubblicato" });
     } catch (error) {
-      console.error("Publish course error:", error);
-      res.status(500).json({ error: "Errore durante la pubblicazione del corso" });
+      console.error("Publish project error:", error);
+      res.status(500).json({ error: "Errore durante la pubblicazione" });
     }
   });
 
-  // Rimuovi dalla pubblicazione (torna a bozza)
-  app.post("/api/courses/:id/unpublish", isAuthenticated, async (req, res) => {
+  // Rimuovi dalla pubblicazione (stato 0 = non pubblicato)
+  app.post("/api/learning-projects/:id/unpublish", isAuthenticated, async (req, res) => {
     try {
-      const courseId = parseInt(req.params.id as string);
+      const projectId = parseInt(req.params.id as string);
       
-      if (isNaN(courseId)) {
-        return res.status(400).json({ error: "ID corso non valido" });
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
       }
 
-      await db.update(schema.courses)
-        .set({ isPublished: false })
-        .where(eq(schema.courses.id, courseId));
-
-      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, courseId));
-      
-      if (course?.learningProjectId) {
-        await db.update(schema.learningProjects)
-          .set({ isPublishedInEcommerce: 0 }) // 0 = non pubblicato
-          .where(eq(schema.learningProjects.id, course.learningProjectId));
-      }
+      await db.update(schema.learningProjects)
+        .set({ isPublishedInEcommerce: 0, isPublished: false })
+        .where(eq(schema.learningProjects.id, projectId));
 
       res.json({ success: true, message: "Corso rimosso dalla pubblicazione" });
     } catch (error) {
-      console.error("Unpublish course error:", error);
+      console.error("Unpublish project error:", error);
       res.status(500).json({ error: "Errore durante la rimozione dalla pubblicazione" });
     }
   });
 
-  // Sospendi un corso (stato 2)
-  app.post("/api/courses/:id/suspend", isAuthenticated, async (req, res) => {
+  // Sospendi un corso (stato 2 = sospeso)
+  app.post("/api/learning-projects/:id/suspend", isAuthenticated, async (req, res) => {
     try {
-      const courseId = parseInt(req.params.id as string);
+      const projectId = parseInt(req.params.id as string);
       
-      if (isNaN(courseId)) {
-        return res.status(400).json({ error: "ID corso non valido" });
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
       }
 
-      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, courseId));
-      
-      if (course?.learningProjectId) {
-        await db.update(schema.learningProjects)
-          .set({ isPublishedInEcommerce: 2 }) // 2 = sospeso
-          .where(eq(schema.learningProjects.id, course.learningProjectId));
-      }
+      await db.update(schema.learningProjects)
+        .set({ isPublishedInEcommerce: 2 })
+        .where(eq(schema.learningProjects.id, projectId));
 
       res.json({ success: true, message: "Corso sospeso" });
     } catch (error) {
-      console.error("Suspend course error:", error);
-      res.status(500).json({ error: "Errore durante la sospensione del corso" });
+      console.error("Suspend project error:", error);
+      res.status(500).json({ error: "Errore durante la sospensione" });
     }
   });
 

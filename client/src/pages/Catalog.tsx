@@ -1,35 +1,14 @@
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Search, ShoppingCart, ChevronDown, ChevronUp, Link as LinkIcon, Unlink } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import type { LearningProject, Course } from '@shared/schema';
+import { useQuery } from '@tanstack/react-query';
+import { Search, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
+import type { LearningProject } from '@shared/schema';
 
 export default function Catalog() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
 
   const { data: projects = [], isLoading } = useQuery<LearningProject[]>({
     queryKey: ['/api/learning-projects'],
-  });
-
-  const { data: multimediaCourses = [] } = useQuery<Course[]>({
-    queryKey: ['/api/courses'],
-  });
-
-  const linkCourseMutation = useMutation({
-    mutationFn: async ({ projectId, courseId }: { projectId: number, courseId: number | null }) => {
-      return apiRequest('PATCH', `/api/learning-projects/${projectId}/link-course`, { courseId });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
-      toast({ title: "Catalogo aggiornato", description: "Il collegamento è stato salvato" });
-    },
-    onError: () => {
-      toast({ title: "Errore", description: "Impossibile collegare il corso", variant: "destructive" });
-    },
   });
 
   const filteredCourses = useMemo(() => {
@@ -195,7 +174,6 @@ export default function Catalog() {
                     {expandedCategories.has(group.category) && group.courses.map((course, idx) => {
                       const type = getCourseType(course.title);
                       const risk = getRiskLevel(course.title);
-                      const linkedCourse = multimediaCourses.find(mc => mc.learningProjectId === course.id);
                       
                       return (
                         <tr
@@ -216,27 +194,6 @@ export default function Catalog() {
                           <td className="px-3 py-2 text-gray-500">{course.id}</td>
                           <td className="px-3 py-2 text-gray-800 font-medium">{course.title}</td>
                           <td className="px-3 py-2 text-center text-gray-600">{course.hours || '-'}</td>
-                          <td className="px-3 py-2">
-                            <select
-                              className="w-full bg-white border border-gray-200 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:opacity-50"
-                              value={linkedCourse?.id || ''}
-                              disabled={linkCourseMutation.isPending}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                linkCourseMutation.mutate({ 
-                                  projectId: course.id, 
-                                  courseId: val ? parseInt(val) : null 
-                                });
-                              }}
-                            >
-                              <option value="">Non collegato</option>
-                              {multimediaCourses.map(mc => (
-                                <option key={mc.id} value={mc.id}>
-                                  {mc.title}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
                           <td className="px-3 py-2 text-right text-gray-700">{formatPrice(course.listPrice)}</td>
                           <td className="px-3 py-2 text-right text-green-600 font-medium">
                             {formatPrice(calculateTutorCost(course.listPrice))}

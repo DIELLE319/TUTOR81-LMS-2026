@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle } from 'lucide-react';
-import type { Course, LearningProject, Company } from '@shared/schema';
+import type { LearningProject, Company } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -15,28 +15,25 @@ import {
 
 type Tab = 'catalogo' | 'lezioni' | 'learningObjects';
 type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati';
-type ViewMode = 'progetti' | 'corsi';
 
 export default function ContentManagement() {
   const [activeTab, setActiveTab] = useState<Tab>('catalogo');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('attivi');
-  const [viewMode, setViewMode] = useState<ViewMode>('corsi');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [typeFilter, setTypeFilter] = useState<'generico' | 'specifico' | 'demo' | 'test' | null>(null);
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
-  const { data: courses = [], isLoading: loadingCourses } = useQuery<Course[]>({
-    queryKey: ['/api/courses'],
+  const { data: projects = [], isLoading: loadingProjects } = useQuery<LearningProject[]>({
+    queryKey: ['/api/learning-projects'],
   });
 
   const publishMutation = useMutation({
-    mutationFn: async (courseId: number) => {
-      return apiRequest('POST', `/api/courses/${courseId}/publish`);
+    mutationFn: async (projectId: number) => {
+      return apiRequest('POST', `/api/learning-projects/${projectId}/publish`);
     },
-    onSuccess: (_, courseId) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
       toast({ title: "Corso pubblicato!", description: "Il corso è ora disponibile nel catalogo" });
     },
@@ -46,21 +43,16 @@ export default function ContentManagement() {
   });
 
   const unpublishMutation = useMutation({
-    mutationFn: async (courseId: number) => {
-      return apiRequest('POST', `/api/courses/${courseId}/unpublish`);
+    mutationFn: async (projectId: number) => {
+      return apiRequest('POST', `/api/learning-projects/${projectId}/unpublish`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
       queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
       toast({ title: "Corso rimosso", description: "Il corso è tornato in bozza" });
     },
     onError: () => {
       toast({ title: "Errore", description: "Impossibile rimuovere dalla pubblicazione", variant: "destructive" });
     },
-  });
-
-  const { data: projects = [] } = useQuery<LearningProject[]>({
-    queryKey: ['/api/learning-projects'],
   });
 
   const { data: tutors = [] } = useQuery<Company[]>({
@@ -119,28 +111,28 @@ export default function ContentManagement() {
       .trim();
   };
 
-  const filteredCourses = useMemo(() => {
-    const items = viewMode === 'corsi' ? courses : [];
-    return items.filter(c => {
-      const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProjects = useMemo(() => {
+    return projects.filter(p => {
+      const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
       let matchesStatus = true;
       if (statusFilter === 'attivi') {
-        matchesStatus = c.isPublished === true;
+        matchesStatus = p.isPublishedInEcommerce === 1;
       } else if (statusFilter === 'nonPubblicati') {
-        matchesStatus = c.isPublished === false;
+        matchesStatus = p.isPublishedInEcommerce === 0;
       } else if (statusFilter === 'sospesi') {
-        matchesStatus = false;
+        matchesStatus = p.isPublishedInEcommerce === 2;
       }
-      return matchesSearch && matchesStatus;
+      const matchesType = !typeFilter || p.courseType === typeFilter;
+      return matchesSearch && matchesStatus && matchesType;
     });
-  }, [courses, searchTerm, statusFilter, viewMode]);
+  }, [projects, searchTerm, statusFilter, typeFilter]);
 
-  const groupedCourses = useMemo(() => {
-    const groups: { [key: string]: typeof filteredCourses } = {};
-    filteredCourses.forEach(course => {
-      const category = getCourseCategory(course.title);
+  const groupedProjects = useMemo(() => {
+    const groups: { [key: string]: typeof filteredProjects } = {};
+    filteredProjects.forEach(project => {
+      const category = getCourseCategory(project.title);
       if (!groups[category]) groups[category] = [];
-      groups[category].push(course);
+      groups[category].push(project);
     });
     const orderedCategories = [
       'LAVORATORE', 'PREPOSTO', 'DIRIGENTE', 'RSPP/ASPP', 'RLS', 
@@ -153,23 +145,18 @@ export default function ContentManagement() {
     return orderedCategories
       .filter(cat => groups[cat]?.length > 0)
       .map(cat => ({ category: cat, items: groups[cat] }));
-  }, [filteredCourses]);
+  }, [filteredProjects]);
 
-  const selectedCourse = useMemo(() => {
-    return courses.find(c => c.id === selectedCourseId);
-  }, [courses, selectedCourseId]);
-
-  const linkedProject = useMemo(() => {
-    if (!selectedCourse?.learningProjectId) return null;
-    return projects.find(p => p.id === selectedCourse.learningProjectId);
-  }, [selectedCourse, projects]);
+  const selectedProject = useMemo(() => {
+    return projects.find(p => p.id === selectedCourseId);
+  }, [projects, selectedCourseId]);
 
   const activeCounts = useMemo(() => {
-    const attivi = courses.filter(c => c.isPublished === true).length;
-    const nonPubblicati = courses.filter(c => c.isPublished === false).length;
-    const sospesi = 0;
+    const attivi = projects.filter(p => p.isPublishedInEcommerce === 1).length;
+    const nonPubblicati = projects.filter(p => p.isPublishedInEcommerce === 0).length;
+    const sospesi = projects.filter(p => p.isPublishedInEcommerce === 2).length;
     return { attivi, sospesi, nonPubblicati };
-  }, [courses]);
+  }, [projects]);
 
   return (
     <div className="min-h-screen bg-[#f0f0f0] font-sans text-[13px]">
@@ -280,33 +267,33 @@ export default function ContentManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loadingCourses ? (
+                  {loadingProjects ? (
                     <tr>
                       <td colSpan={3} className="text-center py-12 text-gray-400">
                         <div className="animate-spin w-6 h-6 border-2 border-[#4a90a4] border-t-transparent rounded-full mx-auto mb-2"></div>
                         Caricamento...
                       </td>
                     </tr>
-                  ) : groupedCourses.length === 0 ? (
+                  ) : groupedProjects.length === 0 ? (
                     <tr>
                       <td colSpan={3} className="text-center py-12 text-gray-400">
                         Nessun corso trovato
                       </td>
                     </tr>
                   ) : (
-                    groupedCourses.map(group => (
+                    groupedProjects.map(group => (
                       <tbody key={group.category}>
                         <tr className="bg-[#d0d0d0]">
                           <td colSpan={3} className="px-2 py-1.5 font-bold text-gray-800 text-[11px] uppercase tracking-wide">
                             {group.category}
                           </td>
                         </tr>
-                        {group.items.map((course, idx) => {
-                          const type = getCourseType(course.title);
-                          const isSelected = selectedCourseId === course.id;
+                        {group.items.map((project, idx) => {
+                          const type = getCourseType(project.title);
+                          const isSelected = selectedCourseId === project.id;
                           return (
                             <tr 
-                              key={course.id}
+                              key={project.id}
                               className={`border-b border-gray-100 cursor-pointer transition-colors ${
                                 isSelected 
                                   ? 'bg-[#4a90a4] text-white' 
@@ -314,8 +301,8 @@ export default function ContentManagement() {
                                     ? 'bg-white hover:bg-[#e6f3f7]' 
                                     : 'bg-[#f8f8f8] hover:bg-[#e6f3f7]'
                               }`}
-                              onClick={() => setSelectedCourseId(course.id)}
-                              data-testid={`row-cms-course-${course.id}`}
+                              onClick={() => setSelectedCourseId(project.id)}
+                              data-testid={`row-cms-course-${project.id}`}
                             >
                               <td className="px-2 py-1">
                                 <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${
@@ -325,10 +312,10 @@ export default function ContentManagement() {
                                 </span>
                               </td>
                               <td className={`px-2 py-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
-                                {course.id}
+                                {project.id}
                               </td>
                               <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-gray-800'}`}>
-                                {formatCourseTitle(course.title)}
+                                {formatCourseTitle(project.title)}
                               </td>
                             </tr>
                           );
@@ -342,7 +329,7 @@ export default function ContentManagement() {
           </aside>
 
           <main className="flex-1 overflow-y-auto bg-[#f5f5f5]">
-            {selectedCourse ? (
+            {selectedProject ? (
               <div className="h-full flex flex-col">
                 <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-1 shadow-sm flex-wrap">
                   <ActionButton icon={<FileText size={13} />}>Dettaglio corso</ActionButton>
@@ -351,10 +338,10 @@ export default function ContentManagement() {
                   <ActionButton icon={<List size={13} />}>Visualizza domande</ActionButton>
                   <ActionButton icon={<Settings size={13} />}>Modifica listino prezzi</ActionButton>
                   
-                  {selectedCourse.isPublished ? (
+                  {selectedProject.isPublishedInEcommerce === 1 ? (
                     <ActionButton 
                       icon={<XCircle size={13} />}
-                      onClick={() => unpublishMutation.mutate(selectedCourse.id)}
+                      onClick={() => unpublishMutation.mutate(selectedProject.id)}
                     >
                       {unpublishMutation.isPending ? 'Rimozione...' : 'Rimuovi'}
                     </ActionButton>
@@ -362,7 +349,7 @@ export default function ContentManagement() {
                     <ActionButton 
                       icon={<Upload size={13} />} 
                       primary
-                      onClick={() => publishMutation.mutate(selectedCourse.id)}
+                      onClick={() => publishMutation.mutate(selectedProject.id)}
                     >
                       {publishMutation.isPending ? 'Pubblicazione...' : 'Pubblica'}
                     </ActionButton>
@@ -376,68 +363,64 @@ export default function ContentManagement() {
                   <div className="bg-white rounded shadow-sm border border-gray-200">
                     <div className="bg-gradient-to-r from-[#4a90a4] to-[#5ba3b8] px-4 py-2 rounded-t">
                       <h2 className="text-base font-bold text-white">
-                        (ID:{selectedCourse.id}) {formatCourseTitle(selectedCourse.title).toUpperCase()}
+                        (ID:{selectedProject.id}) {formatCourseTitle(selectedProject.title).toUpperCase()}
                       </h2>
                     </div>
 
                     <div className="p-4">
                       <table className="w-full text-[12px]">
                         <tbody>
-                          <DetailRow label="Data di creazione" value={selectedCourse.createdAt ? new Date(selectedCourse.createdAt).toLocaleString('it-IT') : '-'} />
+                          <DetailRow label="Data di creazione" value={selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'} />
                           <DetailRow label="Creato da" value="Superadmin Tutor81 (ID: 6)" />
-                          <DetailRow label="Requisiti minimi per accedere al corso" value="nessuno" />
-                          <DetailRow label="Categoria" value="sicurezza" />
-                          <DetailRow label="Sottocategoria" value="lavoratore" />
-                          <DetailRow label="Tipo" value={getCourseType(selectedCourse.title).toLowerCase()} />
+                          <DetailRow label="Requisiti minimi per accedere al corso" value={selectedProject.prerequisites || "nessuno"} />
+                          <DetailRow label="Categoria" value={selectedProject.category || "sicurezza"} />
+                          <DetailRow label="Sottocategoria" value={selectedProject.subcategory || "lavoratore"} />
+                          <DetailRow label="Tipo" value={selectedProject.courseType || getCourseType(selectedProject.title).toLowerCase()} />
                           <DetailRow label="Test in presenza" value="No" />
-                          <DetailRow label="Rischio Azienda" value="medio" />
-                          <DetailRow label="Destinazione" value="Base+Specifico" />
+                          <DetailRow label="Rischio Azienda" value={selectedProject.riskLevel || "medio"} />
+                          <DetailRow label="Destinazione" value={selectedProject.destination || "Base+Specifico"} />
                           <DetailRow 
                             label="Obiettivi del corso" 
-                            value={selectedCourse.description || 'Formazione generale e specifica dei lavoratori in Aziende a rischio medio'} 
+                            value={selectedProject.objectives || selectedProject.description || 'Formazione generale e specifica dei lavoratori'} 
                           />
-                          <DetailRow label="Rivolto a" value="" />
-                          <DetailRow label="Riferimento normativo" value="Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025" />
-                          <DetailRow label="Validità" value="quinquennale" />
-                          <DetailRow label="Integrazione in aula" value="non necessaria" />
-                          {linkedProject && (
-                            <>
-                              <DetailRow label="Durata Totale" value={`${linkedProject.hours} ore`} highlight />
-                              <DetailRow label="Durata minima del corso in e-learning" value={`${linkedProject.hours} ore`} />
-                              <DetailRow label="Tempo massimo per la conclusione" value="60 giorni" />
-                              <DetailRow 
-                                label="Prezzo di listino" 
-                                value={linkedProject.listPrice && parseFloat(linkedProject.listPrice) > 0 ? `€ ${parseFloat(linkedProject.listPrice).toFixed(2)}` : 'Non definito'} 
-                                highlight 
-                              />
-                              <tr className="border-b border-gray-100">
-                                <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Riservato a</td>
-                                <td className="py-2">
-                                  <Select
-                                    value={linkedProject.reservedTo?.toString() || "none"}
-                                    onValueChange={(value) => {
-                                      reserveMutation.mutate({
-                                        learningProjectId: linkedProject.id,
-                                        reservedTo: value === "none" ? null : parseInt(value)
-                                      });
-                                    }}
-                                  >
-                                    <SelectTrigger className="w-[300px] h-8 text-xs" data-testid="select-reserved-to">
-                                      <SelectValue placeholder="Seleziona ente formativo..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="none">Nessuna reservation</SelectItem>
-                                      {tutors.map(tutor => (
-                                        <SelectItem key={tutor.id} value={tutor.id.toString()}>
-                                          {tutor.businessName}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </td>
-                              </tr>
-                            </>
-                          )}
+                          <DetailRow label="Rivolto a" value={selectedProject.targetAudience || ""} />
+                          <DetailRow label="Riferimento normativo" value={selectedProject.lawReference || "Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025"} />
+                          <DetailRow label="Validità" value={selectedProject.courseValidity || "quinquennale"} />
+                          <DetailRow label="Integrazione in aula" value={selectedProject.externalIntegration || "non necessaria"} />
+                          <DetailRow label="Durata Totale" value={`${selectedProject.hours || 0} ore`} highlight />
+                          <DetailRow label="Durata minima del corso in e-learning" value={`${selectedProject.totalElearning || selectedProject.hours || 0} ore`} />
+                          <DetailRow label="Tempo massimo per la conclusione" value={`${selectedProject.maxExecutionTime || 60} giorni`} />
+                          <DetailRow 
+                            label="Prezzo di listino" 
+                            value={selectedProject.listPrice && parseFloat(selectedProject.listPrice) > 0 ? `€ ${parseFloat(selectedProject.listPrice).toFixed(2)}` : 'Non definito'} 
+                            highlight 
+                          />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Riservato a</td>
+                            <td className="py-2">
+                              <Select
+                                value={selectedProject.reservedTo?.toString() || "none"}
+                                onValueChange={(value) => {
+                                  reserveMutation.mutate({
+                                    learningProjectId: selectedProject.id,
+                                    reservedTo: value === "none" ? null : parseInt(value)
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[300px] h-8 text-xs" data-testid="select-reserved-to">
+                                  <SelectValue placeholder="Seleziona ente formativo..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Nessuna reservation</SelectItem>
+                                  {tutors.map(tutor => (
+                                    <SelectItem key={tutor.id} value={tutor.id.toString()}>
+                                      {tutor.businessName}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
 

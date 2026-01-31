@@ -43,8 +43,29 @@ export const learningProjects = pgTable("learning_projects", {
   tutorCost: decimal("tutor_cost", { precision: 10, scale: 2 }).default("0"),
   isPublished: boolean("is_published").default(true),
   isPublishedInEcommerce: integer("is_published_in_ecommerce").default(0), // 0=non pubblicato, 1=attivo, 2=sospeso
-  reservedTo: integer("reserved_to").references(() => companies.id), // Ente formativo a cui è riservato
+  reservedTo: integer("reserved_to").references(() => companies.id),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  thumbnailUrl: text("thumbnail_url"),
+  sortOrder: integer("sort_order").default(0),
+  subcategory: text("subcategory"),
+  courseType: text("course_type"),
+  destinatario: text("destinatario"),
+  destination: text("destination"),
+  courseValidity: text("course_validity"),
+  externalIntegration: text("external_integration"),
+  lawReference: text("law_reference"),
+  totalElearning: integer("total_elearning").default(0),
+  maxExecutionTime: integer("max_execution_time").default(90),
+  percentageToPass: integer("percentage_to_pass").default(80),
+  producers: text("producers"),
+  professors: text("professors"),
+  didactics: text("didactics"),
+  objectives: text("objectives"),
+  targetAudience: text("target_audience"),
+  prerequisites: text("prerequisites"),
+  courseProgram: text("course_program"),
+  ownerUserId: integer("owner_user_id"),
 });
 
 export const tutorsPurchases = pgTable("tutors_purchases", {
@@ -168,42 +189,9 @@ export const companyUsersRelations = relations(companyUsers, ({ one }) => ({
 }));
 
 // Content Management Tables
-export const courses = pgTable("courses", {
-  id: serial("id").primaryKey(),
-  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
-  title: text("title").notNull(),
-  description: text("description"),
-  thumbnailUrl: text("thumbnail_url"),
-  isPublished: boolean("is_published").default(false),
-  sortOrder: integer("sort_order").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  // Campi dettaglio corso
-  category: text("category"),
-  subcategory: text("subcategory"),
-  courseType: text("course_type"), // generico, specifico, demo, test
-  destinatario: text("destinatario"), // Lavoratore, Dirigente, Preposto, etc.
-  riskLevel: text("risk_level"), // basso, medio, alto
-  destination: text("destination"), // Base, Aggiornamento, etc.
-  courseValidity: text("course_validity"), // es: "Quinquennale", "24 ORE"
-  externalIntegration: text("external_integration"), // Integrazione in aula
-  lawReference: text("law_reference"), // Riferimento normativo
-  totalElearning: integer("total_elearning").default(0), // Durata e-learning in ore
-  maxExecutionTime: integer("max_execution_time").default(90), // Tempo massimo in giorni
-  percentageToPass: integer("percentage_to_pass").default(80), // % risposte esatte
-  producers: text("producers"), // Prodotto da
-  professors: text("professors"), // Docenti
-  didactics: text("didactics"), // Didattica
-  objectives: text("objectives"), // Obiettivi del corso
-  targetAudience: text("target_audience"), // Rivolto a
-  prerequisites: text("prerequisites"), // Requisiti minimi
-  courseProgram: text("course_program"), // Programma del corso
-  ownerUserId: integer("owner_user_id"), // ID proprietario corso
-});
-
 export const modules = pgTable("modules", {
   id: serial("id").primaryKey(),
-  courseId: integer("course_id").notNull().references(() => courses.id),
+  learningProjectId: integer("learning_project_id").notNull().references(() => learningProjects.id),
   title: text("title").notNull(),
   description: text("description"),
   sortOrder: integer("sort_order").default(0),
@@ -236,7 +224,7 @@ export const learningObjects = pgTable("learning_objects", {
 
 export const tests = pgTable("tests", {
   id: serial("id").primaryKey(),
-  courseId: integer("course_id").references(() => courses.id),
+  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
   moduleId: integer("module_id").references(() => modules.id),
   title: text("title").notNull(),
   description: text("description"),
@@ -268,19 +256,10 @@ export const answers = pgTable("answers", {
 });
 
 // Relations for Content Management
-export const coursesRelations = relations(courses, ({ one, many }) => ({
-  learningProject: one(learningProjects, {
-    fields: [courses.learningProjectId],
-    references: [learningProjects.id],
-  }),
-  modules: many(modules),
-  tests: many(tests),
-}));
-
 export const modulesRelations = relations(modules, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [modules.courseId],
-    references: [courses.id],
+  learningProject: one(learningProjects, {
+    fields: [modules.learningProjectId],
+    references: [learningProjects.id],
   }),
   lessons: many(lessons),
   tests: many(tests),
@@ -294,9 +273,9 @@ export const lessonsRelations = relations(lessons, ({ one }) => ({
 }));
 
 export const testsRelations = relations(tests, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [tests.courseId],
-    references: [courses.id],
+  learningProject: one(learningProjects, {
+    fields: [tests.learningProjectId],
+    references: [learningProjects.id],
   }),
   module: one(modules, {
     fields: [tests.moduleId],
@@ -325,7 +304,6 @@ export const insertLearningProjectSchema = createInsertSchema(learningProjects).
 export const insertTutorsPurchaseSchema = createInsertSchema(tutorsPurchases).omit({ id: true, createdAt: true });
 export const insertCompanyUserSchema = createInsertSchema(companyUsers).omit({ id: true, createdAt: true });
 export const insertCertificateSchema = createInsertSchema(certificates).omit({ id: true, createdAt: true });
-export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertModuleSchema = createInsertSchema(modules).omit({ id: true, createdAt: true });
 export const insertLessonSchema = createInsertSchema(lessons).omit({ id: true, createdAt: true });
 export const insertLearningObjectSchema = createInsertSchema(learningObjects).omit({ id: true, createdAt: true });
@@ -351,9 +329,6 @@ export type InsertCompanyUser = z.infer<typeof insertCompanyUserSchema>;
 
 export type Certificate = typeof certificates.$inferSelect;
 export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
-
-export type Course = typeof courses.$inferSelect;
-export type InsertCourse = z.infer<typeof insertCourseSchema>;
 
 export type Module = typeof modules.$inferSelect;
 export type InsertModule = z.infer<typeof insertModuleSchema>;
