@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, UserPlus, Users, Plus, Minus, Calendar, Bell, Send } from 'lucide-react';
+import { UserPlus, Users, Plus, Minus, Calendar, Bell, Send } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,28 +23,47 @@ interface SellCourseModalProps {
   } | null;
 }
 
+interface CorsistaRow {
+  email: string;
+  startDate: string;
+  endDate: string;
+  daysToAlert: number;
+  lastName: string;
+  firstName: string;
+  fiscalCode: string;
+  userType: string;
+}
+
 const USER_TYPES = [
-  { value: 'dipendente', label: 'Dipendente' },
-  { value: 'titolare', label: 'Titolare' },
-  { value: 'collaboratore', label: 'Collaboratore' },
-  { value: 'socio', label: 'Socio' },
-  { value: 'altro', label: 'Altro' },
+  { value: 'lavoratore', label: 'Lavoratore' },
+  { value: 'preposto', label: 'Preposto' },
+  { value: 'dirigente', label: 'Dirigente' },
+  { value: 'rspp', label: 'RSPP' },
+  { value: 'aspp', label: 'ASPP' },
+  { value: 'datore', label: 'Datore di Lavoro' },
 ];
+
+const createEmptyRow = (): CorsistaRow => {
+  const today = new Date();
+  const endDateDefault = new Date();
+  endDateDefault.setDate(today.getDate() + 90);
+  
+  return {
+    email: '',
+    startDate: today.toISOString().split('T')[0],
+    endDate: endDateDefault.toISOString().split('T')[0],
+    daysToAlert: 15,
+    lastName: '',
+    firstName: '',
+    fiscalCode: '',
+    userType: '',
+  };
+};
 
 export default function SellCourseModal({ isOpen, onClose, course }: SellCourseModalProps) {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [userMode, setUserMode] = useState<'new' | 'existing'>('new');
-  const [quantity, setQuantity] = useState(1);
-  const [email, setEmail] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [daysToAlert, setDaysToAlert] = useState(15);
-  
-  const [lastName, setLastName] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [fiscalCode, setFiscalCode] = useState('');
-  const [userType, setUserType] = useState('');
-
+  const [rows, setRows] = useState<CorsistaRow[]>([createEmptyRow()]);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   const { data: companies = [] } = useQuery<Company[]>({
@@ -53,36 +72,43 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   useEffect(() => {
     if (isOpen) {
-      const today = new Date();
-      const endDateDefault = new Date();
-      endDateDefault.setDate(today.getDate() + 90);
-      
-      setStartDate(today.toISOString().split('T')[0]);
-      setEndDate(endDateDefault.toISOString().split('T')[0]);
-      setQuantity(1);
-      setDaysToAlert(15);
-      setEmail('');
-      setLastName('');
-      setFirstName('');
-      setFiscalCode('');
-      setUserType('');
+      setRows([createEmptyRow()]);
       setSelectedCompanyId('');
       setUserMode('new');
       setErrors({});
     }
   }, [isOpen]);
 
+  const updateRow = (index: number, field: keyof CorsistaRow, value: string | number) => {
+    setRows(prev => {
+      const newRows = [...prev];
+      newRows[index] = { ...newRows[index], [field]: value };
+      return newRows;
+    });
+  };
+
+  const addRow = () => {
+    setRows(prev => [...prev, createEmptyRow()]);
+  };
+
+  const removeRow = () => {
+    if (rows.length > 1) {
+      setRows(prev => prev.slice(0, -1));
+    }
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
     
     if (!selectedCompanyId) newErrors.company = true;
-    if (!email) newErrors.email = true;
-    if (!startDate) newErrors.startDate = true;
-    if (!endDate) newErrors.endDate = true;
-    if (!lastName) newErrors.lastName = true;
-    if (!firstName) newErrors.firstName = true;
-    if (!fiscalCode) newErrors.fiscalCode = true;
-    if (!userType) newErrors.userType = true;
+    
+    rows.forEach((row, idx) => {
+      if (!row.email) newErrors[`email_${idx}`] = true;
+      if (!row.lastName) newErrors[`lastName_${idx}`] = true;
+      if (!row.firstName) newErrors[`firstName_${idx}`] = true;
+      if (!row.fiscalCode) newErrors[`fiscalCode_${idx}`] = true;
+      if (!row.userType) newErrors[`userType_${idx}`] = true;
+    });
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -95,12 +121,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
       courseId: course?.id,
       companyId: selectedCompanyId,
       userMode,
-      quantity,
-      email,
-      startDate,
-      endDate,
-      daysToAlert,
-      corsista: { lastName, firstName, fiscalCode, userType }
+      corsisti: rows
     });
     
     onClose();
@@ -118,7 +139,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white p-0 overflow-hidden">
+      <DialogContent className="max-w-6xl bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white p-0 overflow-hidden max-h-[90vh]">
         <DialogHeader className="bg-gradient-to-r from-cyan-700 to-cyan-600 px-6 py-4">
           <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
             <Send size={20} />
@@ -127,7 +148,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
           <p className="text-cyan-100 font-semibold mt-1">{formatCourseTitle(course.title)}</p>
         </DialogHeader>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-180px)]">
           <div className={`border rounded-lg p-1 ${errors.company ? 'border-red-500' : 'border-slate-600'}`}>
             <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
               <SelectTrigger 
@@ -136,7 +157,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
               >
                 <SelectValue placeholder="--- Scegli il cliente ---" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
+              <SelectContent className="bg-slate-800 border-slate-600 max-h-60">
                 {companies
                   .filter(c => !c.business_name?.toLowerCase().includes('tutor'))
                   .sort((a, b) => a.business_name.localeCompare(b.business_name))
@@ -153,210 +174,185 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="text-slate-300 text-sm">Chi deve svolgere il corso</span>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={userMode === 'new' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setUserMode('new')}
-                    className={userMode === 'new' ? 'bg-emerald-500 hover:bg-emerald-600' : 'border-slate-500 text-slate-300'}
-                    data-testid="btn-new-user"
-                  >
-                    <UserPlus size={16} className="mr-1" />
-                    Nuovo utente
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={userMode === 'existing' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setUserMode('existing')}
-                    className={userMode === 'existing' ? 'bg-slate-600 hover:bg-slate-500' : 'border-slate-500 text-slate-300'}
-                    data-testid="btn-existing-user"
-                  >
-                    <Users size={16} className="mr-1" />
-                    Utente esistente
-                  </Button>
-                </div>
-              </div>
-
-              <div className="bg-slate-800/50 rounded-lg p-4 space-y-4 border border-slate-700">
-                <div className="flex items-center gap-4">
-                  <Label className="text-slate-300 text-sm w-28">Quantità corsi</Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8 border-slate-500"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      data-testid="btn-qty-minus"
-                    >
-                      <Minus size={14} />
-                    </Button>
-                    <span className="w-10 text-center font-bold text-lg">{quantity}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8 border-slate-500"
-                      onClick={() => setQuantity(quantity + 1)}
-                      data-testid="btn-qty-plus"
-                    >
-                      <Plus size={14} />
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-slate-300 text-sm">Dove va spedito il codice di accesso?</Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="E-mail destinatario *"
-                    className={`mt-1 bg-slate-700 border-slate-600 text-white ${errors.email ? 'border-red-500' : ''}`}
-                    data-testid="input-email"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-slate-300 text-sm flex items-center gap-1">
-                      <Calendar size={14} />
-                      Data inizio corso
-                    </Label>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className={`mt-1 bg-slate-700 border-slate-600 text-white ${errors.startDate ? 'border-red-500' : ''}`}
-                      data-testid="input-start-date"
-                    />
-                    <span className="text-xs text-slate-500">(max 90 gg)</span>
-                  </div>
-                  <div>
-                    <Label className="text-slate-300 text-sm flex items-center gap-1">
-                      <Calendar size={14} />
-                      Data fine corso
-                    </Label>
-                    <Input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className={`mt-1 bg-slate-700 border-slate-600 text-white ${errors.endDate ? 'border-red-500' : ''}`}
-                      data-testid="input-end-date"
-                    />
-                    <span className="text-xs text-slate-500">(max 90 gg)</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <Label className="text-slate-300 text-sm flex items-center gap-1">
-                    <Bell size={14} />
-                    Giorni preavviso
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="h-7 w-7 border-slate-500"
-                      onClick={() => setDaysToAlert(Math.max(1, daysToAlert - 1))}
-                      data-testid="btn-alert-minus"
-                    >
-                      <Minus size={12} />
-                    </Button>
-                    <span className="w-8 text-center font-semibold">{daysToAlert}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="h-7 w-7 border-slate-500"
-                      onClick={() => setDaysToAlert(daysToAlert + 1)}
-                      data-testid="btn-alert-plus"
-                    >
-                      <Plus size={12} />
-                    </Button>
-                    <Bell size={16} className="text-yellow-400 ml-1" />
-                  </div>
-                </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-slate-300 text-sm">Chi deve svolgere il corso</span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={userMode === 'new' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setUserMode('new')}
+                  className={userMode === 'new' ? 'bg-emerald-500 hover:bg-emerald-600' : 'border-slate-500 text-slate-300'}
+                  data-testid="btn-new-user"
+                >
+                  <UserPlus size={16} className="mr-1" />
+                  Nuovo utente
+                </Button>
+                <Button
+                  type="button"
+                  variant={userMode === 'existing' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setUserMode('existing')}
+                  className={userMode === 'existing' ? 'bg-slate-600 hover:bg-slate-500' : 'border-slate-500 text-slate-300'}
+                  data-testid="btn-existing-user"
+                >
+                  <Users size={16} className="mr-1" />
+                  Utente esistente
+                </Button>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-cyan-900/30 border border-cyan-700/50 rounded-lg p-4">
-                <h3 className="text-cyan-300 font-semibold mb-3 flex items-center gap-2">
-                  <UserPlus size={18} />
-                  Dati del Corsista
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-slate-300 text-sm">Cognome *</Label>
-                    <Input
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Cognome"
-                      className={`mt-1 bg-slate-700 border-slate-600 text-white ${errors.lastName ? 'border-red-500' : ''}`}
-                      data-testid="input-lastname"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-slate-300 text-sm">Nome *</Label>
-                    <Input
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Nome"
-                      className={`mt-1 bg-slate-700 border-slate-600 text-white ${errors.firstName ? 'border-red-500' : ''}`}
-                      data-testid="input-firstname"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-slate-300 text-sm">Codice Fiscale *</Label>
-                    <Input
-                      value={fiscalCode}
-                      onChange={(e) => setFiscalCode(e.target.value.toUpperCase())}
-                      placeholder="Codice Fiscale"
-                      maxLength={16}
-                      className={`mt-1 bg-slate-700 border-slate-600 text-white uppercase ${errors.fiscalCode ? 'border-red-500' : ''}`}
-                      data-testid="input-fiscal-code"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-slate-300 text-sm">Tipo Utente *</Label>
-                    <Select value={userType} onValueChange={setUserType}>
-                      <SelectTrigger 
-                        className={`mt-1 bg-slate-700 border-slate-600 text-white ${errors.userType ? 'border-red-500' : ''}`}
-                        data-testid="select-user-type"
-                      >
-                        <SelectValue placeholder="Seleziona tipo utente" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-600">
-                        {USER_TYPES.map(type => (
-                          <SelectItem 
-                            key={type.value} 
-                            value={type.value}
-                            className="text-white hover:bg-slate-700"
-                          >
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-800/30 border border-slate-600 rounded-lg p-4">
-                <h4 className="text-slate-400 text-sm font-semibold mb-2">ISTRUZIONI</h4>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  Non sei obbligato ad intestare la licenza, il destinatario potrà farlo direttamente inserendo i propri dati al primo accesso.
-                </p>
+            <div className="flex items-center gap-3">
+              <Label className="text-slate-300 text-sm">Quantità corsi</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 border-slate-500"
+                  onClick={removeRow}
+                  disabled={rows.length <= 1}
+                  data-testid="btn-qty-minus"
+                >
+                  <Minus size={14} />
+                </Button>
+                <span className="w-10 text-center font-bold text-lg">{rows.length}</span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 border-slate-500"
+                  onClick={addRow}
+                  data-testid="btn-qty-plus"
+                >
+                  <Plus size={14} />
+                </Button>
               </div>
             </div>
+          </div>
+
+          <div className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-700/50">
+                <tr>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-slate-300 w-[180px]">Email destinatario *</th>
+                  <th className="px-2 py-2 text-center text-xs font-medium text-slate-300 w-[100px]">Data inizio</th>
+                  <th className="px-2 py-2 text-center text-xs font-medium text-slate-300 w-[100px]">Fine corso</th>
+                  <th className="px-2 py-2 text-center text-xs font-medium text-slate-300 w-[70px]">Alert gg</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-slate-300">Cognome *</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-slate-300">Nome *</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-slate-300 w-[140px]">Codice Fiscale *</th>
+                  <th className="px-2 py-2 text-left text-xs font-medium text-slate-300 w-[130px]">Tipo Utente *</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => (
+                  <tr key={idx} className="border-t border-slate-700">
+                    <td className="px-2 py-2">
+                      <Input
+                        type="email"
+                        value={row.email}
+                        onChange={(e) => updateRow(idx, 'email', e.target.value)}
+                        placeholder="E-mail *"
+                        className={`h-8 text-xs bg-slate-700 border-slate-600 text-white ${errors[`email_${idx}`] ? 'border-red-500' : ''}`}
+                        data-testid={`input-email-${idx}`}
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <Input
+                        type="date"
+                        value={row.startDate}
+                        onChange={(e) => updateRow(idx, 'startDate', e.target.value)}
+                        className="h-8 text-xs bg-slate-700 border-slate-600 text-white"
+                        data-testid={`input-start-${idx}`}
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <Input
+                        type="date"
+                        value={row.endDate}
+                        onChange={(e) => updateRow(idx, 'endDate', e.target.value)}
+                        className="h-8 text-xs bg-slate-700 border-slate-600 text-white"
+                        data-testid={`input-end-${idx}`}
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => updateRow(idx, 'daysToAlert', Math.max(1, row.daysToAlert - 1))}
+                        >
+                          <Minus size={10} />
+                        </Button>
+                        <span className="w-6 text-center text-xs">{row.daysToAlert}</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => updateRow(idx, 'daysToAlert', row.daysToAlert + 1)}
+                        >
+                          <Plus size={10} />
+                        </Button>
+                      </div>
+                    </td>
+                    <td className="px-2 py-2">
+                      <Input
+                        value={row.lastName}
+                        onChange={(e) => updateRow(idx, 'lastName', e.target.value)}
+                        placeholder="Cognome"
+                        className={`h-8 text-xs bg-slate-700 border-slate-600 text-white ${errors[`lastName_${idx}`] ? 'border-red-500' : ''}`}
+                        data-testid={`input-lastname-${idx}`}
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <Input
+                        value={row.firstName}
+                        onChange={(e) => updateRow(idx, 'firstName', e.target.value)}
+                        placeholder="Nome"
+                        className={`h-8 text-xs bg-slate-700 border-slate-600 text-white ${errors[`firstName_${idx}`] ? 'border-red-500' : ''}`}
+                        data-testid={`input-firstname-${idx}`}
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <Input
+                        value={row.fiscalCode}
+                        onChange={(e) => updateRow(idx, 'fiscalCode', e.target.value.toUpperCase())}
+                        placeholder="CF"
+                        maxLength={16}
+                        className={`h-8 text-xs bg-slate-700 border-slate-600 text-white uppercase ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''}`}
+                        data-testid={`input-cf-${idx}`}
+                      />
+                    </td>
+                    <td className="px-2 py-2">
+                      <Select value={row.userType} onValueChange={(val) => updateRow(idx, 'userType', val)}>
+                        <SelectTrigger 
+                          className={`h-8 text-xs bg-slate-700 border-slate-600 text-white ${errors[`userType_${idx}`] ? 'border-red-500' : ''}`}
+                          data-testid={`select-type-${idx}`}
+                        >
+                          <SelectValue placeholder="Tipo" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-800 border-slate-600">
+                          {USER_TYPES.map(type => (
+                            <SelectItem 
+                              key={type.value} 
+                              value={type.value}
+                              className="text-white hover:bg-slate-700 text-xs"
+                            >
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
