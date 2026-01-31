@@ -78,8 +78,7 @@ export default function Invoicing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
-      setSelectedTutor(null);
-      toast({ title: "Fattura archiviata", description: "La fattura è stata chiusa e archiviata con successo" });
+      toast({ title: "Fattura archiviata", description: "La fattura è stata archiviata con successo" });
     },
     onError: (error: any) => {
       toast({ title: "Errore", description: error.message || "Fattura già salvata per questo periodo", variant: "destructive" });
@@ -218,44 +217,15 @@ export default function Invoicing() {
               <span>Periodo: {invoiceData.period.label}</span>
             </div>
             <div className="flex gap-2">
-              {(() => {
-                const isSaved = savedInvoices.some(inv => 
-                  inv.tutorId === invoiceData.tutor.id && 
-                  inv.month === invoiceData.period.month && 
-                  inv.year === invoiceData.period.year
-                );
-                return isSaved ? (
-                  <Button
-                    disabled
-                    variant="outline"
-                    className="border-green-500 text-green-500"
-                    data-testid="button-saved-invoice"
-                  >
-                    <Check size={18} className="mr-2" />
-                    Salvata
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => {
-                      saveInvoiceMutation.mutate({
-                        tutorId: invoiceData.tutor.id,
-                        tutorName: invoiceData.tutor.businessName,
-                        month: invoiceData.period.month,
-                        year: invoiceData.period.year,
-                        orderIds: invoiceData.orders.map(o => o.orderId).join(','),
-                        totalAmount: invoiceData.grandTotal,
-                      });
-                    }}
-                    disabled={saveInvoiceMutation.isPending}
-                    variant="outline"
-                    className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
-                    data-testid="button-save-invoice"
-                  >
-                    <Save size={18} className="mr-2" />
-                    {saveInvoiceMutation.isPending ? 'Archiviazione...' : 'Chiudi e Archivia'}
-                  </Button>
-                );
-              })()}
+              <Button
+                onClick={() => setSelectedTutor(null)}
+                variant="outline"
+                className="border-gray-500 text-gray-400 hover:bg-gray-700 hover:text-white"
+                data-testid="button-close-invoice"
+              >
+                <FileText size={18} className="mr-2" />
+                Chiudi
+              </Button>
               <Button
                 onClick={() => {
                   const subject = encodeURIComponent(`Fattura ${invoiceData.period.label} - TUTOR81ONLINE SL`);
@@ -384,6 +354,42 @@ export default function Invoicing() {
               <p className="text-gray-500 text-sm">Totale</p>
               <p className="text-white font-bold">{formatCurrency(invoiceData.grandTotal)}</p>
             </div>
+          </div>
+
+          {/* Archive Button at bottom */}
+          <div className="p-4 border-t border-gray-800">
+            {(() => {
+              const isSaved = savedInvoices.some(inv => 
+                inv.tutorId === invoiceData.tutor.id && 
+                inv.month === invoiceData.period.month && 
+                inv.year === invoiceData.period.year
+              );
+              return isSaved ? (
+                <div className="flex items-center justify-center gap-2 text-green-500">
+                  <Check size={20} />
+                  <span className="font-medium">Fattura già archiviata</span>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => {
+                    saveInvoiceMutation.mutate({
+                      tutorId: invoiceData.tutor.id,
+                      tutorName: invoiceData.tutor.businessName,
+                      month: invoiceData.period.month,
+                      year: invoiceData.period.year,
+                      orderIds: invoiceData.orders.map(o => o.orderId).join(','),
+                      totalAmount: invoiceData.grandTotal,
+                    });
+                  }}
+                  disabled={saveInvoiceMutation.isPending}
+                  className="w-full bg-green-600 hover:bg-green-500 text-white"
+                  data-testid="button-archive-invoice"
+                >
+                  <Archive size={18} className="mr-2" />
+                  {saveInvoiceMutation.isPending ? 'Archiviazione in corso...' : 'Archivia Fattura'}
+                </Button>
+              );
+            })()}
           </div>
         </div>
       ) : null}
