@@ -27,15 +27,25 @@ export default function ContentManagement() {
 
   const getCourseCategory = (title: string) => {
     const t = title.toUpperCase();
-    if (t.includes('LAVORATORE') || t.includes('LAVORATORI')) return 'LAVORATORE';
-    if (t.includes('PREPOSTO')) return 'PREPOSTO';
-    if (t.includes('DIRIGENTE')) return 'DIRIGENTE';
-    if (t.includes('CARRELLO') || t.includes('MULETTO')) return 'CARRELLO ELEVATORE';
-    if (t.includes('RSPP') || t.includes('ASPP')) return 'RSPP/ASPP';
-    if (t.includes('RLS')) return 'RLS';
-    if (t.includes('ANTINCENDIO')) return 'ANTINCENDIO';
-    if (t.includes('PRIMO SOCCORSO')) return 'PRIMO SOCCORSO';
-    if (t.includes('HACCP')) return 'HACCP';
+    if (t.includes('LAVORATORE') || t.includes('LAVORATORI') || t.includes('EL01') || t.includes('EL - ')) return 'LAVORATORE';
+    if (t.includes('PREPOSTO') || t.includes('EL02')) return 'PREPOSTO';
+    if (t.includes('DIRIGENTE') || t.includes('EL03')) return 'DIRIGENTE';
+    if (t.includes('RSPP') || t.includes('ASPP') || t.includes('EL04') || t.includes('EL05')) return 'RSPP/ASPP';
+    if (t.includes('RLS') || t.includes('EL07')) return 'RLS';
+    if (t.includes('CARRELLO') || t.includes('MULETTO') || t.includes('ELEVATORE')) return 'CARRELLO ELEVATORE';
+    if (t.includes('ANTINCENDIO') || t.includes('EL08')) return 'ANTINCENDIO';
+    if (t.includes('PRIMO SOCCORSO') || t.includes('SOCCORSO') || t.includes('EL09')) return 'PRIMO SOCCORSO';
+    if (t.includes('HACCP') || t.includes('ALIMENTAR')) return 'HACCP';
+    if (t.includes('PRIVACY') || t.includes('GDPR')) return 'PRIVACY/GDPR';
+    if (t.includes('231') || t.includes('ORGANIZZATIVO')) return 'D.LGS 231';
+    if (t.includes('STRESS') || t.includes('MOBBING')) return 'RISCHI PSICOSOCIALI';
+    if (t.includes('AMIANTO')) return 'AMIANTO';
+    if (t.includes('ELETTRIC')) return 'RISCHIO ELETTRICO';
+    if (t.includes('SPAZI CONFINATI')) return 'SPAZI CONFINATI';
+    if (t.includes('PONTEGGI') || t.includes('LAVORI IN QUOTA')) return 'LAVORI IN QUOTA';
+    if (t.includes('GRU') || t.includes('SOLLEVAMENTO')) return 'APPARECCHI SOLLEVAMENTO';
+    if (t.includes('PLE') || t.includes('PIATTAFORM')) return 'PLE';
+    if (t.includes('DEMO') || t.includes('TEST')) return 'DEMO/TEST';
     return 'ALTRI CORSI';
   };
 
@@ -70,7 +80,14 @@ export default function ContentManagement() {
       if (!groups[category]) groups[category] = [];
       groups[category].push(course);
     });
-    const orderedCategories = ['LAVORATORE', 'PREPOSTO', 'DIRIGENTE', 'CARRELLO ELEVATORE', 'RSPP/ASPP', 'RLS', 'ANTINCENDIO', 'PRIMO SOCCORSO', 'HACCP', 'ALTRI CORSI'];
+    const orderedCategories = [
+      'LAVORATORE', 'PREPOSTO', 'DIRIGENTE', 'RSPP/ASPP', 'RLS', 
+      'CARRELLO ELEVATORE', 'PLE', 'APPARECCHI SOLLEVAMENTO', 'LAVORI IN QUOTA',
+      'ANTINCENDIO', 'PRIMO SOCCORSO', 'HACCP', 
+      'RISCHIO ELETTRICO', 'SPAZI CONFINATI', 'AMIANTO',
+      'PRIVACY/GDPR', 'D.LGS 231', 'RISCHI PSICOSOCIALI',
+      'DEMO/TEST', 'ALTRI CORSI'
+    ];
     return orderedCategories
       .filter(cat => groups[cat]?.length > 0)
       .map(cat => ({ category: cat, items: groups[cat] }));
