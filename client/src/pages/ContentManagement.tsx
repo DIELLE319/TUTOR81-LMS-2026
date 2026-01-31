@@ -502,7 +502,7 @@ export default function ContentManagement() {
                       icon={<XCircle size={13} />}
                       onClick={() => unpublishMutation.mutate(selectedProject.id)}
                     >
-                      {unpublishMutation.isPending ? 'Rimozione...' : 'Rimuovi'}
+                      {unpublishMutation.isPending ? 'Rimozione...' : 'Rimuovi dal catalogo'}
                     </ActionButton>
                   ) : (
                     <ActionButton 
@@ -513,9 +513,6 @@ export default function ContentManagement() {
                       {publishMutation.isPending ? 'Pubblicazione...' : 'Pubblica'}
                     </ActionButton>
                   )}
-                  
-                  <ActionButton icon={<XCircle size={13} />}>Chiudi corso</ActionButton>
-                  <ActionButton icon={<XCircle size={13} />}>Rimuovi</ActionButton>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
