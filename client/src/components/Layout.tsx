@@ -34,7 +34,7 @@ export default function Layout({ children }: LayoutProps) {
     return IconComponent ? <IconComponent size={18} /> : null;
   };
 
-  const MenuItem = ({ to, label, color = 'text-black/70', badge, iconName }: {
+  const MenuItem = ({ to, label, color = 'text-gray-400', badge, iconName }: {
     to: string;
     label: string;
     color?: string;
@@ -44,7 +44,7 @@ export default function Layout({ children }: LayoutProps) {
     <li>
       <Link 
         href={to} 
-        className={`block py-2 px-4 text-sm hover:text-black transition-colors ${location === to ? 'text-black font-bold bg-black/10 border-l-4 border-black' : color} flex justify-between items-center`}
+        className={`block py-2 px-4 text-sm hover:text-yellow-500 transition-colors ${location === to ? 'text-yellow-500 font-bold bg-yellow-500/10 border-l-4 border-yellow-500' : color} flex justify-between items-center`}
         data-testid={`nav-${to.replace(/\//g, '-')}`}
       >
         <div className="flex items-center gap-3">
@@ -57,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
   );
 
   const SectionHeader = ({ title }: { title: string }) => (
-    <div className="px-4 py-2 mt-4 text-black/50 uppercase text-[10px] font-bold tracking-widest">
+    <div className="px-4 py-2 mt-4 text-gray-500 uppercase text-[10px] font-bold tracking-widest">
       {title}
     </div>
   );
