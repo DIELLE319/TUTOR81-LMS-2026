@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle, Mail, Printer } from 'lucide-react';
-import type { LearningProject, Company } from '@shared/schema';
+import type { LearningProject, Company, LearningObject } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -37,6 +37,10 @@ export default function ContentManagement() {
 
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ['/api/companies'],
+  });
+
+  const { data: learningObjects = [], isLoading: loadingLOs } = useQuery<LearningObject[]>({
+    queryKey: ['/api/learning-objects'],
   });
 
   const companyLookup = useMemo(() => {
@@ -911,14 +915,69 @@ export default function ContentManagement() {
       {activeTab === 'learningObjects' && (
         <div className="p-6">
           <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <PlayCircle size={24} className="text-[#4a90a4]" />
-              Learning Objects
-            </h2>
-            <p className="text-gray-600">Gestisci i contenuti multimediali: video, audio, documenti e pacchetti SCORM.</p>
-            <div className="mt-6 text-center py-16 bg-gray-50 rounded border border-dashed border-gray-300">
-              <p className="text-gray-400">Funzionalità in fase di sviluppo...</p>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <PlayCircle size={24} className="text-[#4a90a4]" />
+                Learning Objects ({learningObjects.length})
+              </h2>
+              <div className="flex gap-2 text-xs">
+                <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                  In uso: {learningObjects.filter(lo => lo.inUse).length}
+                </span>
+                <span className="px-2 py-1 bg-red-100 text-red-700 rounded">
+                  Non in uso: {learningObjects.filter(lo => !lo.inUse).length}
+                </span>
+              </div>
             </div>
+            
+            {loadingLOs ? (
+              <div className="text-center py-8 text-gray-400">Caricamento...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-left">
+                      <th className="py-2 px-2 font-medium text-gray-500">ID</th>
+                      <th className="py-2 px-2 font-medium text-gray-500">Tipo</th>
+                      <th className="py-2 px-2 font-medium text-gray-500">Titolo</th>
+                      <th className="py-2 px-2 font-medium text-gray-500">Durata</th>
+                      <th className="py-2 px-2 font-medium text-gray-500">Stato</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {learningObjects.slice(0, 100).map(lo => (
+                      <tr 
+                        key={lo.id} 
+                        className={`border-b border-gray-100 hover:bg-gray-50 ${!lo.inUse ? 'bg-red-50' : ''}`}
+                      >
+                        <td className="py-2 px-2 text-gray-600">{lo.legacyId || lo.id}</td>
+                        <td className="py-2 px-2">
+                          {lo.objectType === 1 && <span className="text-blue-600">Video</span>}
+                          {lo.objectType === 2 && <span className="text-purple-600">Slide</span>}
+                          {lo.objectType === 3 && <span className="text-orange-600">Doc</span>}
+                        </td>
+                        <td className={`py-2 px-2 ${!lo.inUse ? 'text-red-600' : 'text-gray-800'}`}>
+                          {lo.title}
+                        </td>
+                        <td className="py-2 px-2 text-gray-500">{lo.duration} min</td>
+                        <td className="py-2 px-2">
+                          {lo.suspended ? (
+                            <span className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px]">Sospeso</span>
+                          ) : lo.inUse ? (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[10px]">Attivo</span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-[10px]">Non usato</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {learningObjects.length > 100 && (
+                  <p className="text-center text-gray-400 text-xs py-2">Mostrati primi 100 di {learningObjects.length}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
