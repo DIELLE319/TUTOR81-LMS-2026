@@ -418,7 +418,7 @@ export async function registerRoutes(
   // Save invoice to archive
   app.post("/api/invoices", isAuthenticated, async (req, res) => {
     try {
-      const { tutorId, tutorName, month, year, orderIds, totalAmount, invoiceNumber } = req.body;
+      const { tutorId, tutorName, month, year, orderIds, totalAmount } = req.body;
       
       // Check if invoice already exists for this tutor/month/year
       const existing = await db.select()
@@ -432,6 +432,14 @@ export async function registerRoutes(
       if (existing.length > 0) {
         return res.status(400).json({ error: "Fattura già salvata per questo periodo" });
       }
+      
+      // Get count of invoices for this year to generate progressive number
+      const yearInvoices = await db.select()
+        .from(schema.invoices)
+        .where(eq(schema.invoices.year, year));
+      
+      const nextNumber = yearInvoices.length + 1;
+      const invoiceNumber = `FAT-${year}-${String(nextNumber).padStart(2, '0')}`;
       
       const [invoice] = await db.insert(schema.invoices).values({
         tutorId,

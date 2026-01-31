@@ -247,7 +247,6 @@ export default function Invoicing() {
                         year: invoiceData.period.year,
                         orderIds: invoiceData.orders.map(o => o.orderId).join(','),
                         totalAmount: invoiceData.grandTotal,
-                        invoiceNumber: `FAT-${invoiceData.period.year}-${String(invoiceData.period.month).padStart(2, '0')}-${invoiceData.tutor.id}`,
                       });
                     }}
                     disabled={saveInvoiceMutation.isPending}
