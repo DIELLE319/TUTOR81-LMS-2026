@@ -70,6 +70,7 @@ export const learningProjects = pgTable("learning_projects", {
 
 export const tutorsPurchases = pgTable("tutors_purchases", {
   id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
   tutorId: integer("tutor_id").references(() => companies.id),
   customerCompanyId: integer("customer_company_id").references(() => companies.id),
   userCompanyRef: varchar("user_company_ref").references(() => users.id),
