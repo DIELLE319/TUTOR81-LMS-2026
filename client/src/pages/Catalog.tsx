@@ -270,10 +270,9 @@ export default function Catalog() {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col style={{ width: '6%' }} />
                 <col style={{ width: '5%' }} />
                 <col style={{ width: '5%' }} />
-                <col style={{ width: '34%' }} />
+                <col style={{ width: '40%' }} />
                 <col style={{ width: '7%' }} />
                 <col style={{ width: '4%' }} />
                 <col style={{ width: '10%' }} />
@@ -283,7 +282,6 @@ export default function Catalog() {
               </colgroup>
               <thead className="bg-[#1a1a1a] text-white">
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Sottocategoria</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Tipo</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Rischio</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome Corso</th>
@@ -303,7 +301,7 @@ export default function Catalog() {
                       className="bg-[#2d2d2d] cursor-pointer hover:bg-[#3d3d3d] transition-colors"
                       onClick={() => toggleCategory(group.category)}
                     >
-                      <td colSpan={10} className="px-4 py-2.5">
+                      <td colSpan={9} className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           {expandedCategories.has(group.category) ? (
                             <ChevronUp size={18} className="text-yellow-400" />
@@ -316,7 +314,6 @@ export default function Catalog() {
                       </td>
                     </tr>
                     {expandedCategories.has(group.category) && group.courses.map((course, idx) => {
-                      const subcategory = getSubcategoryLabel(course.subcategory);
                       const courseType = getCourseTypeLabel(course.courseType);
                       const risk = getRiskLabel(course.riskLevel);
                       
@@ -327,12 +324,7 @@ export default function Catalog() {
                           data-testid={`row-course-${course.id}`}
                         >
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block w-[90px] text-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${subcategory.color}`}>
-                              {subcategory.label}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <span className={`inline-block w-[70px] text-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${courseType.color}`}>
+                            <span className={`inline-block w-[50px] text-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${courseType.color}`}>
                               {courseType.label}
                             </span>
                           </td>
