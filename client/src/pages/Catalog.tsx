@@ -270,14 +270,15 @@ export default function Catalog() {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '7%' }} />
+                <col style={{ width: '9%' }} />
                 <col style={{ width: '6%' }} />
-                <col style={{ width: '32%' }} />
                 <col style={{ width: '5%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '9%' }} />
+                <col style={{ width: '28%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '4%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '8%' }} />
                 <col style={{ width: '10%' }} />
               </colgroup>
               <thead className="bg-[#1a1a1a] text-white">
@@ -286,6 +287,7 @@ export default function Catalog() {
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Tipo</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Rischio</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome Corso</th>
+                  <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">Settore</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">Ore</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">Modalità</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide">Listino €</th>
@@ -301,7 +303,7 @@ export default function Catalog() {
                       className="bg-[#2d2d2d] cursor-pointer hover:bg-[#3d3d3d] transition-colors"
                       onClick={() => toggleCategory(group.category)}
                     >
-                      <td colSpan={9} className="px-4 py-2.5">
+                      <td colSpan={10} className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           {expandedCategories.has(group.category) ? (
                             <ChevronUp size={18} className="text-yellow-400" />
@@ -341,6 +343,9 @@ export default function Catalog() {
                           </td>
                           <td className="px-3 py-2.5 text-gray-800 font-medium">
                             {formatCourseTitle(course.title)}
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className="text-[11px] font-medium text-gray-600">{course.sector || '-'}</span>
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <span className="text-red-600 font-bold">{getCourseDuration(course.hours)}</span>
