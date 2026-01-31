@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { FileText, Printer, Building, Calendar, Euro, Mail, Save, Archive, Check } from 'lucide-react';
+import { FileText, Printer, Building, Calendar, Euro, Mail, Save, Archive, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -82,6 +82,19 @@ export default function Invoicing() {
     },
     onError: (error: any) => {
       toast({ title: "Errore", description: error.message || "Fattura già salvata per questo periodo", variant: "destructive" });
+    },
+  });
+
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest('DELETE', `/api/invoices/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      toast({ title: "Fattura rimossa", description: "La fattura è stata eliminata dall'archivio" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile eliminare la fattura", variant: "destructive" });
     },
   });
 
@@ -412,6 +425,7 @@ export default function Invoicing() {
                   <th className="px-4 py-3">Ordini</th>
                   <th className="px-4 py-3 text-right">Totale</th>
                   <th className="px-4 py-3">Data Creazione</th>
+                  <th className="px-4 py-3 text-center">Azioni</th>
                 </tr>
               </thead>
               <tbody>
@@ -430,6 +444,18 @@ export default function Invoicing() {
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-sm">
                       {new Date(inv.createdAt).toLocaleDateString('it-IT')}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => deleteInvoiceMutation.mutate(inv.id)}
+                        disabled={deleteInvoiceMutation.isPending}
+                        className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                        data-testid={`button-delete-invoice-${inv.id}`}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
                     </td>
                   </tr>
                 ))}

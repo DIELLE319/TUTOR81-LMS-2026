@@ -477,6 +477,18 @@ export async function registerRoutes(
     }
   });
 
+  // Delete invoice
+  app.delete("/api/invoices/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await db.delete(schema.invoices).where(eq(schema.invoices.id, parseInt(id)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete invoice error:", error);
+      res.status(500).json({ error: "Errore nella cancellazione" });
+    }
+  });
+
   app.get("/api/platform-users", isAuthenticated, async (req, res) => {
     try {
       const users = await db.select()
