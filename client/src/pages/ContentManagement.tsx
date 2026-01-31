@@ -547,54 +547,52 @@ export default function ContentManagement() {
                           <tr className="border-b border-gray-100">
                             <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Categoria</td>
                             <td className="py-2">
-                              <Select
-                                value={selectedProject.category || "SICUREZZA"}
-                                onValueChange={(value) => {
-                                  updateCategoryMutation.mutate({
-                                    projectId: selectedProject.id,
-                                    category: value
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="SICUREZZA">SICUREZZA</SelectItem>
-                                  <SelectItem value="HACCP">HACCP</SelectItem>
-                                  <SelectItem value="INFORMATICA">INFORMATICA</SelectItem>
-                                  <SelectItem value="HR">HR</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
-                          </tr>
-                          <tr className="border-b border-gray-100">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Sottocategoria</td>
-                            <td className="py-2">
-                              <Select
-                                value={selectedProject.subcategory || "LAVORATORE"}
-                                onValueChange={(value) => {
-                                  updateSubcategoryMutation.mutate({
-                                    projectId: selectedProject.id,
-                                    subcategory: value
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="LAVORATORE">LAVORATORE</SelectItem>
-                                  <SelectItem value="PREPOSTO">PREPOSTO</SelectItem>
-                                  <SelectItem value="RSPP">RSPP</SelectItem>
-                                  <SelectItem value="ASPP">ASPP</SelectItem>
-                                  <SelectItem value="RLS">RLS</SelectItem>
-                                  <SelectItem value="DIRIGENTE">DIRIGENTE</SelectItem>
-                                  <SelectItem value="ANTINCENDIO">ANTINCENDIO</SelectItem>
-                                  <SelectItem value="PRIMO SOCCORSO">PRIMO SOCCORSO</SelectItem>
-                                  <SelectItem value="ALTRO">ALTRO</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="flex items-center gap-4">
+                                <Select
+                                  value={selectedProject.category || "SICUREZZA"}
+                                  onValueChange={(value) => {
+                                    updateCategoryMutation.mutate({
+                                      projectId: selectedProject.id,
+                                      category: value
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[140px] h-8 text-[12px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="SICUREZZA">SICUREZZA</SelectItem>
+                                    <SelectItem value="HACCP">HACCP</SelectItem>
+                                    <SelectItem value="INFORMATICA">INFORMATICA</SelectItem>
+                                    <SelectItem value="HR">HR</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <span className="text-gray-600 font-medium text-[12px]">Sottocategoria</span>
+                                <Select
+                                  value={selectedProject.subcategory || "LAVORATORE"}
+                                  onValueChange={(value) => {
+                                    updateSubcategoryMutation.mutate({
+                                      projectId: selectedProject.id,
+                                      subcategory: value
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[160px] h-8 text-[12px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="LAVORATORE">LAVORATORE</SelectItem>
+                                    <SelectItem value="PREPOSTO">PREPOSTO</SelectItem>
+                                    <SelectItem value="RSPP">RSPP</SelectItem>
+                                    <SelectItem value="ASPP">ASPP</SelectItem>
+                                    <SelectItem value="RLS">RLS</SelectItem>
+                                    <SelectItem value="DIRIGENTE">DIRIGENTE</SelectItem>
+                                    <SelectItem value="ANTINCENDIO">ANTINCENDIO</SelectItem>
+                                    <SelectItem value="PRIMO SOCCORSO">PRIMO SOCCORSO</SelectItem>
+                                    <SelectItem value="ALTRO">ALTRO</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100">
