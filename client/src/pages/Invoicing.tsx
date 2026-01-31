@@ -131,12 +131,20 @@ export default function Invoicing() {
     return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value);
   };
 
+  const currentYearInvoices = savedInvoices.filter(inv => inv.year === selectedYear);
+  const nextInvoiceNumber = currentYearInvoices.length + 1;
+
   return (
     <div className="p-6 bg-black min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white" data-testid="text-invoicing-title">Fatturazione</h1>
           <p className="text-gray-500 text-sm">Genera fatture mensili per gli enti formativi</p>
+        </div>
+        <div className="bg-[#1e1e1e] border border-gray-800 rounded-xl px-4 py-3 text-center">
+          <p className="text-gray-500 text-xs mb-1">Prossima fattura {selectedYear}</p>
+          <p className="text-yellow-500 font-mono font-bold text-lg">FAT-{selectedYear}-{String(nextInvoiceNumber).padStart(2, '0')}</p>
+          <p className="text-gray-600 text-xs mt-1">{currentYearInvoices.length} fatture emesse</p>
         </div>
       </div>
 
