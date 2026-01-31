@@ -641,49 +641,47 @@ export default function ContentManagement() {
                                                     <tr className="border-b border-gray-100">
                             <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Rischio Azienda</td>
                             <td className="py-2">
-                              <Select
-                                value={selectedProject.riskLevel || "medio"}
-                                onValueChange={(value) => {
-                                  updateRiskLevelMutation.mutate({
-                                    projectId: selectedProject.id,
-                                    riskLevel: value
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="basso">basso</SelectItem>
-                                  <SelectItem value="medio">medio</SelectItem>
-                                  <SelectItem value="alto">alto</SelectItem>
-                                  <SelectItem value="nd">nd</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
-                          </tr>
-                          <tr className="border-b border-gray-100">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Destinazione</td>
-                            <td className="py-2">
-                              <Select
-                                value={selectedProject.destination || "BASE + SPECIFICA"}
-                                onValueChange={(value) => {
-                                  updateDestinationMutation.mutate({
-                                    projectId: selectedProject.id,
-                                    destination: value
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="BASE">BASE</SelectItem>
-                                  <SelectItem value="BASE + SPECIFICA">BASE + SPECIFICA</SelectItem>
-                                  <SelectItem value="SPECIFICA">SPECIFICA</SelectItem>
-                                  <SelectItem value="ND">ND</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="flex items-center gap-4">
+                                <Select
+                                  value={selectedProject.riskLevel || "medio"}
+                                  onValueChange={(value) => {
+                                    updateRiskLevelMutation.mutate({
+                                      projectId: selectedProject.id,
+                                      riskLevel: value
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[100px] h-8 text-[12px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="basso">basso</SelectItem>
+                                    <SelectItem value="medio">medio</SelectItem>
+                                    <SelectItem value="alto">alto</SelectItem>
+                                    <SelectItem value="nd">nd</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <span className="text-gray-600 font-medium text-[12px]">Destinazione</span>
+                                <Select
+                                  value={selectedProject.destination || "BASE + SPECIFICA"}
+                                  onValueChange={(value) => {
+                                    updateDestinationMutation.mutate({
+                                      projectId: selectedProject.id,
+                                      destination: value
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[160px] h-8 text-[12px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="BASE">BASE</SelectItem>
+                                    <SelectItem value="BASE + SPECIFICA">BASE + SPECIFICA</SelectItem>
+                                    <SelectItem value="SPECIFICA">SPECIFICA</SelectItem>
+                                    <SelectItem value="ND">ND</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </td>
                           </tr>
                           <DetailRow 
