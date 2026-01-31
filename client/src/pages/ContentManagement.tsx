@@ -649,30 +649,43 @@ export default function ContentManagement() {
                                   </SelectContent>
                                 </Select>
                                 <span className="text-gray-600 font-medium text-[12px]">Sottocategoria</span>
-                                <Select
-                                  value={selectedProject.subcategory || "LAVORATORE"}
-                                  onValueChange={(value) => {
-                                    updateSubcategoryMutation.mutate({
-                                      projectId: selectedProject.id,
-                                      subcategory: value
-                                    });
-                                  }}
-                                >
-                                  <SelectTrigger className="w-[160px] h-8 text-[12px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="LAVORATORE">LAVORATORE</SelectItem>
-                                    <SelectItem value="PREPOSTO">PREPOSTO</SelectItem>
-                                    <SelectItem value="RSPP">RSPP</SelectItem>
-                                    <SelectItem value="ASPP">ASPP</SelectItem>
-                                    <SelectItem value="RLS">RLS</SelectItem>
-                                    <SelectItem value="DIRIGENTE">DIRIGENTE</SelectItem>
-                                    <SelectItem value="ANTINCENDIO">ANTINCENDIO</SelectItem>
-                                    <SelectItem value="PRIMO SOCCORSO">PRIMO SOCCORSO</SelectItem>
-                                    <SelectItem value="ALTRO">ALTRO</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <div className="flex flex-col gap-1">
+                                  <Select
+                                    value={selectedProject.subcategory || "LAVORATORE"}
+                                    onValueChange={(value) => {
+                                      updateSubcategoryMutation.mutate({
+                                        projectId: selectedProject.id,
+                                        subcategory: value
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-[160px] h-8 text-[12px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="LAVORATORE">LAVORATORE</SelectItem>
+                                      <SelectItem value="PREPOSTO">PREPOSTO</SelectItem>
+                                      <SelectItem value="RSPP">RSPP</SelectItem>
+                                      <SelectItem value="ASPP">ASPP</SelectItem>
+                                      <SelectItem value="RLS">RLS</SelectItem>
+                                      <SelectItem value="DIRIGENTE">DIRIGENTE</SelectItem>
+                                      <SelectItem value="ANTINCENDIO">ANTINCENDIO</SelectItem>
+                                      <SelectItem value="PRIMO SOCCORSO">PRIMO SOCCORSO</SelectItem>
+                                      <SelectItem value="ALTRO">ALTRO</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <button 
+                                    className="text-[10px] text-[#4a90a4] hover:underline text-left"
+                                    onClick={() => {
+                                      const newCat = prompt("Inserisci il nome della nuova categoria:");
+                                      if (newCat && newCat.trim()) {
+                                        toast({ title: `Categoria "${newCat.trim().toUpperCase()}" da aggiungere`, description: "Funzionalità in sviluppo" });
+                                      }
+                                    }}
+                                  >
+                                    + Categoria
+                                  </button>
+                                </div>
                                 <span className="text-gray-600 font-medium text-[12px]">Tipo</span>
                                 <Select
                                   value={selectedProject.courseType || "ND"}
