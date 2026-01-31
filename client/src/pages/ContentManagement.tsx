@@ -1155,8 +1155,8 @@ export default function ContentManagement() {
                       />
                       {/* Anteprima domande sul video */}
                       {loDetails?.interruptionPoints?.length > 0 && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                          <div className="flex gap-2 overflow-x-auto">
+                        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-3">
+                          <div className="flex gap-2 overflow-x-auto flex-wrap">
                             {loDetails.interruptionPoints.map((ip: any, idx: number) => {
                               const totalSeconds = Math.floor(ip.time / 1000);
                               const minutes = Math.floor(totalSeconds / 60);
