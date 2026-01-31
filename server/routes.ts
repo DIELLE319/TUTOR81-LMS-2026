@@ -738,6 +738,8 @@ export async function registerRoutes(
         lastAccessAt: schema.enrollments.lastAccessAt,
         progress: schema.enrollments.progress,
         status: schema.enrollments.status,
+        emailSentAt: schema.enrollments.emailSentAt,
+        emailOpenedAt: schema.enrollments.emailOpenedAt,
       })
         .from(schema.enrollments)
         .orderBy(desc(schema.enrollments.createdAt))
@@ -788,6 +790,8 @@ export async function registerRoutes(
           lastAccessAt: e.lastAccessAt,
           progress: e.progress || 0,
           status: e.status || 'not_started',
+          emailSentAt: e.emailSentAt,
+          emailOpenedAt: e.emailOpenedAt,
         };
       }));
 

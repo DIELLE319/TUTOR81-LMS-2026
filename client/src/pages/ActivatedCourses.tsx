@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search } from "lucide-react";
+import { Search, Mail, MailOpen, MailX } from "lucide-react";
 
 interface Enrollment {
   id: number;
@@ -25,6 +25,8 @@ interface Enrollment {
   lastAccessAt: string | null;
   progress: number;
   status: string;
+  emailSentAt: string | null;
+  emailOpenedAt: string | null;
 }
 
 interface Company {
@@ -188,18 +190,21 @@ export default function ActivatedCourses() {
                 <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Progresso
                 </th>
+                <th className="text-center p-3 text-xs font-bold text-yellow-400 uppercase">
+                  Email
+                </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-black">
+                  <td colSpan={10} className="text-center py-8 text-black">
                     Caricamento...
                   </td>
                 </tr>
               ) : displayedEnrollments.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-black">
+                  <td colSpan={10} className="text-center py-8 text-black">
                     Nessun corso attivato trovato
                   </td>
                 </tr>
@@ -257,6 +262,24 @@ export default function ActivatedCourses() {
                           </div>
                         )}
                       </div>
+                    </td>
+                    <td className="p-3 text-center">
+                      {enrollment.emailOpenedAt ? (
+                        <div className="flex flex-col items-center" title={`Letta: ${formatDate(enrollment.emailOpenedAt)}`}>
+                          <MailOpen className="h-5 w-5 text-green-600" />
+                          <span className="text-xs text-green-600 font-medium">Letta</span>
+                        </div>
+                      ) : enrollment.emailSentAt ? (
+                        <div className="flex flex-col items-center" title={`Inviata: ${formatDate(enrollment.emailSentAt)}`}>
+                          <Mail className="h-5 w-5 text-amber-600" />
+                          <span className="text-xs text-amber-600 font-medium">Inviata</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center" title="Non inviata">
+                          <MailX className="h-5 w-5 text-gray-400" />
+                          <span className="text-xs text-gray-400">-</span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
