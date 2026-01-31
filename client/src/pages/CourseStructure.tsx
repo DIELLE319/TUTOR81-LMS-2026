@@ -219,31 +219,14 @@ export default function CourseStructure() {
         <div className="space-y-6">
           {structure.project && (
             <Card className="bg-zinc-900 border-zinc-800">
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm flex-1">
-                    <div>
-                      <span className="text-gray-500 block">Durata totale</span>
-                      <span className="text-white font-medium">{structure.project.hours ? `${structure.project.hours} ore` : "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block">E-learning</span>
-                      <span className="text-white font-medium">{structure.project.totalElearning ? `${structure.project.totalElearning} ore` : "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block">Videoconferenza</span>
-                      <span className="text-white font-medium">{structure.project.externalIntegration || "-"}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block">Tempo max</span>
-                      <span className="text-white font-medium">
-                        {structure.project.maxExecutionTime ? `${structure.project.maxExecutionTime} gg` : "-"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block">Soglia superamento</span>
-                      <span className="text-white font-medium">{structure.project.percentageToPass || 80}%</span>
-                    </div>
+              <CardContent className="py-2 px-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap text-sm">
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <span><span className="text-gray-500">Durata:</span> <span className="text-white">{structure.project.hours || 0}h</span></span>
+                    <span><span className="text-gray-500">E-learning:</span> <span className="text-white">{structure.project.totalElearning || 0}h</span></span>
+                    <span><span className="text-gray-500">Videoconf:</span> <span className="text-white">{structure.project.externalIntegration || "-"}</span></span>
+                    <span><span className="text-gray-500">Max:</span> <span className="text-white">{structure.project.maxExecutionTime || 90}gg</span></span>
+                    <span><span className="text-gray-500">Soglia:</span> <span className="text-white">{structure.project.percentageToPass || 80}%</span></span>
                   </div>
                   <Button 
                     variant="outline" 
