@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useSearch } from 'wouter';
 import { Search, Users as UsersIcon, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -31,10 +32,33 @@ export default function Users() {
   const [editData, setEditData] = useState<Partial<UserWithCompany>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const searchString = useSearch();
 
   const { data: users = [], isLoading } = useQuery<UserWithCompany[]>({
     queryKey: ['/api/platform-users'],
   });
+
+  useEffect(() => {
+    if (users.length > 0 && searchString) {
+      const params = new URLSearchParams(searchString);
+      const userId = params.get('userId');
+      if (userId) {
+        const user = users.find(u => u.id === userId);
+        if (user && !selectedUser) {
+          setSelectedUser(user);
+          setEditData({
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            fiscalCode: user.fiscalCode,
+            phone: user.phone,
+            role: user.role,
+            idcompany: user.idcompany,
+          });
+        }
+      }
+    }
+  }, [users, searchString]);
 
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ['/api/companies'],

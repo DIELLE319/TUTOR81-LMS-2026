@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Search, Plus, Building, MapPin, FileText, Pause, Pencil, Trash2, User } from 'lucide-react';
-import type { Company } from '@shared/schema';
+import { Search, Plus, Building, MapPin, FileText, Pause, Pencil, Trash2, User, X } from 'lucide-react';
+import type { Company, User as UserType } from '@shared/schema';
+
+type Admin = { id: string; firstName: string | null; lastName: string | null; email: string; role?: number };
 
 type TutorWithAdmins = Company & {
-  admins: { id: number; firstName: string | null; lastName: string | null; email: string }[];
+  admins: Admin[];
 };
 import { Button } from '@/components/ui/button';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -14,7 +16,13 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function Tutors() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [, navigate] = useLocation();
   const { toast } = useToast();
+
+  const handleAdminClick = (adminId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/users?userId=${adminId}`);
+  };
 
   const { data: tutors = [], isLoading } = useQuery<TutorWithAdmins[]>({
     queryKey: ['/api/tutors'],
@@ -122,11 +130,20 @@ export default function Tutors() {
                       )}
                     </div>
                     {tutor.admins && tutor.admins.length > 0 && (
-                      <div className="flex items-center gap-1 text-sm text-yellow-500/80 mt-1">
-                        <User size={14} />
-                        <span>
-                          {tutor.admins.map(a => `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.email).join(', ')}
-                        </span>
+                      <div className="flex items-center gap-1 text-sm text-yellow-500/80 mt-1 flex-wrap">
+                        <User size={14} className="flex-shrink-0" />
+                        {tutor.admins.map((admin, idx) => (
+                          <span key={admin.id}>
+                            <button
+                              onClick={(e) => handleAdminClick(admin.id, e)}
+                              className="hover:text-yellow-400 hover:underline cursor-pointer"
+                              data-testid={`link-admin-${admin.id}`}
+                            >
+                              {`${admin.firstName || ''} ${admin.lastName || ''}`.trim() || admin.email}
+                            </button>
+                            {idx < tutor.admins.length - 1 && <span className="text-gray-600">, </span>}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
