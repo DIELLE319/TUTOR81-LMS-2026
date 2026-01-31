@@ -221,38 +221,38 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white p-0 overflow-hidden max-h-[90vh]">
-        <DialogHeader className="bg-gradient-to-r from-cyan-700 to-cyan-600 px-6 py-4">
-          <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
+      <DialogContent className="max-w-7xl bg-white border-yellow-500 border-2 text-black p-0 overflow-hidden max-h-[90vh]">
+        <DialogHeader className="bg-yellow-500 px-6 py-4">
+          <DialogTitle className="text-black text-lg font-bold flex items-center gap-2">
             <Send size={20} />
             Invia codici di accesso per il corso
           </DialogTitle>
-          <p className="text-cyan-100 font-semibold mt-1">{formatCourseTitle(course.title)}</p>
+          <p className="text-black font-semibold mt-1">{formatCourseTitle(course.title)}</p>
         </DialogHeader>
 
         <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-180px)]">
-          <div className={`border rounded-lg ${errors.company ? 'border-red-500' : 'border-slate-600'}`}>
+          <div className={`border rounded-lg ${errors.company ? 'border-red-500' : 'border-gray-300'}`}>
             <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={companySearchOpen}
-                  className="w-full justify-between h-12 bg-slate-800 border-0 text-white hover:bg-slate-700"
+                  className="w-full justify-between h-12 bg-white border border-gray-300 text-black hover:bg-yellow-50"
                   data-testid="select-company"
                 >
                   {selectedCompanyName || "--- Scegli il cliente ---"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[500px] p-0 bg-slate-800 border-slate-600" align="start">
-                <Command className="bg-slate-800">
+              <PopoverContent className="w-[500px] p-0 bg-white border-gray-300" align="start">
+                <Command className="bg-white">
                   <CommandInput 
                     placeholder="Cerca azienda..." 
-                    className="text-white"
+                    className="text-black"
                   />
                   <CommandList className="max-h-60">
-                    <CommandEmpty className="text-slate-400 py-4 text-center">Nessuna azienda trovata</CommandEmpty>
+                    <CommandEmpty className="text-gray-500 py-4 text-center">Nessuna azienda trovata</CommandEmpty>
                     <CommandGroup>
                       {filteredCompanies.map(company => (
                         <CommandItem
@@ -262,7 +262,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                             setSelectedCompanyId(company.id.toString());
                             setCompanySearchOpen(false);
                           }}
-                          className="text-white hover:bg-slate-700 cursor-pointer"
+                          className="text-black hover:bg-yellow-100 cursor-pointer"
                         >
                           <Check
                             className={cn(
@@ -282,14 +282,14 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-slate-300 text-sm">Chi deve svolgere il corso</span>
+              <span className="text-black text-sm font-semibold">Chi deve svolgere il corso</span>
               <div className="flex gap-2">
                 <Button
                   type="button"
                   variant={userMode === 'new' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setUserMode('new')}
-                  className={userMode === 'new' ? 'bg-emerald-500 hover:bg-emerald-600' : 'border-slate-500 text-slate-300'}
+                  className={userMode === 'new' ? 'bg-yellow-500 text-black hover:bg-yellow-400' : 'border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black'}
                   data-testid="btn-new-user"
                 >
                   <UserPlus size={16} className="mr-1" />
@@ -300,7 +300,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                   variant={userMode === 'existing' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setUserMode('existing')}
-                  className={userMode === 'existing' ? 'bg-slate-600 hover:bg-slate-500' : 'border-slate-500 text-slate-300'}
+                  className={userMode === 'existing' ? 'bg-yellow-500 text-black hover:bg-yellow-400' : 'border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black'}
                   data-testid="btn-existing-user"
                 >
                   <Users size={16} className="mr-1" />
@@ -311,25 +311,25 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
             {userMode === 'new' && (
               <div className="flex items-center gap-3">
-                <Label className="text-slate-300 text-sm">Quantità corsi</Label>
+                <Label className="text-black text-sm font-semibold">Quantità corsi</Label>
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
                     size="icon"
                     variant="outline"
-                    className="h-8 w-8 border-slate-500"
+                    className="h-8 w-8 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
                     onClick={removeRow}
                     disabled={rows.length <= 1}
                     data-testid="btn-qty-minus"
                   >
                     <Minus size={14} />
                   </Button>
-                  <span className="w-10 text-center font-bold text-lg">{rows.length}</span>
+                  <span className="w-10 text-center font-bold text-lg text-black">{rows.length}</span>
                   <Button
                     type="button"
                     size="icon"
                     variant="outline"
-                    className="h-8 w-8 border-slate-500"
+                    className="h-8 w-8 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
                     onClick={addRow}
                     data-testid="btn-qty-plus"
                   >
@@ -341,30 +341,30 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
           </div>
 
           {userMode === 'new' ? (
-            <div className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
+            <div className="bg-gray-50 rounded-lg border border-yellow-500 overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-slate-700/50">
+                <thead className="bg-yellow-500">
                   <tr>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-slate-300 w-[180px]">Email destinatario *</th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-slate-300 w-[100px]">Data inizio</th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-slate-300 w-[100px]">Fine corso</th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-slate-300 w-[70px]">Alert gg</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-slate-300">Cognome *</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-slate-300">Nome *</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-slate-300 w-[140px]">Codice Fiscale *</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-slate-300 w-[130px]">Tipo Utente *</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-black w-[180px]">Email destinatario *</th>
+                    <th className="px-2 py-2 text-center text-xs font-medium text-black w-[100px]">Data inizio</th>
+                    <th className="px-2 py-2 text-center text-xs font-medium text-black w-[100px]">Fine corso</th>
+                    <th className="px-2 py-2 text-center text-xs font-medium text-black w-[70px]">Alert gg</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-black">Cognome *</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-black">Nome *</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-black w-[140px]">Codice Fiscale *</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-black w-[130px]">Tipo Utente *</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row, idx) => (
-                    <tr key={idx} className="border-t border-slate-700">
+                    <tr key={idx} className="border-t border-yellow-300">
                       <td className="px-2 py-2">
                         <Input
                           type="email"
                           value={row.email}
                           onChange={(e) => updateRow(idx, 'email', e.target.value)}
                           placeholder="E-mail *"
-                          className={`h-8 text-xs bg-slate-700 border-slate-600 text-white ${errors[`email_${idx}`] ? 'border-red-500' : ''}`}
+                          className={`h-8 text-xs bg-white border-gray-300 text-black ${errors[`email_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-email-${idx}`}
                         />
                       </td>
@@ -373,7 +373,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           type="date"
                           value={row.startDate}
                           onChange={(e) => updateRow(idx, 'startDate', e.target.value)}
-                          className="h-8 text-xs bg-slate-700 border-slate-600 text-white"
+                          className="h-8 text-xs bg-white border-gray-300 text-black"
                           data-testid={`input-start-${idx}`}
                         />
                       </td>
@@ -382,7 +382,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           type="date"
                           value={row.endDate}
                           onChange={(e) => updateRow(idx, 'endDate', e.target.value)}
-                          className="h-8 text-xs bg-slate-700 border-slate-600 text-white"
+                          className="h-8 text-xs bg-white border-gray-300 text-black"
                           data-testid={`input-end-${idx}`}
                         />
                       </td>
@@ -414,7 +414,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           value={row.lastName}
                           onChange={(e) => updateRow(idx, 'lastName', e.target.value)}
                           placeholder="Cognome"
-                          className={`h-8 text-xs bg-slate-700 border-slate-600 text-white ${errors[`lastName_${idx}`] ? 'border-red-500' : ''}`}
+                          className={`h-8 text-xs bg-white border-gray-300 text-black ${errors[`lastName_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-lastname-${idx}`}
                         />
                       </td>
@@ -423,7 +423,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           value={row.firstName}
                           onChange={(e) => updateRow(idx, 'firstName', e.target.value)}
                           placeholder="Nome"
-                          className={`h-8 text-xs bg-slate-700 border-slate-600 text-white ${errors[`firstName_${idx}`] ? 'border-red-500' : ''}`}
+                          className={`h-8 text-xs bg-white border-gray-300 text-black ${errors[`firstName_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-firstname-${idx}`}
                         />
                       </td>
@@ -433,19 +433,19 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           onChange={(e) => updateRow(idx, 'fiscalCode', e.target.value.toUpperCase())}
                           placeholder="CF"
                           maxLength={16}
-                          className={`h-8 text-xs bg-slate-700 border-slate-600 text-white uppercase ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''}`}
+                          className={`h-8 text-xs bg-white border-gray-300 text-black uppercase ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-cf-${idx}`}
                         />
                       </td>
                       <td className="px-2 py-2">
                         <Select value={row.userType} onValueChange={(val) => updateRow(idx, 'userType', val)}>
                           <SelectTrigger 
-                            className={`h-8 text-xs bg-slate-700 border-slate-600 text-white ${errors[`userType_${idx}`] ? 'border-red-500' : ''}`}
+                            className={`h-8 text-xs bg-white border-gray-300 text-black ${errors[`userType_${idx}`] ? 'border-red-500' : ''}`}
                             data-testid={`select-type-${idx}`}
                           >
                             <SelectValue placeholder="Tipo" />
                           </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-600">
+                          <SelectContent className="bg-white border-gray-300">
                             {USER_TYPES.map(type => (
                               <SelectItem 
                                 key={type.value} 
@@ -476,7 +476,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                     placeholder="Cerca..."
                     value={existingUserSearch}
                     onChange={(e) => setExistingUserSearch(e.target.value)}
-                    className="h-8 w-48 text-xs bg-slate-700 border-slate-600 text-white"
+                    className="h-8 w-48 text-xs bg-white border-gray-300 text-black"
                     data-testid="input-search-users"
                   />
                 </div>

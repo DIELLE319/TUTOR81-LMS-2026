@@ -17,6 +17,7 @@ const CATEGORIES = [
   { key: 'PREPOSTO', label: 'Preposto' },
   { key: 'DIRIGENTE', label: 'Dirigente' },
   { key: 'RSPP/ASPP', label: 'RSPP/ASPP' },
+  { key: 'DATORE DI LAVORO', label: 'Datore di Lavoro' },
   { key: 'RLS', label: 'RLS' },
   { key: 'CARRELLO ELEVATORE', label: 'Carrello' },
   { key: 'ANTINCENDIO', label: 'Antincendio' },
@@ -30,7 +31,8 @@ const getCourseCategory = (title: string) => {
   const t = title.toUpperCase();
   if (t.includes('DIRIGENTE') || t.includes('EL03')) return 'DIRIGENTE';
   if (t.includes('PREPOSTO') || t.includes('EL02')) return 'PREPOSTO';
-  if (t.includes('RSPP') || t.includes('ASPP') || t.includes('DATORE DI LAVORO') || t.includes('EL04') || t.includes('EL05')) return 'RSPP/ASPP';
+  if (t.includes('DATORE DI LAVORO') || t.includes('EL05')) return 'DATORE DI LAVORO';
+  if (t.includes('RSPP') || t.includes('ASPP') || t.includes('EL04')) return 'RSPP/ASPP';
   if (t.includes('RLS') || t.includes('EL07')) return 'RLS';
   if (t.includes('CARRELLO') || t.includes('MULETTO') || t.includes('ELEVATORE')) return 'CARRELLO ELEVATORE';
   if (t.includes('PLE') || t.includes('PIATTAFORM')) return 'PLE';
@@ -154,7 +156,7 @@ export default function Catalog() {
     });
 
     const orderedCategories = [
-      'LAVORATORE', 'PREPOSTO', 'DIRIGENTE', 'RSPP/ASPP', 'RLS', 
+      'LAVORATORE', 'PREPOSTO', 'DIRIGENTE', 'RSPP/ASPP', 'DATORE DI LAVORO', 'RLS', 
       'CARRELLO ELEVATORE', 'PLE', 'APPARECCHI SOLLEVAMENTO', 'LAVORI IN QUOTA',
       'ANTINCENDIO', 'PRIMO SOCCORSO', 'HACCP', 
       'RISCHIO ELETTRICO', 'SPAZI CONFINATI', 'AMIANTO',
