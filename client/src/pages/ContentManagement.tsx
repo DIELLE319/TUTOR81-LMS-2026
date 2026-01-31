@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Book, Film, PlayCircle, ChevronRight, FileText, Settings, List, Eye, Edit } from 'lucide-react';
+import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, HelpCircle, LogOut } from 'lucide-react';
 import type { Course, LearningProject } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
 
 type Tab = 'catalogo' | 'lezioni' | 'learningObjects';
 type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati';
@@ -14,6 +15,7 @@ export default function ContentManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [typeFilter, setTypeFilter] = useState<'generico' | 'specifico' | 'demo' | 'test' | null>(null);
+  const { user, logout } = useAuth();
 
   const { data: courses = [], isLoading: loadingCourses } = useQuery<Course[]>({
     queryKey: ['/api/courses'],
@@ -91,298 +93,273 @@ export default function ContentManagement() {
   }, [courses]);
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans">
-      <div className="bg-[#4a90a4] text-white">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold">Tutor</span>
-            <span className="text-2xl font-bold text-yellow-300">81</span>
-            <span className="text-xs text-white/70 ml-2">advanced elearning application</span>
+    <div className="min-h-screen bg-[#f0f0f0] font-sans text-[13px]">
+      <header className="bg-gradient-to-b from-[#5ba3b8] to-[#4a90a4] shadow-md">
+        <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center">
+            <div className="flex items-baseline">
+              <span className="text-3xl font-black text-white tracking-tight" style={{ fontFamily: 'Arial Black, sans-serif' }}>Tutor</span>
+              <span className="text-3xl font-black text-[#ffd700] tracking-tight" style={{ fontFamily: 'Arial Black, sans-serif' }}>81</span>
+            </div>
+            <span className="text-[10px] text-white/60 ml-2 italic">advanced elearning application</span>
           </div>
-          <div className="flex items-center gap-6">
-            <button 
-              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${activeTab === 'catalogo' ? 'bg-white/20' : 'hover:bg-white/10'}`}
-              onClick={() => setActiveTab('catalogo')}
-              data-testid="tab-catalogo"
-            >
+          
+          <div className="flex items-center gap-1">
+            <NavTab active={activeTab === 'catalogo'} onClick={() => setActiveTab('catalogo')}>
               Catalogo corsi
-            </button>
-            <button 
-              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${activeTab === 'lezioni' ? 'bg-white/20' : 'hover:bg-white/10'}`}
-              onClick={() => setActiveTab('lezioni')}
-              data-testid="tab-lezioni"
-            >
+            </NavTab>
+            <NavTab active={activeTab === 'lezioni'} onClick={() => setActiveTab('lezioni')}>
               Lezioni
-            </button>
-            <button 
-              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${activeTab === 'learningObjects' ? 'bg-white/20' : 'hover:bg-white/10'}`}
-              onClick={() => setActiveTab('learningObjects')}
-              data-testid="tab-learning-objects"
-            >
+            </NavTab>
+            <NavTab active={activeTab === 'learningObjects'} onClick={() => setActiveTab('learningObjects')}>
               Learning Objects
-            </button>
+            </NavTab>
           </div>
-          <div className="text-sm text-white/80">
-            Benvenuto Superadmin | <button className="underline hover:text-white">Logout</button>
+          
+          <div className="flex items-center gap-3 text-white text-xs">
+            <span>Benvenuto <strong>Superadmin {user?.firstName}</strong></span>
+            <span className="text-white/50">|</span>
+            <button onClick={() => logout()} className="hover:underline flex items-center gap-1">
+              <LogOut size={12} />
+              Logout
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
       {activeTab === 'catalogo' && (
-        <div className="flex">
-          <div className="w-[400px] bg-white border-r border-gray-200 min-h-[calc(100vh-60px)]">
-            <div className="border-b border-gray-200 p-3">
-              <div className="flex gap-4 mb-3">
-                <button 
-                  className={`px-3 py-1 text-xs font-medium border rounded ${viewMode === 'progetti' ? 'bg-[#4a90a4] text-white border-[#4a90a4]' : 'bg-white text-gray-600 border-gray-300'}`}
-                  onClick={() => setViewMode('progetti')}
-                  data-testid="btn-view-progetti"
-                >
+        <div className="flex h-[calc(100vh-52px)]">
+          <aside className="w-[380px] bg-white border-r border-gray-300 flex flex-col shadow-sm">
+            <div className="p-3 border-b border-gray-200 bg-gray-50">
+              <div className="flex gap-3 mb-3">
+                <TabButton active={viewMode === 'progetti'} onClick={() => setViewMode('progetti')}>
                   PROGETTI
-                </button>
-                <button 
-                  className={`px-3 py-1 text-xs font-medium border rounded ${viewMode === 'corsi' ? 'bg-[#4a90a4] text-white border-[#4a90a4]' : 'bg-white text-gray-600 border-gray-300'}`}
-                  onClick={() => setViewMode('corsi')}
-                  data-testid="btn-view-corsi"
-                >
+                </TabButton>
+                <TabButton active={viewMode === 'corsi'} onClick={() => setViewMode('corsi')}>
                   CORSI
-                </button>
+                </TabButton>
               </div>
 
-              <div className="flex gap-2 mb-3 text-xs">
-                <button 
-                  className={`px-2 py-1 rounded ${statusFilter === 'attivi' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'}`}
+              <div className="flex gap-1.5 mb-3">
+                <StatusButton 
+                  active={statusFilter === 'attivi'} 
+                  color="green"
                   onClick={() => setStatusFilter('attivi')}
-                  data-testid="filter-attivi"
                 >
                   Attivi ({activeCounts.attivi})
-                </button>
-                <button 
-                  className={`px-2 py-1 rounded ${statusFilter === 'sospesi' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}`}
+                </StatusButton>
+                <StatusButton 
+                  active={statusFilter === 'sospesi'} 
+                  color="orange"
                   onClick={() => setStatusFilter('sospesi')}
-                  data-testid="filter-sospesi"
                 >
                   Sospesi
-                </button>
-                <button 
-                  className={`px-2 py-1 rounded ${statusFilter === 'nonPubblicati' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600'}`}
+                </StatusButton>
+                <StatusButton 
+                  active={statusFilter === 'nonPubblicati'} 
+                  color="red"
                   onClick={() => setStatusFilter('nonPubblicati')}
-                  data-testid="filter-non-pubblicati"
                 >
                   Non Pubblicati
-                </button>
+                </StatusButton>
               </div>
 
-              <div className="flex gap-2 mb-3 text-xs">
-                <label className="flex items-center gap-1">
-                  <input type="radio" name="type" checked={typeFilter === 'generico'} onChange={() => setTypeFilter('generico')} className="w-3 h-3" />
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-[11px] text-gray-600">
+                <RadioOption checked={typeFilter === 'generico'} onChange={() => setTypeFilter(typeFilter === 'generico' ? null : 'generico')}>
                   Generico
-                </label>
-                <label className="flex items-center gap-1">
-                  <input type="radio" name="type" checked={typeFilter === 'specifico'} onChange={() => setTypeFilter('specifico')} className="w-3 h-3" />
+                </RadioOption>
+                <RadioOption checked={typeFilter === 'specifico'} onChange={() => setTypeFilter(typeFilter === 'specifico' ? null : 'specifico')}>
                   Specifico
-                </label>
-                <label className="flex items-center gap-1">
-                  <input type="radio" name="type" checked={typeFilter === 'demo'} onChange={() => setTypeFilter('demo')} className="w-3 h-3" />
+                </RadioOption>
+                <RadioOption checked={typeFilter === 'demo'} onChange={() => setTypeFilter(typeFilter === 'demo' ? null : 'demo')}>
                   Demo
-                </label>
-                <label className="flex items-center gap-1">
-                  <input type="radio" name="type" checked={typeFilter === 'test'} onChange={() => setTypeFilter('test')} className="w-3 h-3" />
+                </RadioOption>
+                <RadioOption checked={typeFilter === 'test'} onChange={() => setTypeFilter(typeFilter === 'test' ? null : 'test')}>
                   Test
-                </label>
+                </RadioOption>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
-                <span className="font-medium">FILTRA I CORSI</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-gray-700 uppercase whitespace-nowrap">Filtra i corsi</span>
                 <input 
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder=""
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs"
+                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-[#4a90a4] focus:ring-1 focus:ring-[#4a90a4]/30"
                   data-testid="input-filter-courses"
                 />
               </div>
             </div>
 
-            <div className="overflow-y-auto max-h-[calc(100vh-240px)]">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left font-medium text-gray-600">Tipo</th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-600">ID</th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-600">Nome Corso</th>
+            <div className="flex-1 overflow-y-auto">
+              <table className="w-full text-[11px]">
+                <thead className="bg-[#e8e8e8] sticky top-0 z-10">
+                  <tr className="border-b border-gray-300">
+                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 w-12">Tipo</th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 w-10">ID</th>
+                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700">Nome Corso</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingCourses ? (
                     <tr>
-                      <td colSpan={3} className="text-center py-8 text-gray-400">
+                      <td colSpan={3} className="text-center py-12 text-gray-400">
+                        <div className="animate-spin w-6 h-6 border-2 border-[#4a90a4] border-t-transparent rounded-full mx-auto mb-2"></div>
                         Caricamento...
+                      </td>
+                    </tr>
+                  ) : groupedCourses.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="text-center py-12 text-gray-400">
+                        Nessun corso trovato
                       </td>
                     </tr>
                   ) : (
                     groupedCourses.map(group => (
-                      <>
-                        <tr key={`cat-${group.category}`} className="bg-gray-100">
-                          <td colSpan={3} className="px-2 py-2 font-bold text-gray-700 text-xs uppercase">
+                      <tbody key={group.category}>
+                        <tr className="bg-[#d0d0d0]">
+                          <td colSpan={3} className="px-2 py-1.5 font-bold text-gray-800 text-[11px] uppercase tracking-wide">
                             {group.category}
                           </td>
                         </tr>
-                        {group.items.map(course => {
+                        {group.items.map((course, idx) => {
                           const type = getCourseType(course.title);
+                          const isSelected = selectedCourseId === course.id;
                           return (
                             <tr 
                               key={course.id}
-                              className={`border-b border-gray-100 cursor-pointer hover:bg-blue-50 ${selectedCourseId === course.id ? 'bg-blue-100' : ''}`}
+                              className={`border-b border-gray-100 cursor-pointer transition-colors ${
+                                isSelected 
+                                  ? 'bg-[#4a90a4] text-white' 
+                                  : idx % 2 === 0 
+                                    ? 'bg-white hover:bg-[#e6f3f7]' 
+                                    : 'bg-[#f8f8f8] hover:bg-[#e6f3f7]'
+                              }`}
                               onClick={() => setSelectedCourseId(course.id)}
                               data-testid={`row-cms-course-${course.id}`}
                             >
-                              <td className="px-2 py-1.5">
-                                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${type === 'Base' ? 'bg-blue-500' : 'bg-orange-500'}`}>
+                              <td className="px-2 py-1">
+                                <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${
+                                  type === 'Base' ? 'bg-[#3498db]' : 'bg-[#e67e22]'
+                                }`}>
                                   {type}
                                 </span>
                               </td>
-                              <td className="px-2 py-1.5 text-gray-500">{course.id}</td>
-                              <td className="px-2 py-1.5 text-gray-800 text-[11px]">{course.title}</td>
+                              <td className={`px-2 py-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
+                                {course.id}
+                              </td>
+                              <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-gray-800'}`}>
+                                {course.title}
+                              </td>
                             </tr>
                           );
                         })}
-                      </>
+                      </tbody>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
-          </div>
+          </aside>
 
-          <div className="flex-1 p-4">
+          <main className="flex-1 overflow-y-auto bg-[#f5f5f5]">
             {selectedCourse ? (
-              <div className="bg-white rounded shadow-sm">
-                <div className="border-b border-gray-200 px-4 py-2 flex gap-4 text-xs">
-                  <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1.5" data-testid="btn-dettaglio">
-                    <FileText size={14} />
-                    Dettaglio corso
-                  </button>
-                  <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1.5" data-testid="btn-modifica">
-                    <Edit size={14} />
-                    Modifica
-                  </button>
-                  <button className="px-3 py-1.5 bg-[#4a90a4] text-white rounded flex items-center gap-1.5" data-testid="btn-corso">
-                    <PlayCircle size={14} />
-                    CORSO
-                  </button>
-                  <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1.5" data-testid="btn-domande">
-                    <List size={14} />
-                    Visualizza domande
-                  </button>
-                  <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded flex items-center gap-1.5" data-testid="btn-listino">
-                    <Settings size={14} />
-                    Modifica listino prezzi
-                  </button>
+              <div className="h-full flex flex-col">
+                <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 shadow-sm">
+                  <ActionButton icon={<FileText size={13} />}>Dettaglio corso</ActionButton>
+                  <ActionButton icon={<Edit size={13} />}>Modifica</ActionButton>
+                  <ActionButton icon={<PlayCircle size={13} />} primary>CORSO</ActionButton>
+                  <ActionButton icon={<List size={13} />}>Visualizza domande</ActionButton>
+                  <ActionButton icon={<Settings size={13} />}>Modifica listino prezzi</ActionButton>
                 </div>
 
-                <div className="p-4">
-                  <h2 className="text-lg font-bold text-[#4a90a4] mb-4">
-                    (ID:{selectedCourse.id}) {selectedCourse.title}
-                  </h2>
-
-                  <div className="grid grid-cols-[200px_1fr] gap-y-2 text-sm">
-                    <div className="font-medium text-gray-600">Data di creazione</div>
-                    <div className="text-gray-800">{selectedCourse.createdAt ? new Date(selectedCourse.createdAt).toLocaleString('it-IT') : '-'}</div>
-                    
-                    <div className="font-medium text-gray-600">Requisiti minimi per accedere</div>
-                    <div className="text-gray-800">nessuno</div>
-                    
-                    <div className="font-medium text-gray-600">Categoria</div>
-                    <div className="text-gray-800">sicurezza</div>
-                    
-                    <div className="font-medium text-gray-600">Sottocategoria</div>
-                    <div className="text-gray-800">lavoratore</div>
-                    
-                    <div className="font-medium text-gray-600">Tipo</div>
-                    <div className="text-gray-800">{getCourseType(selectedCourse.title).toLowerCase()}</div>
-                    
-                    <div className="font-medium text-gray-600">Test in presenza</div>
-                    <div className="text-gray-800">No</div>
-                    
-                    <div className="font-medium text-gray-600">Rischio Azienda</div>
-                    <div className="text-gray-800">medio</div>
-                    
-                    <div className="font-medium text-gray-600">Destinazione</div>
-                    <div className="text-gray-800">Base+Specifico</div>
-                    
-                    <div className="font-medium text-gray-600">Obiettivi del corso</div>
-                    <div className="text-gray-800">{selectedCourse.description || 'Formazione generale e specifica dei lavoratori in Aziende a rischio medio'}</div>
-                    
-                    {linkedProject && (
-                      <>
-                        <div className="font-medium text-gray-600">Progetto Formativo</div>
-                        <div className="text-gray-800">{linkedProject.title}</div>
-                        
-                        <div className="font-medium text-gray-600">Durata Totale</div>
-                        <div className="text-gray-800">{linkedProject.hours} ore</div>
-                        
-                        <div className="font-medium text-gray-600">Riferimento normativo</div>
-                        <div className="text-gray-800">Decreto 81 art. 37 - Accordo Stato-Regioni</div>
-                        
-                        <div className="font-medium text-gray-600">Validità</div>
-                        <div className="text-gray-800">quinquennale</div>
-                      </>
-                    )}
-                    
-                    <div className="font-medium text-gray-600">Stato pubblicazione</div>
-                    <div className="text-gray-800">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs ${selectedCourse.isPublished ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {selectedCourse.isPublished ? 'Pubblicato' : 'Non pubblicato'}
-                      </span>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="bg-white rounded shadow-sm border border-gray-200">
+                    <div className="bg-gradient-to-r from-[#4a90a4] to-[#5ba3b8] px-4 py-2 rounded-t">
+                      <h2 className="text-base font-bold text-white">
+                        (ID:{selectedCourse.id}) {selectedCourse.title.toUpperCase()}
+                      </h2>
                     </div>
-                  </div>
 
-                  <div className="mt-6 border-t pt-4">
-                    <h3 className="font-bold text-gray-700 mb-2">Profili e competenze per la gestione didattica</h3>
-                    <p className="text-sm text-gray-600">
-                      Il discente ha la disponibilità dei profili di competenza per la gestione didattica e tecnica E-learning quali:
-                      • Responsabile scientifico dei corsi • Mentor di contenuto • Sviluppatore della piattaforma • Tutor di processo
-                    </p>
-                  </div>
+                    <div className="p-4">
+                      <table className="w-full text-[12px]">
+                        <tbody>
+                          <DetailRow label="Data di creazione" value={selectedCourse.createdAt ? new Date(selectedCourse.createdAt).toLocaleString('it-IT') : '-'} />
+                          <DetailRow label="Requisiti minimi per accedere al corso" value="nessuno" />
+                          <DetailRow label="Categoria" value="sicurezza" />
+                          <DetailRow label="Sottocategoria" value="lavoratore" />
+                          <DetailRow label="Tipo" value={getCourseType(selectedCourse.title).toLowerCase()} />
+                          <DetailRow label="Test in presenza" value="No" />
+                          <DetailRow label="Rischio Azienda" value="medio" />
+                          <DetailRow label="Destinazione" value="Base+Specifico" />
+                          <DetailRow 
+                            label="Obiettivi del corso" 
+                            value={selectedCourse.description || 'Formazione generale e specifica dei lavoratori in Aziende a rischio medio'} 
+                          />
+                          <DetailRow label="Rivolto a" value="" />
+                          <DetailRow label="Riferimento normativo" value="Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025" />
+                          <DetailRow label="Validità" value="quinquennale" />
+                          <DetailRow label="Integrazione in aula" value="non necessaria" />
+                          {linkedProject && (
+                            <>
+                              <DetailRow label="Durata Totale" value={`${linkedProject.hours} ore`} highlight />
+                              <DetailRow label="Durata minima del corso in e-learning" value={`${linkedProject.hours} ore`} />
+                              <DetailRow label="Tempo massimo per la conclusione" value="60 giorni" />
+                            </>
+                          )}
+                        </tbody>
+                      </table>
 
-                  <div className="mt-4">
-                    <h3 className="font-bold text-gray-700 mb-2">Relatori e docenti</h3>
-                    <p className="text-sm text-gray-600">
-                      Tutte le lezioni sono state progettate e scritte da docenti qualificati con esperienza almeno decennale nel settore di competenza.
-                    </p>
-                  </div>
-
-                  <div className="mt-4">
-                    <h3 className="font-bold text-gray-700 mb-2">Verifica di apprendimento</h3>
-                    <p className="text-sm text-gray-600">
-                      La verifica di apprendimento principale privilegiata nell'ambiente Tutor81 è la verifica in itinere. 
-                      Si tratta di un tempo trasmessi frequentemente e con lo scopo non solo di controllare la presenza del partecipante ma di stimolare l'attenzione.
-                    </p>
+                      <div className="mt-6 space-y-4">
+                        <ContentSection 
+                          title="Profili e competenze per la gestione didattica" 
+                          content="Il discente ha la disponibilità dei profili di competenza per la gestione didattica e tecnica E-learning quali: • Responsabile scientifico dei corsi • Mentor di contenuto • Sviluppatore della piattaforma • Tutor di processo"
+                        />
+                        <ContentSection 
+                          title="Relatori e docenti" 
+                          content="Tutte le lezioni sono state progettate e scritte da docenti qualificati con esperienza almeno decennale nel settore di competenza. In alcuni casi i docenti sono stati affiancati da attori per l'aspetto comunicativo."
+                        />
+                        <ContentSection 
+                          title="Verifica di apprendimento" 
+                          content="La verifica di apprendimento principale privilegiata nell'ambiente Tutor81 è la verifica in itinere. Si tratta di un tempo trasmessi frequentemente e con lo scopo non solo di controllare la presenza del partecipante ma di stimolare l'attenzione. Il corsista riceve un feedback immediato alla risposta rilasciata. I test sono trasmessi in modalità random, ciò significa che per la stessa domanda esistono varie alternative. In caso il risultato finale del test, sia inferiore alla soglia minima prevista dai test corretti, l'attestato non viene generato dal sistema."
+                        />
+                        <ContentSection 
+                          title="Caratteristiche tecniche della piattaforma" 
+                          content="Il metodo Tutor81 prevede una percentuale minima pari al 60% di filmati e l'integrazione di slide interattive. In ogni oggetto multimediale è inserita uno o più domande (temporizzate) rilasciate in modalità random."
+                        />
+                        <ContentSection 
+                          title="Programma del corso" 
+                          content="Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza."
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded shadow-sm p-8 text-center text-gray-500">
-                <Book size={48} className="mx-auto mb-4 text-gray-300" />
-                <p>Seleziona un corso dalla lista per visualizzarne i dettagli</p>
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Book size={36} className="text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 text-sm">Seleziona un corso dalla lista per visualizzarne i dettagli</p>
+                </div>
               </div>
             )}
-          </div>
+          </main>
         </div>
       )}
 
       {activeTab === 'lezioni' && (
         <div className="p-6">
-          <div className="bg-white rounded shadow-sm p-6">
+          <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Film size={24} className="text-[#4a90a4]" />
               Gestione Lezioni
             </h2>
             <p className="text-gray-600">Qui puoi gestire le lezioni dei corsi, aggiungere nuovi moduli e contenuti.</p>
-            <div className="mt-6 text-center py-12 bg-gray-50 rounded">
-              <p className="text-gray-400">Seleziona un corso per visualizzare e modificare le lezioni</p>
+            <div className="mt-6 text-center py-16 bg-gray-50 rounded border border-dashed border-gray-300">
+              <p className="text-gray-400">Seleziona un corso dal Catalogo per visualizzare e modificare le lezioni</p>
             </div>
           </div>
         </div>
@@ -390,18 +367,121 @@ export default function ContentManagement() {
 
       {activeTab === 'learningObjects' && (
         <div className="p-6">
-          <div className="bg-white rounded shadow-sm p-6">
+          <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
               <PlayCircle size={24} className="text-[#4a90a4]" />
               Learning Objects
             </h2>
             <p className="text-gray-600">Gestisci i contenuti multimediali: video, audio, documenti e pacchetti SCORM.</p>
-            <div className="mt-6 text-center py-12 bg-gray-50 rounded">
+            <div className="mt-6 text-center py-16 bg-gray-50 rounded border border-dashed border-gray-300">
               <p className="text-gray-400">Funzionalità in fase di sviluppo...</p>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function NavTab({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-1.5 text-xs font-medium rounded transition-all ${
+        active 
+          ? 'bg-white text-[#4a90a4] shadow-sm' 
+          : 'text-white hover:bg-white/15'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function TabButton({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-1 text-[11px] font-semibold border rounded transition-all ${
+        active 
+          ? 'bg-[#4a90a4] text-white border-[#4a90a4] shadow-sm' 
+          : 'bg-white text-gray-600 border-gray-300 hover:border-[#4a90a4] hover:text-[#4a90a4]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatusButton({ children, active, color, onClick }: { 
+  children: React.ReactNode; 
+  active: boolean; 
+  color: 'green' | 'orange' | 'red';
+  onClick: () => void;
+}) {
+  const colors = {
+    green: active ? 'bg-green-500 text-white border-green-500' : 'bg-white text-green-600 border-green-300 hover:bg-green-50',
+    orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-orange-600 border-orange-300 hover:bg-orange-50',
+    red: active ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-600 border-red-300 hover:bg-red-50',
+  };
+  
+  return (
+    <button
+      onClick={onClick}
+      className={`px-2 py-0.5 text-[10px] font-medium border rounded transition-all ${colors[color]}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RadioOption({ children, checked, onChange }: { children: React.ReactNode; checked: boolean; onChange: () => void }) {
+  return (
+    <label className="flex items-center gap-1 cursor-pointer hover:text-[#4a90a4]">
+      <input 
+        type="checkbox" 
+        checked={checked} 
+        onChange={onChange}
+        className="w-3 h-3 accent-[#4a90a4]" 
+      />
+      <span>{children}</span>
+    </label>
+  );
+}
+
+function ActionButton({ children, icon, primary }: { children: React.ReactNode; icon: React.ReactNode; primary?: boolean }) {
+  return (
+    <button
+      className={`px-3 py-1.5 text-[11px] font-medium rounded flex items-center gap-1.5 transition-all ${
+        primary 
+          ? 'bg-[#4a90a4] text-white hover:bg-[#3d7a8c] shadow-sm' 
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+      }`}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function DetailRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <tr className="border-b border-gray-100">
+      <td className={`py-1.5 pr-4 font-semibold text-gray-600 align-top w-[220px] ${highlight ? 'text-[#4a90a4]' : ''}`}>
+        {label}
+      </td>
+      <td className={`py-1.5 text-gray-800 ${highlight ? 'font-bold text-[#4a90a4]' : ''}`}>
+        {value}
+      </td>
+    </tr>
+  );
+}
+
+function ContentSection({ title, content }: { title: string; content: string }) {
+  return (
+    <div className="border-l-4 border-[#4a90a4] pl-3">
+      <h3 className="font-bold text-gray-800 text-[12px] mb-1">{title}</h3>
+      <p className="text-[11px] text-gray-600 leading-relaxed">{content}</p>
     </div>
   );
 }
