@@ -49,10 +49,11 @@ interface LearningProject {
   id: number;
   title: string;
   category?: string;
-  totalDuration?: string;
-  totalElearning?: string;
+  hours?: number;
+  totalElearning?: number;
   maxExecutionTime?: number;
   externalIntegration?: string;
+  percentageToPass?: number;
 }
 
 interface CourseStructure {
@@ -180,25 +181,25 @@ export default function CourseStructure() {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500 block">Durata totale</span>
-                    <span className="text-white font-medium">{structure.project.totalDuration || "-"}</span>
+                    <span className="text-white font-medium">{structure.project.hours ? `${structure.project.hours} ore` : "-"}</span>
                   </div>
                   <div>
                     <span className="text-gray-500 block">E-learning</span>
-                    <span className="text-white font-medium">{structure.project.totalElearning || "-"}</span>
+                    <span className="text-white font-medium">{structure.project.totalElearning ? `${structure.project.totalElearning} ore` : "-"}</span>
                   </div>
                   <div>
                     <span className="text-gray-500 block">Videoconferenza</span>
                     <span className="text-white font-medium">{structure.project.externalIntegration || "-"}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 block">Tempo max conclusione</span>
+                    <span className="text-gray-500 block">Tempo max</span>
                     <span className="text-white font-medium">
-                      {structure.project.maxExecutionTime ? `${structure.project.maxExecutionTime} giorni` : "-"}
+                      {structure.project.maxExecutionTime ? `${structure.project.maxExecutionTime} gg` : "-"}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-500 block">Soglia superamento</span>
-                    <span className="text-white font-medium">80%</span>
+                    <span className="text-white font-medium">{structure.project.percentageToPass || 80}%</span>
                   </div>
                 </div>
               </CardContent>
