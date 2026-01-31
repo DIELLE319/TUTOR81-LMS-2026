@@ -238,35 +238,65 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
     
     if (userMode === 'new') {
       const seenCFs = new Set<string>();
+      const missingFields: string[] = [];
       
       rows.forEach((row, idx) => {
-        if (!row.email) newErrors[`email_${idx}`] = true;
-        if (!row.lastName) newErrors[`lastName_${idx}`] = true;
-        if (!row.firstName) newErrors[`firstName_${idx}`] = true;
-        if (!row.userType) newErrors[`userType_${idx}`] = true;
+        const rowNum = idx + 1;
+        
+        if (!row.email) {
+          newErrors[`email_${idx}`] = true;
+          missingFields.push(`Riga ${rowNum}: Email`);
+        }
+        if (!row.startDate) {
+          newErrors[`startDate_${idx}`] = true;
+          missingFields.push(`Riga ${rowNum}: Data inizio`);
+        }
+        if (!row.endDate) {
+          newErrors[`endDate_${idx}`] = true;
+          missingFields.push(`Riga ${rowNum}: Data fine`);
+        }
+        if (!row.lastName) {
+          newErrors[`lastName_${idx}`] = true;
+          missingFields.push(`Riga ${rowNum}: Cognome`);
+        }
+        if (!row.firstName) {
+          newErrors[`firstName_${idx}`] = true;
+          missingFields.push(`Riga ${rowNum}: Nome`);
+        }
+        if (!row.userType) {
+          newErrors[`userType_${idx}`] = true;
+          missingFields.push(`Riga ${rowNum}: Tipo Utente`);
+        }
         
         // Validate fiscal code
         if (!row.fiscalCode) {
           newErrors[`fiscalCode_${idx}`] = true;
+          missingFields.push(`Riga ${rowNum}: Codice Fiscale`);
         } else {
           const cfUpper = row.fiscalCode.toUpperCase();
           
           // Check format and checksum
           if (!validateItalianFiscalCode(cfUpper)) {
             newErrors[`fiscalCode_${idx}`] = true;
-            cfErrors.push(`Riga ${idx + 1}: Codice Fiscale non valido`);
+            cfErrors.push(`Riga ${rowNum}: Codice Fiscale non valido`);
           }
           
           // Check for duplicates in the same form
           if (seenCFs.has(cfUpper)) {
             newErrors[`fiscalCode_${idx}`] = true;
-            cfErrors.push(`Riga ${idx + 1}: Codice Fiscale duplicato`);
+            cfErrors.push(`Riga ${rowNum}: Codice Fiscale duplicato`);
           }
           seenCFs.add(cfUpper);
         }
       });
       
-      if (cfErrors.length > 0) {
+      if (missingFields.length > 0) {
+        toast({
+          title: "Campi obbligatori mancanti",
+          description: missingFields.slice(0, 5).join(", ") + (missingFields.length > 5 ? "..." : ""),
+          variant: "destructive",
+        });
+      } else if (cfErrors.length > 0) {
         toast({
           title: "Errore Codice Fiscale",
           description: cfErrors.join(", "),
