@@ -574,10 +574,10 @@ function ActionButton({ children, icon, primary, onClick }: { children: React.Re
 function DetailRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <tr className="border-b border-gray-100">
-      <td className={`py-1.5 pr-4 font-semibold text-gray-600 align-top w-[220px] ${highlight ? 'text-[#4a90a4]' : ''}`}>
+      <td className={`py-1.5 pr-4 font-semibold text-gray-600 align-top w-[220px] ${highlight ? 'text-red-600' : ''}`}>
         {label}
       </td>
-      <td className={`py-1.5 text-gray-800 ${highlight ? 'font-bold text-[#4a90a4]' : ''}`}>
+      <td className={`py-1.5 text-gray-800 ${highlight ? 'font-bold text-red-600' : ''}`}>
         {value}
       </td>
     </tr>
