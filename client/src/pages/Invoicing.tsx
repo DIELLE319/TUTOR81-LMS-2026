@@ -150,7 +150,7 @@ export default function Invoicing() {
 
       {/* Filters */}
       <div className="bg-[#1e1e1e] rounded-xl border border-gray-800 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-gray-400 text-sm mb-2">Ente Formativo</label>
             <select
@@ -192,18 +192,6 @@ export default function Invoicing() {
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-          </div>
-          
-          <div className="flex items-end">
-            <Button
-              onClick={() => refetch()}
-              disabled={!selectedTutor}
-              className="w-full bg-yellow-500 hover:bg-yellow-400 text-black"
-              data-testid="button-generate-invoice"
-            >
-              <FileText size={18} className="mr-2" />
-              Genera Fattura
-            </Button>
           </div>
         </div>
       </div>
