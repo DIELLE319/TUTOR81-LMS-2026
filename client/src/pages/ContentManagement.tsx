@@ -240,64 +240,66 @@ export default function ContentManagement() {
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700">Nome Corso</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {loadingProjects ? (
+                {loadingProjects ? (
+                  <tbody>
                     <tr>
                       <td colSpan={3} className="text-center py-12 text-gray-400">
                         <div className="animate-spin w-6 h-6 border-2 border-[#4a90a4] border-t-transparent rounded-full mx-auto mb-2"></div>
                         Caricamento...
                       </td>
                     </tr>
-                  ) : groupedProjects.length === 0 ? (
+                  </tbody>
+                ) : groupedProjects.length === 0 ? (
+                  <tbody>
                     <tr>
                       <td colSpan={3} className="text-center py-12 text-gray-400">
                         Nessun corso trovato
                       </td>
                     </tr>
-                  ) : (
-                    groupedProjects.map(group => (
-                      <tbody key={group.category}>
-                        <tr className="bg-[#d0d0d0]">
-                          <td colSpan={3} className="px-2 py-1.5 font-bold text-gray-800 text-[11px] uppercase tracking-wide">
-                            {group.category}
-                          </td>
-                        </tr>
-                        {group.items.map((project, idx) => {
-                          const type = getCourseType(project.title);
-                          const isSelected = selectedCourseId === project.id;
-                          return (
-                            <tr 
-                              key={project.id}
-                              className={`border-b border-gray-100 cursor-pointer transition-colors ${
-                                isSelected 
-                                  ? 'bg-[#4a90a4] text-white' 
-                                  : idx % 2 === 0 
-                                    ? 'bg-white hover:bg-[#e6f3f7]' 
-                                    : 'bg-[#f8f8f8] hover:bg-[#e6f3f7]'
-                              }`}
-                              onClick={() => setSelectedCourseId(project.id)}
-                              data-testid={`row-cms-course-${project.id}`}
-                            >
-                              <td className="px-2 py-1">
-                                <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${
-                                  type === 'Base' ? 'bg-[#3498db]' : 'bg-[#e67e22]'
-                                }`}>
-                                  {type}
-                                </span>
-                              </td>
-                              <td className={`px-2 py-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
-                                {project.id}
-                              </td>
-                              <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-gray-800'}`}>
-                                {formatCourseTitle(project.title)}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    ))
-                  )}
-                </tbody>
+                  </tbody>
+                ) : (
+                  groupedProjects.map(group => (
+                    <tbody key={group.category}>
+                      <tr className="bg-[#d0d0d0]">
+                        <td colSpan={3} className="px-2 py-1.5 font-bold text-gray-800 text-[11px] uppercase tracking-wide">
+                          {group.category}
+                        </td>
+                      </tr>
+                      {group.items.map((project, idx) => {
+                        const type = getCourseType(project.title);
+                        const isSelected = selectedCourseId === project.id;
+                        return (
+                          <tr 
+                            key={project.id}
+                            className={`border-b border-gray-100 cursor-pointer transition-colors ${
+                              isSelected 
+                                ? 'bg-[#4a90a4] text-white' 
+                                : idx % 2 === 0 
+                                  ? 'bg-white hover:bg-[#e6f3f7]' 
+                                  : 'bg-[#f8f8f8] hover:bg-[#e6f3f7]'
+                            }`}
+                            onClick={() => setSelectedCourseId(project.id)}
+                            data-testid={`row-cms-course-${project.id}`}
+                          >
+                            <td className="px-2 py-1">
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${
+                                type === 'Base' ? 'bg-[#3498db]' : 'bg-[#e67e22]'
+                              }`}>
+                                {type}
+                              </span>
+                            </td>
+                            <td className={`px-2 py-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
+                              {project.id}
+                            </td>
+                            <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-gray-800'}`}>
+                              {formatCourseTitle(project.title)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  ))
+                )}
               </table>
             </div>
           </aside>
