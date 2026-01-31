@@ -135,6 +135,28 @@ export default function ContentManagement() {
     return '-';
   };
 
+  const stripHtml = (html: string | null) => {
+    if (!html) return '';
+    return html
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&rsquo;/g, "'")
+      .replace(/&lsquo;/g, "'")
+      .replace(/&rdquo;/g, '"')
+      .replace(/&ldquo;/g, '"')
+      .replace(/&agrave;/g, 'à')
+      .replace(/&egrave;/g, 'è')
+      .replace(/&igrave;/g, 'ì')
+      .replace(/&ograve;/g, 'ò')
+      .replace(/&ugrave;/g, 'ù')
+      .replace(/<[^>]*>/g, '')
+      .trim();
+  };
+
   const filteredProjects = useMemo(() => {
     return projects.filter(p => {
       const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -384,7 +406,11 @@ export default function ContentManagement() {
                           <DetailRow label="Destinazione" value={selectedProject.destination || "Base+Specifico"} />
                           <DetailRow 
                             label="Obiettivi del corso" 
-                            value={selectedProject.objectives || selectedProject.description || 'Formazione generale e specifica dei lavoratori'} 
+                            value={stripHtml(selectedProject.objectives) || 'Formazione generale e specifica dei lavoratori'} 
+                          />
+                          <DetailRow 
+                            label="Programma del corso" 
+                            value={stripHtml(selectedProject.courseProgram || selectedProject.description) || ''} 
                           />
                           <DetailRow label="Rivolto a" value={selectedProject.targetAudience || ""} />
                           <DetailRow label="Riferimento normativo" value={selectedProject.lawReference || "Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025"} />
