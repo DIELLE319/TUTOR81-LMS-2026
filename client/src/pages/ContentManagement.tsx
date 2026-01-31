@@ -1156,11 +1156,11 @@ export default function ContentManagement() {
                                                     {lesson.learningObjects.map((lo) => {
                                                       const getLoIcon = (type: string) => {
                                                         switch(type?.toLowerCase()) {
-                                                          case 'video': return <Video size={14} className="text-blue-500" />;
-                                                          case 'slide': return <FileSliders size={14} className="text-orange-500" />;
-                                                          case 'document': return <FileText size={14} className="text-green-500" />;
-                                                          case 'test': return <FileQuestion size={14} className="text-purple-500" />;
-                                                          default: return <PlayCircle size={14} className="text-gray-400" />;
+                                                          case 'video': return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-blue-500 text-white text-[9px] font-bold rounded">VIDEO</span>;
+                                                          case 'slide': return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-orange-400 text-white text-[9px] font-bold rounded">SLIDE</span>;
+                                                          case 'document': return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-green-500 text-white text-[9px] font-bold rounded">DOC</span>;
+                                                          case 'test': return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-purple-500 text-white text-[9px] font-bold rounded">TEST</span>;
+                                                          default: return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-gray-400 text-white text-[9px] font-bold rounded">LO</span>;
                                                         }
                                                       };
                                                       return (
