@@ -343,6 +343,9 @@ export default function ContentManagement() {
             <NavTab active={activeTab === 'catalogo'} onClick={() => setActiveTab('catalogo')}>
               Catalogo corsi
             </NavTab>
+            <button className="bg-green-600 hover:bg-green-700 text-white text-[11px] px-3 py-1.5 rounded flex items-center gap-1 ml-2">
+              <Edit size={12} /> Crea Corso
+            </button>
             <NavTab active={activeTab === 'lezioni'} onClick={() => setActiveTab('lezioni')}>
               Lezioni
             </NavTab>
