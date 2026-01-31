@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Building, ChevronDown } from 'lucide-react';
+import { Link } from 'wouter';
+import { Calendar, Building, ChevronDown, Receipt } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { Company } from '@shared/schema';
 import {
   Select,
@@ -154,6 +156,12 @@ export default function Sales() {
                 <span className="text-gray-600 text-sm">Totale Ordini: </span>
                 <span className="font-bold text-gray-900" data-testid="text-total-orders">{totalOrders}</span>
               </div>
+              <Link href="/invoicing">
+                <Button className="bg-yellow-500 hover:bg-yellow-400 text-black" data-testid="button-invoicing">
+                  <Receipt size={18} className="mr-2" />
+                  Fatture
+                </Button>
+              </Link>
             </div>
           )}
         </div>
