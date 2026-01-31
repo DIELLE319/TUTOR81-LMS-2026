@@ -1042,11 +1042,14 @@ export async function registerRoutes(
           u.fiscal_code as user_fiscal_code,
           lp.title as course_title,
           lp.hours as course_hours,
-          c.business_name as company_name
+          c.business_name as company_name,
+          tutor.business_name as tutor_name
         FROM enrollments e
         LEFT JOIN users u ON e.legacy_user_id::text = u.id
         LEFT JOIN learning_projects lp ON e.learning_project_id = lp.id
         LEFT JOIN companies c ON e.company_id = c.id
+        LEFT JOIN tutors_purchases tp ON e.purchase_id = tp.id
+        LEFT JOIN companies tutor ON tp.tutor_id = tutor.id
         WHERE e.legacy_id IS NOT NULL
         ORDER BY e.end_date DESC NULLS LAST
         LIMIT 1000

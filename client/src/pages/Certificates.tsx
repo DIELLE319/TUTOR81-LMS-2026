@@ -28,6 +28,7 @@ interface Attestato {
   course_title: string | null;
   course_hours: number | null;
   company_name: string | null;
+  tutor_name: string | null;
 }
 
 export default function Certificates() {
@@ -212,7 +213,7 @@ export default function Certificates() {
                   Data Fine
                 </th>
                 <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
-                  Cod. Accreditamento
+                  Ente Formativo
                 </th>
                 <th className="text-center p-3 text-xs font-semibold text-gray-600 uppercase">
                   Azioni
@@ -259,8 +260,8 @@ export default function Certificates() {
                     <td className="p-3 text-sm text-gray-600">
                       {formatDate(attestato.end_date)}
                     </td>
-                    <td className="p-3 text-sm text-gray-600 font-mono">
-                      {attestato.accreditation_code || "-"}
+                    <td className="p-3 text-sm text-gray-800">
+                      {attestato.tutor_name || "-"}
                     </td>
                     <td className="p-3 text-center">
                       <Button
