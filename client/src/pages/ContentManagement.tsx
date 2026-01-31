@@ -285,6 +285,7 @@ export default function ContentManagement() {
                       <table className="w-full text-[12px]">
                         <tbody>
                           <DetailRow label="Data di creazione" value={selectedCourse.createdAt ? new Date(selectedCourse.createdAt).toLocaleString('it-IT') : '-'} />
+                          <DetailRow label="Creato da" value="Superadmin Tutor81 (ID: 6)" />
                           <DetailRow label="Requisiti minimi per accedere al corso" value="nessuno" />
                           <DetailRow label="Categoria" value="sicurezza" />
                           <DetailRow label="Sottocategoria" value="lavoratore" />
