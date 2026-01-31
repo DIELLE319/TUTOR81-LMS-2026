@@ -683,7 +683,7 @@ export default function ContentManagement() {
                             <td className="py-0.5">
                               <input 
                                 type="text" 
-                                className="w-full px-2 py-0.5 text-[12px] border border-gray-400 rounded focus:outline-none focus:border-blue-400"
+                                className="w-full px-2 py-0.5 text-[12px] text-gray-700 border border-gray-400 rounded focus:outline-none focus:border-blue-400"
                                 defaultValue={selectedProject.prerequisites || ""}
                                 key={`prereq-${selectedProject.id}`}
                                 onBlur={(e) => {
@@ -850,7 +850,7 @@ export default function ContentManagement() {
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Obiettivi</td>
                             <td className="py-0.5">
-                              <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-400 rounded focus:outline-none focus:border-blue-400"
+                              <input type="text" className="w-full px-2 py-0.5 text-[12px] text-gray-700 border border-gray-400 rounded focus:outline-none focus:border-blue-400"
                                 defaultValue={stripHtml(selectedProject.objectives) || ''} key={`obj-${selectedProject.id}`}
                                 onBlur={(e) => { if (e.target.value !== (stripHtml(selectedProject.objectives) || '')) updateFieldMutation.mutate({ objectives: e.target.value }); }} />
                             </td>
@@ -858,7 +858,7 @@ export default function ContentManagement() {
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Rivolto a</td>
                             <td className="py-0.5">
-                              <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-400 rounded focus:outline-none focus:border-blue-400"
+                              <input type="text" className="w-full px-2 py-0.5 text-[12px] text-gray-700 border border-gray-400 rounded focus:outline-none focus:border-blue-400"
                                 defaultValue={selectedProject.targetAudience || ''} key={`target-${selectedProject.id}`}
                                 onBlur={(e) => { if (e.target.value !== (selectedProject.targetAudience || '')) updateFieldMutation.mutate({ targetAudience: e.target.value }); }} />
                             </td>
@@ -866,7 +866,7 @@ export default function ContentManagement() {
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Normativa</td>
                             <td className="py-0.5">
-                              <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-400 rounded focus:outline-none focus:border-blue-400"
+                              <input type="text" className="w-full px-2 py-0.5 text-[12px] text-gray-700 border border-gray-400 rounded focus:outline-none focus:border-blue-400"
                                 defaultValue={selectedProject.lawReference || ''} key={`law-${selectedProject.id}`}
                                 onBlur={(e) => { if (e.target.value !== (selectedProject.lawReference || '')) updateFieldMutation.mutate({ lawReference: e.target.value }); }} />
                             </td>
@@ -898,27 +898,27 @@ export default function ContentManagement() {
                             <td className="py-1">
                               <div className="flex items-center gap-4 text-[12px] text-black">
                                 <span className="flex items-center gap-1"><strong className="text-blue-700">Durata:</strong>
-                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] text-gray-700 border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
                                     defaultValue={selectedProject.hours || 0} key={`hours-${selectedProject.id}`}
                                     onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.hours || 0)) updateFieldMutation.mutate({ hours: Number(e.target.value) }); }} /> ore
                                 </span>
                                 <span className="flex items-center gap-1"><strong className="text-blue-700">E-learning:</strong>
-                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] text-gray-700 border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
                                     defaultValue={selectedProject.totalElearning || 0} key={`elearn-${selectedProject.id}`}
                                     onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.totalElearning || 0)) updateFieldMutation.mutate({ totalElearning: Number(e.target.value) }); }} /> ore
                                 </span>
                                 <span className="flex items-center gap-1"><strong className="text-blue-700">VD:</strong>
-                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] text-gray-700 border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
                                     defaultValue={selectedProject.vdHours || 0} key={`vd-${selectedProject.id}`}
                                     onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.vdHours || 0)) updateFieldMutation.mutate({ vdHours: Number(e.target.value) }); }} /> ore
                                 </span>
                                 <span className="flex items-center gap-1"><strong className="text-blue-700">Tempo max:</strong>
-                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] text-gray-700 border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
                                     defaultValue={selectedProject.maxExecutionTime || 60} key={`maxtime-${selectedProject.id}`}
                                     onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.maxExecutionTime || 60)) updateFieldMutation.mutate({ maxExecutionTime: Number(e.target.value) }); }} /> gg
                                 </span>
                                 <span className="flex items-center gap-1"><strong className="text-blue-700">Soglia:</strong>
-                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] text-gray-700 border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
                                     defaultValue={selectedProject.percentageToPass || 80} key={`pass-${selectedProject.id}`}
                                     onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.percentageToPass || 80)) updateFieldMutation.mutate({ percentageToPass: Number(e.target.value) }); }} /> %
                                 </span>
@@ -928,7 +928,7 @@ export default function ContentManagement() {
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-red-600 align-top w-[220px]">Prezzo listino (€)</td>
                             <td className="py-0.5">
-                              <input type="text" className="w-32 px-2 py-0.5 text-[12px] border border-gray-400 rounded focus:outline-none focus:border-blue-400 font-bold text-red-600"
+                              <input type="text" className="w-32 px-2 py-0.5 text-[12px] text-gray-700 border border-gray-400 rounded focus:outline-none focus:border-blue-400 font-bold text-red-600"
                                 defaultValue={selectedProject.listPrice || ''} key={`price-${selectedProject.id}`}
                                 onBlur={(e) => { if (e.target.value !== (selectedProject.listPrice || '')) updateFieldMutation.mutate({ listPrice: e.target.value }); }} />
                             </td>
