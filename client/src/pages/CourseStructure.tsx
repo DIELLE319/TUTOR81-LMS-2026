@@ -1,19 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  ChevronRight, 
+  ChevronUp,
   ChevronDown, 
-  BookOpen, 
-  FileText, 
   Video, 
+  FileText, 
   File,
   ArrowLeft,
-  Clock,
-  Layers
+  Play,
+  Presentation,
+  FileIcon,
+  Edit
 } from "lucide-react";
 import { useState } from "react";
 
@@ -23,6 +24,7 @@ interface LearningObject {
   type: string;
   duration: number;
   position: number;
+  legacyId?: number;
 }
 
 interface Lesson {
@@ -31,6 +33,7 @@ interface Lesson {
   duration: number;
   position: number;
   learningObjects: LearningObject[];
+  legacyId?: number;
 }
 
 interface Module {
@@ -60,39 +63,47 @@ interface CourseStructure {
 }
 
 function getLoIcon(type: string) {
+  const iconClass = "h-5 w-5";
   switch (type?.toLowerCase()) {
     case 'video':
-      return <Video className="h-4 w-4 text-blue-400" />;
+      return <Play className={`${iconClass} text-blue-400`} />;
     case 'slide':
     case 'slides':
-      return <FileText className="h-4 w-4 text-green-400" />;
+      return <Presentation className={`${iconClass} text-yellow-500`} />;
     case 'document':
     case 'pdf':
-      return <File className="h-4 w-4 text-orange-400" />;
+      return <FileIcon className={`${iconClass} text-orange-400`} />;
     default:
-      return <File className="h-4 w-4 text-gray-400" />;
+      return <File className={`${iconClass} text-gray-400`} />;
   }
 }
 
-function formatDuration(seconds: number) {
-  if (!seconds) return "-";
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+function formatDurationLegacy(seconds: number): string {
+  if (!seconds || seconds <= 0) return "";
+  const totalMinutes = Math.floor(seconds / 60);
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${hours} ora ${mins} min`;
+  }
+  return `${totalMinutes} min`;
+}
+
+function calculateLessonDuration(learningObjects: LearningObject[]): number {
+  return learningObjects.reduce((sum, lo) => sum + (lo.duration || 0), 0);
 }
 
 export default function CourseStructure() {
   const params = useParams();
   const [, setLocation] = useLocation();
-  const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
-  const [expandedLessons, setExpandedLessons] = useState<Set<number>>(new Set());
+  const [showObjects, setShowObjects] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(params.id || "");
 
   const { data: projects } = useQuery<LearningProject[]>({
     queryKey: ["/api/learning-projects"]
   });
 
-  const { data: structure, isLoading, error } = useQuery<CourseStructure>({
+  const { data: structure, isLoading } = useQuery<CourseStructure>({
     queryKey: ["/api/learning-projects", selectedProjectId, "structure"],
     queryFn: async () => {
       const res = await fetch(`/api/learning-projects/${selectedProjectId}/structure`);
@@ -102,43 +113,10 @@ export default function CourseStructure() {
     enabled: !!selectedProjectId
   });
 
-  const toggleModule = (moduleId: number) => {
-    const newExpanded = new Set(expandedModules);
-    if (newExpanded.has(moduleId)) {
-      newExpanded.delete(moduleId);
-    } else {
-      newExpanded.add(moduleId);
-    }
-    setExpandedModules(newExpanded);
-  };
-
-  const toggleLesson = (lessonId: number) => {
-    const newExpanded = new Set(expandedLessons);
-    if (newExpanded.has(lessonId)) {
-      newExpanded.delete(lessonId);
-    } else {
-      newExpanded.add(lessonId);
-    }
-    setExpandedLessons(newExpanded);
-  };
-
-  const expandAll = () => {
-    if (!structure) return;
-    const allModules = new Set(structure.modules.map(m => m.id));
-    const allLessons = new Set(structure.modules.flatMap(m => m.lessons.map(l => l.id)));
-    setExpandedModules(allModules);
-    setExpandedLessons(allLessons);
-  };
-
-  const collapseAll = () => {
-    setExpandedModules(new Set());
-    setExpandedLessons(new Set());
-  };
-
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/content">
+        <Link href="/catalog">
           <Button variant="ghost" size="icon" data-testid="button-back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -172,12 +150,6 @@ export default function CourseStructure() {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" size="sm" onClick={expandAll} data-testid="button-expand-all">
-              Espandi tutto
-            </Button>
-            <Button variant="outline" size="sm" onClick={collapseAll} data-testid="button-collapse-all">
-              Comprimi tutto
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -196,126 +168,117 @@ export default function CourseStructure() {
         </Card>
       )}
 
-      {error && selectedProjectId && (
-        <Card className="bg-red-900/20 border-red-800">
-          <CardContent className="pt-4 text-red-400">
-            Nessun dato trovato per il corso selezionato
-          </CardContent>
-        </Card>
-      )}
-
       {structure && (
-        <>
-          <Card className="mb-6 bg-zinc-900 border-zinc-800">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Layers className="h-5 w-5 text-yellow-500" />
-                {structure.project?.title || `Corso ID: ${structure.projectId}`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-blue-900/30 border-blue-700">
-                    {structure.stats.totalModules} Moduli
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-900/30 border-green-700">
-                    {structure.stats.totalLessons} Lezioni
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-purple-900/30 border-purple-700">
-                    {structure.stats.totalLearningObjects} Learning Objects
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-cyan-400 uppercase tracking-wide">
+              Moduli Inseriti
+            </h2>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowObjects(!showObjects)}
+              className="text-xs"
+              data-testid="button-toggle-objects"
+            >
+              {showObjects ? "nascondi oggetti" : "mostra oggetti"}
+            </Button>
+            <div className="flex-1" />
+            <Badge variant="outline" className="bg-zinc-800">
+              {structure.stats.totalModules} moduli, {structure.stats.totalLessons} lezioni, {structure.stats.totalLearningObjects} LO
+            </Badge>
+          </div>
 
-          <div className="space-y-3">
-            {structure.modules.map((module) => (
-              <Card key={module.id} className="bg-zinc-900 border-zinc-800" data-testid={`card-module-${module.id}`}>
-                <div
-                  className="flex items-center gap-3 p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
-                  onClick={() => toggleModule(module.id)}
-                  data-testid={`button-toggle-module-${module.id}`}
-                >
-                  {expandedModules.has(module.id) ? (
-                    <ChevronDown className="h-5 w-5 text-yellow-500" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 text-gray-500" />
-                  )}
-                  <BookOpen className="h-5 w-5 text-yellow-500" />
-                  <div className="flex-1">
-                    <div className="font-medium text-white">{module.title}</div>
+          {structure.modules.map((module, moduleIndex) => (
+            <Card 
+              key={module.id} 
+              className="bg-zinc-900 border-zinc-700 border-l-4 border-l-cyan-500" 
+              data-testid={`card-module-${module.id}`}
+            >
+              <CardContent className="pt-4">
+                <div className="mb-4">
+                  <h3 className="text-cyan-400 font-bold text-lg">
+                    MODULO {moduleIndex + 1}: {module.title}
+                  </h3>
+                  <div className="mt-2 text-sm text-gray-400 space-y-1">
+                    <div>
+                      <span className="text-gray-500">Durata:</span>{" "}
+                      <span className="text-white">{module.duration || 0} ore</span>
+                    </div>
                     {module.description && (
-                      <div className="text-sm text-gray-400 mt-1">{module.description}</div>
+                      <div>
+                        <span className="text-gray-500">Descrizione:</span>{" "}
+                        <span className="text-gray-300">{module.description}</span>
+                      </div>
                     )}
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {module.lessons.length} lezioni
-                  </Badge>
-                  {module.duration > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <Clock className="h-3 w-3" />
-                      {formatDuration(module.duration)}
-                    </div>
-                  )}
+                  <Button variant="outline" size="sm" className="mt-3" data-testid={`button-edit-module-${module.id}`}>
+                    <Edit className="h-3 w-3 mr-1" />
+                    Modifica modulo
+                  </Button>
                 </div>
 
-                {expandedModules.has(module.id) && module.lessons.length > 0 && (
-                  <div className="border-t border-zinc-800 px-4 pb-4">
-                    {module.lessons.map((lesson) => (
-                      <div key={lesson.id} className="mt-3" data-testid={`lesson-${lesson.id}`}>
-                        <div
-                          className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-800 transition-colors ml-6"
-                          onClick={() => toggleLesson(lesson.id)}
-                          data-testid={`button-toggle-lesson-${lesson.id}`}
-                        >
-                          {expandedLessons.has(lesson.id) ? (
-                            <ChevronDown className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-500" />
-                          )}
-                          <FileText className="h-4 w-4 text-green-500" />
-                          <div className="flex-1 text-sm text-white">{lesson.title}</div>
-                          <Badge variant="outline" className="text-xs">
-                            {lesson.learningObjects.length} LO
-                          </Badge>
-                        </div>
-
-                        {expandedLessons.has(lesson.id) && lesson.learningObjects.length > 0 && (
-                          <div className="ml-14 mt-2 space-y-1">
-                            {lesson.learningObjects.map((lo) => (
-                              <Link key={lo.id} href={`/learning-objects/${lo.id}`}>
-                                <div
-                                  className="flex items-center gap-3 p-2 bg-zinc-800/30 rounded hover:bg-zinc-700/50 transition-colors cursor-pointer"
-                                  data-testid={`lo-${lo.id}`}
-                                >
-                                  {getLoIcon(lo.type)}
-                                  <span className="flex-1 text-sm text-gray-300">{lo.title}</span>
-                                  <Badge variant="outline" className="text-xs bg-zinc-900">
-                                    {lo.type || "N/A"}
-                                  </Badge>
-                                  {lo.duration > 0 && (
-                                    <span className="text-xs text-gray-500">
-                                      {formatDuration(lo.duration)}
-                                    </span>
-                                  )}
+                {module.lessons.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-cyan-400 uppercase text-sm font-semibold mb-3 border-b border-zinc-700 pb-2">
+                      Lezioni Inserite
+                    </h4>
+                    
+                    <div className="space-y-4">
+                      {module.lessons.map((lesson, lessonIndex) => {
+                        const calcDuration = calculateLessonDuration(lesson.learningObjects);
+                        
+                        return (
+                          <div key={lesson.id} data-testid={`lesson-${lesson.id}`}>
+                            <div className="flex items-start gap-2">
+                              <ChevronUp className="h-4 w-4 text-yellow-500 mt-1" />
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-white">
+                                    Lezione {lessonIndex + 1}: ID {lesson.legacyId || lesson.id} - {lesson.title}
+                                  </span>
+                                  <span className="text-gray-400 text-sm whitespace-nowrap ml-4">
+                                    durata calc.: {formatDurationLegacy(calcDuration) || "0 min"}
+                                  </span>
                                 </div>
-                              </Link>
-                            ))}
+                              </div>
+                            </div>
+                            
+                            {showObjects && lesson.learningObjects.length > 0 && (
+                              <div className="ml-8 mt-2 space-y-1">
+                                {lesson.learningObjects.map((lo) => (
+                                  <Link key={lo.id} href={`/learning-objects/${lo.id}`}>
+                                    <div 
+                                      className="flex items-center gap-2 py-1 px-2 hover:bg-zinc-800/50 rounded cursor-pointer group"
+                                      data-testid={`lo-${lo.id}`}
+                                    >
+                                      {getLoIcon(lo.type)}
+                                      <span className="text-cyan-400 group-hover:underline">
+                                        ({lo.legacyId || lo.id}){lo.title}
+                                      </span>
+                                      {lo.duration > 0 && (
+                                        <span className="text-gray-500 text-sm ml-auto">
+                                          ({formatDurationLegacy(lo.duration)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </Link>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-              </Card>
-            ))}
-          </div>
+
+                {module.lessons.length === 0 && (
+                  <p className="text-gray-500 text-sm italic">Nessuna lezione in questo modulo</p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
 
           {structure.modules.length === 0 && (
             <Card className="bg-zinc-900 border-zinc-800">
@@ -324,7 +287,7 @@ export default function CourseStructure() {
               </CardContent>
             </Card>
           )}
-        </>
+        </div>
       )}
     </div>
   );
