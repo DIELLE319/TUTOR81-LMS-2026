@@ -919,40 +919,95 @@ export async function registerRoutes(
             to: corsista.email,
             subject: `Accesso al corso: ${courseTitle}`,
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <div style="background-color: #000; padding: 20px; text-align: center;">
-                  <h1 style="color: #EAB308; margin: 0;">TUTOR81</h1>
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5;">
+                
+                <!-- Header -->
+                <div style="background-color: #1a365d; padding: 25px; text-align: center;">
+                  <h1 style="color: #EAB308; margin: 0; font-size: 28px;">TUTOR81</h1>
+                  <p style="color: #a0c4e8; margin: 15px 0 0 0; font-size: 16px;">Devi svolgere un corso obbligatorio</p>
                 </div>
-                <div style="padding: 30px; background-color: #FCD34D;">
-                  <h2 style="color: #000; margin-top: 0;">Gentile ${corsista.firstName} ${corsista.lastName},</h2>
-                  <p style="color: #000; font-size: 16px;">
-                    È stato attivato il tuo accesso al corso:
+                
+                <!-- Titolo corso -->
+                <div style="padding: 25px; text-align: center;">
+                  <p style="color: #1a365d; margin: 0; font-size: 14px;">Licenza per il corso:</p>
+                  <h2 style="color: #0ea5e9; margin: 10px 0 0 0; font-size: 20px; font-weight: bold;">${courseTitle}</h2>
+                </div>
+                
+                <!-- Box informazioni -->
+                <div style="background-color: #ffffff; margin: 0 25px; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  <p style="color: #333; font-size: 16px; margin: 0 0 25px 0;">
+                    Buongiorno <span style="color: #0ea5e9; font-weight: bold;">${corsista.lastName} ${corsista.firstName}</span>,
                   </p>
-                  <div style="background-color: #000; color: #EAB308; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <strong style="font-size: 18px;">${courseTitle}</strong>
-                  </div>
-                  <p style="color: #000; font-size: 14px;">
-                    <strong>Data inizio:</strong> ${new Date(corsista.startDate).toLocaleDateString('it-IT')}<br>
-                    <strong>Data fine:</strong> ${new Date(corsista.endDate).toLocaleDateString('it-IT')}
+                  
+                  <p style="color: #333; font-size: 15px; margin: 0 0 20px 0; line-height: 1.8;">
+                    Sei stato iscritto al seguente corso: <span style="color: #0ea5e9; font-weight: bold;">${courseTitle}</span>
                   </p>
-                  <div style="text-align: center; margin: 30px 0;">
-                    <a href="${appUrl}" style="background-color: #000; color: #EAB308; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                      ACCEDI AL CORSO
-                    </a>
-                  </div>
-                  <p style="color: #666; font-size: 12px; margin-top: 30px;">
-                    Per qualsiasi necessità contattaci a info@tutor81.com
+                  
+                  <p style="color: #333; font-size: 15px; margin: 0 0 15px 0; line-height: 1.8;">
+                    Potrai iniziare a partire dal giorno: <span style="color: #ef4444; font-weight: bold;">${new Date(corsista.startDate).toLocaleDateString('it-IT')}</span>
+                  </p>
+                  
+                  <p style="color: #333; font-size: 15px; margin: 0 0 15px 0; line-height: 1.8;">
+                    E terminare entro il giorno: <span style="color: #ef4444; font-weight: bold;">${new Date(corsista.endDate).toLocaleDateString('it-IT')}</span>
+                  </p>
+                  
+                  <p style="color: #333; font-size: 15px; margin: 0; line-height: 1.8;">
+                    Il tuo referente per questo corso è: <span style="color: #0ea5e9; font-weight: bold;">Tutor81 - corsi@tutor81.it</span>
                   </p>
                 </div>
-                <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
-                  <p style="color: #888; font-size: 11px; margin: 0 0 10px 0;">
-                    Tutor81 S.r.l. - Via Example 123, 00100 Roma<br>
-                    P.IVA: 12345678901 - Tel: +39 02 1234567
+                
+                <!-- Box accesso -->
+                <div style="background-color: #e8f4fc; margin: 25px; padding: 30px; border-radius: 8px; text-align: center;">
+                  <p style="color: #0ea5e9; font-size: 16px; margin: 0 0 20px 0; line-height: 1.6;">
+                    Per accedere al corso clicca su avvia corso e inserisci il tuo nome utente in questo modo:
                   </p>
-                  <p style="color: #666; font-size: 10px; margin: 0;">
-                    Questa email è stata inviata automaticamente. Per info: corsi@tutor81.it
+                  <p style="color: #1a365d; font-size: 28px; font-weight: bold; margin: 0 0 25px 0;">
+                    ${corsista.email.split('@')[0]}
+                  </p>
+                  <p style="color: #333; font-size: 14px; margin: 0 0 20px 0;">Se vuoi avviare il corso clicca qui</p>
+                  <a href="${appUrl}" style="background-color: #22d3ee; color: #fff; padding: 15px 40px; text-decoration: none; border-radius: 0; font-weight: bold; display: inline-block; font-size: 18px;">
+                    AVVIA CORSO
+                  </a>
+                </div>
+                
+                <!-- Link istruzioni -->
+                <div style="padding: 20px; text-align: center; border-bottom: 1px solid #ddd;">
+                  <a href="${appUrl}/istruzioni" style="color: #0ea5e9; font-size: 18px; font-weight: bold; text-decoration: underline;">
+                    ISTRUZIONI PER IL CORSO
+                  </a>
+                </div>
+                
+                <!-- Box istruzioni dettagliate -->
+                <div style="background-color: #f0f4f8; margin: 0; padding: 25px 30px;">
+                  <p style="color: #333; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6;">
+                    Il tuo referente per questo corso può essere contattato per E-Mail scrivendo a <strong>TUTOR81</strong><br>
+                    E-Mail: <a href="mailto:corsi@tutor81.it" style="color: #0ea5e9;">corsi@tutor81.it</a>
+                  </p>
+                  
+                  <p style="color: #333; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6;">
+                    Al termine del corso potrai scaricare il tracciato di avvenuta formazione
+                  </p>
+                  
+                  <p style="color: #333; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6;">
+                    <strong>IL CORSO PUÒ ESSERE INTERROTTO</strong> con il pulsante ESCI in alto a sinistra. Riaccendeno al corso questo ripartirà dall'ultimo punto utile.
+                  </p>
+                  
+                  <p style="color: #333; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6;">
+                    <strong>PAUSA:</strong> puoi fermare temporaneamente il corso con il pulsante Ferma, ma solo per 30 secondi, terminati i quali il corso viene interrotto.
+                  </p>
+                  
+                  <p style="color: #333; font-size: 13px; margin: 0; line-height: 1.6;">
+                    <strong>ASSISTENZA TECNICA:</strong> In ogni momento è possibile inviare una segnalazione anche tramite mail dal pulsante Richiedi Assistenza oppure scrivete a <a href="mailto:corsi@tutor81.it" style="color: #0ea5e9;">corsi@tutor81.it</a>
                   </p>
                 </div>
+                
+                <!-- Footer -->
+                <div style="background-color: #1a365d; padding: 20px; text-align: center;">
+                  <p style="color: #EAB308; font-size: 12px; font-weight: bold; margin: 0;">
+                    TUTOR81 - corsi@tutor81.it
+                  </p>
+                </div>
+                
                 <img src="${trackingPixelUrl}" width="1" height="1" style="display:none;" alt="" />
               </div>
             `,
