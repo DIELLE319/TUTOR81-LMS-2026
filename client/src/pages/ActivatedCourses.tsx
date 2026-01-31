@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Mail, MailOpen, MailX, Send } from "lucide-react";
+import { Search, Mail, MailOpen, MailX, Send, ChevronsUpDown, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface Enrollment {
   id: number;
@@ -38,7 +40,8 @@ interface Company {
 
 export default function ActivatedCourses() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const [companyFilter, setCompanyFilter] = useState<string>("");
+  const [companySearchOpen, setCompanySearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState("25");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -51,6 +54,18 @@ export default function ActivatedCourses() {
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["/api/companies-list"],
   });
+
+  const sortedCompanies = useMemo(() => {
+    return companies
+      .filter(c => c.businessName)
+      .sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''));
+  }, [companies]);
+
+  const selectedCompanyName = useMemo(() => {
+    if (!companyFilter) return "";
+    const company = companies.find(c => c.id.toString() === companyFilter);
+    return company?.businessName || "";
+  }, [companyFilter, companies]);
 
   const sendEmailsMutation = useMutation({
     mutationFn: async (enrollmentIds: number[]) => {
@@ -106,7 +121,7 @@ export default function ActivatedCourses() {
   const filteredEnrollments = enrollments.filter((e) => {
     if (statusFilter === "active" && (e.progress === 0 || e.progress === 100)) return false;
     if (statusFilter === "not_started" && e.progress !== 0) return false;
-    if (companyFilter !== "all" && !e.companyName?.toLowerCase().includes(companyFilter.toLowerCase())) return false;
+    if (companyFilter && selectedCompanyName && e.companyName !== selectedCompanyName) return false;
     if (search) {
       const s = search.toLowerCase();
       return (
@@ -172,19 +187,57 @@ export default function ActivatedCourses() {
                 </SelectContent>
               </Select>
             </div>
-            <Select value={companyFilter} onValueChange={setCompanyFilter}>
-              <SelectTrigger className="w-64 bg-white border-black" data-testid="select-company-filter">
-                <SelectValue placeholder="Tutte le Aziende" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tutte le Aziende</SelectItem>
-                {companies.slice(0, 100).map((c) => (
-                  <SelectItem key={c.id} value={c.businessName || ''}>
-                    {c.businessName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={companySearchOpen}
+                    className="w-80 justify-between bg-white border-black text-black hover:bg-yellow-50"
+                    data-testid="select-company-filter"
+                  >
+                    {selectedCompanyName || "--- Tutte le Aziende ---"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0 bg-white" align="start">
+                  <Command>
+                    <CommandInput placeholder="Cerca azienda..." className="text-black" />
+                    <CommandList>
+                      <CommandEmpty className="text-gray-500 py-4 text-center">Nessuna azienda trovata</CommandEmpty>
+                      <CommandGroup>
+                        {sortedCompanies.map(company => (
+                          <CommandItem
+                            key={company.id}
+                            value={company.businessName}
+                            onSelect={() => {
+                              setCompanyFilter(company.id.toString());
+                              setCompanySearchOpen(false);
+                            }}
+                            className="text-black hover:bg-yellow-100 cursor-pointer"
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${companyFilter === company.id.toString() ? "opacity-100" : "opacity-0"}`} />
+                            {company.businessName}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {companyFilter && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setCompanyFilter("")}
+                  className="h-9 w-9 text-black hover:bg-yellow-200"
+                  data-testid="button-clear-company-filter"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {selectedIds.length > 0 && (
