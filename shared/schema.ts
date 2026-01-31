@@ -117,6 +117,9 @@ export const enrollments = pgTable("enrollments", {
   status: text("status").default("active"),
   accreditationCode: text("accreditation_code"),
   daysToAlert: integer("days_to_alert").default(15),
+  emailSentAt: timestamp("email_sent_at"),
+  emailOpenedAt: timestamp("email_opened_at"),
+  emailTrackingId: text("email_tracking_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

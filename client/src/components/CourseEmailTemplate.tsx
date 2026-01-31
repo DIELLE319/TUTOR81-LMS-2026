@@ -13,6 +13,8 @@ interface CourseEmailTemplateProps {
   username: string;
   courseUrl?: string;
   instructionsUrl?: string;
+  trackingId?: string;
+  baseUrl?: string;
 }
 
 export default function CourseEmailTemplate({
@@ -340,6 +342,7 @@ export function generateEmailHTML(props: CourseEmailTemplateProps): string {
         ${props.tutorName}${props.tutorAddress ? ` - ${props.tutorAddress}` : ''}
       </p>
     </div>
+    ${props.trackingId && props.baseUrl ? `<img src="${props.baseUrl}/api/email-track/${props.trackingId}" width="1" height="1" style="display:none;" alt="" />` : ''}
   </div>
 </body>
 </html>

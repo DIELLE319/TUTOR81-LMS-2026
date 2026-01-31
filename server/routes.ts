@@ -1231,5 +1231,47 @@ export async function registerRoutes(
 
   seedSampleData().catch(console.error);
 
+  // Email tracking pixel - traccia apertura email
+  app.get("/api/email-track/:trackingId", async (req, res) => {
+    try {
+      const { trackingId } = req.params;
+      
+      // Aggiorna il record con la data di apertura
+      await db.update(schema.enrollments)
+        .set({ emailOpenedAt: new Date() })
+        .where(
+          and(
+            eq(schema.enrollments.emailTrackingId, trackingId),
+            sql`${schema.enrollments.emailOpenedAt} IS NULL`
+          )
+        );
+      
+      // Restituisci un pixel GIF trasparente 1x1
+      const pixel = Buffer.from(
+        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+        'base64'
+      );
+      
+      res.set({
+        'Content-Type': 'image/gif',
+        'Content-Length': pixel.length,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
+      res.send(pixel);
+    } catch (error) {
+      console.error("Email tracking error:", error);
+      // Restituisci comunque il pixel per non rompere l'email
+      const pixel = Buffer.from(
+        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+        'base64'
+      );
+      res.set('Content-Type', 'image/gif');
+      res.send(pixel);
+    }
+  });
+
   return httpServer;
 }
