@@ -104,16 +104,43 @@ export default function Users() {
       </div>
 
       <div className="bg-[#1e1e1e] rounded-lg border border-gray-800 p-3 mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-          <input
-            type="text"
-            placeholder="Cerca per ID, nome, email o azienda..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-black border border-gray-700 rounded-lg py-2 pl-9 pr-4 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none"
-            data-testid="input-search-users"
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+            <input
+              type="text"
+              placeholder="Cerca per ID, nome, email o azienda..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-black border border-gray-700 rounded-lg py-2 pl-9 pr-4 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none"
+              data-testid="input-search-users"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedIds.size > 0 && (
+              <span className="text-sm text-gray-400">
+                {selectedIds.size} selezionati
+              </span>
+            )}
+            <Button 
+              size="sm"
+              variant="outline"
+              disabled={selectedIds.size === 0}
+              className="bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:opacity-50"
+              data-testid="button-suspend-selected"
+            >
+              Sospendi
+            </Button>
+            <Button 
+              size="sm"
+              variant="destructive"
+              disabled={selectedIds.size === 0}
+              className="bg-red-500 hover:bg-red-600 disabled:opacity-50"
+              data-testid="button-delete-selected"
+            >
+              Elimina
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -207,32 +234,6 @@ export default function Users() {
               ))}
             </tbody>
           </table>
-          
-          {selectedIds.size > 0 && (
-            <div className="flex items-center justify-between p-3 bg-gray-50 border-t border-gray-200">
-              <span className="text-sm text-gray-600">
-                {selectedIds.size} utent{selectedIds.size === 1 ? 'e' : 'i'} selezionat{selectedIds.size === 1 ? 'o' : 'i'}
-              </span>
-              <div className="flex gap-2">
-                <Button 
-                  size="sm"
-                  variant="outline"
-                  className="bg-orange-400 hover:bg-orange-500 text-white border-0"
-                  data-testid="button-suspend-selected"
-                >
-                  Sospendi
-                </Button>
-                <Button 
-                  size="sm"
-                  variant="destructive"
-                  className="bg-red-500 hover:bg-red-600"
-                  data-testid="button-delete-selected"
-                >
-                  Elimina
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
