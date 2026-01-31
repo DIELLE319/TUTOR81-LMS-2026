@@ -1007,7 +1007,7 @@ export default function ContentManagement() {
                         className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!lo.inUse ? 'bg-red-50' : ''} ${selectedLOs.has(lo.id) ? 'bg-blue-50' : ''} ${selectedLO?.id === lo.id ? 'ring-2 ring-[#4a90a4]' : ''}`}
                         onClick={() => setSelectedLO(lo)}
                       >
-                        <td className="py-2 px-2">
+                        <td className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
                           <input 
                             type="checkbox"
                             checked={selectedLOs.has(lo.id)}
