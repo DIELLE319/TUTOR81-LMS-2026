@@ -811,7 +811,7 @@ function ContentSection({ title, content }: { title: string; content: string }) 
   return (
     <div className="border-l-4 border-[#4a90a4] pl-3">
       <h3 className="font-bold text-gray-800 text-[12px] mb-1">{title}</h3>
-      <p className="text-[11px] text-gray-600 leading-relaxed">{content}</p>
+      <p className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-wrap">{content}</p>
     </div>
   );
 }
