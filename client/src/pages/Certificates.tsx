@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Download, FileText, ExternalLink } from "lucide-react";
+import { Search, Download, FileText, Printer, FileSpreadsheet } from "lucide-react";
 
 interface Attestato {
   id: number;
@@ -118,6 +118,35 @@ export default function Certificates() {
     }
   };
 
+  const handleExport = () => {
+    const headers = ["ID", "Cognome", "Nome", "Codice Fiscale", "Azienda", "Corso", "Data Fine", "Ente Formativo"];
+    const rows = filteredAttestati.map(a => [
+      a.legacy_id,
+      a.user_last_name || "",
+      a.user_first_name || "",
+      a.user_fiscal_code || "",
+      a.company_name || "",
+      formatCourseTitle(a.course_title),
+      formatDate(a.end_date),
+      a.tutor_name || ""
+    ]);
+    
+    const csvContent = [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attestati_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-yellow-500 py-4 px-6">
@@ -140,8 +169,28 @@ export default function Certificates() {
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-gray-700">
-            {filteredAttestati.length.toLocaleString()} attestati disponibili
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-700">
+              {filteredAttestati.length.toLocaleString()} attestati disponibili
+            </div>
+            <Button
+              size="sm"
+              onClick={handleExport}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              data-testid="button-export"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-1" />
+              Esporta
+            </Button>
+            <Button
+              size="sm"
+              onClick={handlePrint}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              data-testid="button-print"
+            >
+              <Printer className="w-4 h-4 mr-1" />
+              Stampa
+            </Button>
           </div>
         </div>
       </div>
