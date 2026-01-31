@@ -34,6 +34,7 @@ export default function Certificates() {
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState("50");
   const [selectedCompany, setSelectedCompany] = useState("all");
+  const [selectedUser, setSelectedUser] = useState("all");
 
   const { data: attestati = [], isLoading } = useQuery<Attestato[]>({
     queryKey: ["/api/attestati"],
@@ -41,15 +42,34 @@ export default function Certificates() {
 
   // Ottieni lista aziende uniche
   const companies = Array.from(new Set(attestati.map(a => a.company_name).filter((c): c is string => c !== null))).sort();
+  
+  // Ottieni lista corsisti unici (Cognome Nome)
+  const users = Array.from(new Set(attestati.map(a => {
+    if (a.user_last_name || a.user_first_name) {
+      return `${a.user_last_name || ''} ${a.user_first_name || ''}`.trim();
+    }
+    return null;
+  }).filter((u): u is string => u !== null && u !== ''))).sort();
 
   const formatDate = (date: string | null) => {
     if (!date) return "-";
     return format(new Date(date), "dd/MM/yyyy", { locale: it });
   };
 
+  const formatCourseTitle = (title: string | null) => {
+    if (!title) return "-";
+    return title.replace(/^EL\s+/i, '').replace(/^EL-\s*/i, '').replace(/^EL_/i, '');
+  };
+
   const filteredAttestati = attestati.filter((a) => {
     // Filtro azienda
     if (selectedCompany !== "all" && a.company_name !== selectedCompany) return false;
+    
+    // Filtro corsista
+    if (selectedUser !== "all") {
+      const userName = `${a.user_last_name || ''} ${a.user_first_name || ''}`.trim();
+      if (userName !== selectedUser) return false;
+    }
     
     // Filtro ricerca
     if (!search) return true;
@@ -117,6 +137,22 @@ export default function Certificates() {
                   {companies.map((company) => (
                     <SelectItem key={company} value={company}>
                       {company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Corsista</span>
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger className="w-56 bg-white" data-testid="select-user">
+                  <SelectValue placeholder="Tutti i corsisti" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutti i corsisti</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user} value={user}>
+                      {user}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -217,8 +253,8 @@ export default function Certificates() {
                     <td className="p-3 text-sm text-gray-800">
                       {attestato.company_name || "-"}
                     </td>
-                    <td className="p-3 text-sm text-gray-800 max-w-xs truncate" title={attestato.course_title || ""}>
-                      {attestato.course_title || "-"}
+                    <td className="p-3 text-sm text-gray-800 max-w-xs truncate" title={formatCourseTitle(attestato.course_title)}>
+                      {formatCourseTitle(attestato.course_title)}
                     </td>
                     <td className="p-3 text-sm text-gray-600">
                       {formatDate(attestato.end_date)}
