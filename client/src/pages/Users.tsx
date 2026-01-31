@@ -207,6 +207,32 @@ export default function Users() {
               ))}
             </tbody>
           </table>
+          
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between p-3 bg-gray-50 border-t border-gray-200">
+              <span className="text-sm text-gray-600">
+                {selectedIds.size} utent{selectedIds.size === 1 ? 'e' : 'i'} selezionat{selectedIds.size === 1 ? 'o' : 'i'}
+              </span>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm"
+                  variant="outline"
+                  className="bg-orange-400 hover:bg-orange-500 text-white border-0"
+                  data-testid="button-suspend-selected"
+                >
+                  Sospendi
+                </Button>
+                <Button 
+                  size="sm"
+                  variant="destructive"
+                  className="bg-red-500 hover:bg-red-600"
+                  data-testid="button-delete-selected"
+                >
+                  Elimina
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
