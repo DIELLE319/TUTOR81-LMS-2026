@@ -390,7 +390,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                     <th className="px-2 py-2 text-center text-xs font-medium text-black w-[70px]">Alert gg</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-black">Cognome *</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-black">Nome *</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-black w-[140px]">Codice Fiscale *</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-black w-[180px]">Codice Fiscale *</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-black w-[160px]">Tipo Utente *</th>
                   </tr>
                 </thead>
