@@ -245,9 +245,16 @@ export default function ContentManagement() {
   };
 
   const formatCourseTitle = (title: string) => {
+    // Rimuove tutto ciò che c'è prima del primo trattino (codici come el01BALL, st01B, var03S, ecc.)
+    const dashIndex = title.indexOf(' - ');
+    if (dashIndex > 0 && dashIndex < 30) {
+      return title.substring(dashIndex + 3).trim();
+    }
     return title
-      .replace(/^EL\d*[a-zA-Z]?\s*-\s*/i, '')
+      .replace(/^EL\d*[a-zA-Z]*\s*-\s*/i, '')
       .replace(/^EL\s*-\s*/i, '')
+      .replace(/^st\d*[a-zA-Z]*\s*-\s*/i, '')
+      .replace(/^var\d*[a-zA-Z]*\s*-\s*/i, '')
       .trim();
   };
 
