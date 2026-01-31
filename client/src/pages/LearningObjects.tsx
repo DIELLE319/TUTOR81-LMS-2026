@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ interface LearningObject {
 export default function LearningObjects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "unused" | "suspended">("all");
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const { data: objects = [], isLoading } = useQuery<LearningObject[]>({
@@ -182,13 +184,14 @@ export default function LearningObjects() {
               {filteredObjects.map((obj) => (
                 <TableRow
                   key={obj.id}
-                  className={`border-zinc-800 ${
+                  className={`border-zinc-800 cursor-pointer ${
                     !obj.inUse && !obj.suspended
                       ? "bg-red-950/20 hover:bg-red-950/30"
                       : obj.suspended
                       ? "bg-zinc-900/50 hover:bg-zinc-900/70 opacity-60"
                       : "hover:bg-zinc-900/50"
                   }`}
+                  onClick={() => navigate(`/learning-objects/${obj.id}`)}
                   data-testid={`row-object-${obj.id}`}
                 >
                   <TableCell>
@@ -239,7 +242,10 @@ export default function LearningObjects() {
                     <Button
                       variant={obj.suspended ? "outline" : "destructive"}
                       size="sm"
-                      onClick={() => suspendMutation.mutate({ id: obj.id, suspended: !obj.suspended })}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        suspendMutation.mutate({ id: obj.id, suspended: !obj.suspended });
+                      }}
                       disabled={suspendMutation.isPending}
                       data-testid={`button-suspend-${obj.id}`}
                     >
