@@ -177,6 +177,27 @@ export const courses = pgTable("courses", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  // Campi dettaglio corso
+  category: text("category"),
+  subcategory: text("subcategory"),
+  courseType: text("course_type"), // generico, specifico, demo, test
+  destinatario: text("destinatario"), // Lavoratore, Dirigente, Preposto, etc.
+  riskLevel: text("risk_level"), // basso, medio, alto
+  destination: text("destination"), // Base, Aggiornamento, etc.
+  courseValidity: text("course_validity"), // es: "Quinquennale", "24 ORE"
+  externalIntegration: text("external_integration"), // Integrazione in aula
+  lawReference: text("law_reference"), // Riferimento normativo
+  totalElearning: integer("total_elearning").default(0), // Durata e-learning in ore
+  maxExecutionTime: integer("max_execution_time").default(90), // Tempo massimo in giorni
+  percentageToPass: integer("percentage_to_pass").default(80), // % risposte esatte
+  producers: text("producers"), // Prodotto da
+  professors: text("professors"), // Docenti
+  didactics: text("didactics"), // Didattica
+  objectives: text("objectives"), // Obiettivi del corso
+  targetAudience: text("target_audience"), // Rivolto a
+  prerequisites: text("prerequisites"), // Requisiti minimi
+  courseProgram: text("course_program"), // Programma del corso
+  ownerUserId: integer("owner_user_id"), // ID proprietario corso
 });
 
 export const modules = pgTable("modules", {

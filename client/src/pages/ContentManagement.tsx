@@ -313,36 +313,32 @@ export default function ContentManagement() {
           <main className="flex-1 overflow-y-auto bg-[#f5f5f5]">
             {selectedCourse ? (
               <div className="h-full flex flex-col">
-                <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 shadow-sm flex-wrap">
+                <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-1 shadow-sm flex-wrap">
                   <ActionButton icon={<FileText size={13} />}>Dettaglio corso</ActionButton>
                   <ActionButton icon={<Edit size={13} />}>Modifica</ActionButton>
-                  <ActionButton icon={<PlayCircle size={13} />} primary>CORSO</ActionButton>
+                  <ActionButton icon={<List size={13} />}>Aggiungi modulo</ActionButton>
                   <ActionButton icon={<List size={13} />}>Visualizza domande</ActionButton>
                   <ActionButton icon={<Settings size={13} />}>Modifica listino prezzi</ActionButton>
                   
-                  <div className="flex-1" />
-                  
                   {selectedCourse.isPublished ? (
-                    <button
+                    <ActionButton 
+                      icon={<XCircle size={13} />}
                       onClick={() => unpublishMutation.mutate(selectedCourse.id)}
-                      disabled={unpublishMutation.isPending}
-                      className="px-4 py-1.5 text-[11px] font-medium rounded flex items-center gap-1.5 bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 shadow-sm transition-all"
-                      data-testid="btn-unpublish"
                     >
-                      <XCircle size={13} />
-                      {unpublishMutation.isPending ? 'Rimozione...' : 'Rimuovi pubblicazione'}
-                    </button>
+                      {unpublishMutation.isPending ? 'Rimozione...' : 'Rimuovi'}
+                    </ActionButton>
                   ) : (
-                    <button
+                    <ActionButton 
+                      icon={<Upload size={13} />} 
+                      primary
                       onClick={() => publishMutation.mutate(selectedCourse.id)}
-                      disabled={publishMutation.isPending}
-                      className="px-4 py-1.5 text-[11px] font-medium rounded flex items-center gap-1.5 bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 shadow-sm transition-all"
-                      data-testid="btn-publish"
                     >
-                      <Upload size={13} />
-                      {publishMutation.isPending ? 'Pubblicazione...' : 'Pubblica nel Catalogo'}
-                    </button>
+                      {publishMutation.isPending ? 'Pubblicazione...' : 'Pubblica'}
+                    </ActionButton>
                   )}
+                  
+                  <ActionButton icon={<XCircle size={13} />}>Chiudi corso</ActionButton>
+                  <ActionButton icon={<XCircle size={13} />}>Rimuovi</ActionButton>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
@@ -522,9 +518,10 @@ function RadioOption({ children, checked, onChange }: { children: React.ReactNod
   );
 }
 
-function ActionButton({ children, icon, primary }: { children: React.ReactNode; icon: React.ReactNode; primary?: boolean }) {
+function ActionButton({ children, icon, primary, onClick }: { children: React.ReactNode; icon: React.ReactNode; primary?: boolean; onClick?: () => void }) {
   return (
     <button
+      onClick={onClick}
       className={`px-3 py-1.5 text-[11px] font-medium rounded flex items-center gap-1.5 transition-all ${
         primary 
           ? 'bg-[#4a90a4] text-white hover:bg-[#3d7a8c] shadow-sm' 
