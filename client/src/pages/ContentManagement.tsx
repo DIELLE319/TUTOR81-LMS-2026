@@ -1192,11 +1192,11 @@ export default function ContentManagement() {
                                                         }
                                                       };
                                                       return (
-                                                        <div key={lo.id} className="flex items-center gap-2 text-[11px] text-gray-600 py-0.5">
-                                                          {getLoIcon(lo.type)}
-                                                          <span className="text-gray-400">({lo.id})</span>
-                                                          <span className="text-[#4a90a4] hover:underline cursor-pointer">{lo.title}</span>
-                                                          <span className="text-gray-400 ml-auto">({lo.duration || 0} min)</span>
+                                                        <div key={lo.id} className="flex items-center text-[11px] text-gray-600 py-0.5">
+                                                          <div className="w-8 flex-shrink-0">{getLoIcon(lo.type)}</div>
+                                                          <span className="text-gray-400 w-14 flex-shrink-0">({lo.id})</span>
+                                                          <span className="text-[#4a90a4] hover:underline cursor-pointer flex-1">{lo.title}</span>
+                                                          <span className="text-gray-400 w-16 text-right flex-shrink-0">({lo.duration || 0} min)</span>
                                                         </div>
                                                       );
                                                     })}
