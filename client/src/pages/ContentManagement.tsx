@@ -585,7 +585,7 @@ export default function ContentManagement() {
                         />
                         <ContentSection 
                           title="Programma del corso" 
-                          content="Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza."
+                          content={stripHtml(selectedProject.courseProgram || selectedProject.description) || 'Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza.'}
                         />
                       </div>
                     </div>
