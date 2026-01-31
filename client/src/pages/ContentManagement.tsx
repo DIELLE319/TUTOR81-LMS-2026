@@ -1167,8 +1167,14 @@ export default function ContentManagement() {
                   <div className="space-y-4 max-h-60 overflow-y-auto">
                     {loDetails.interruptionPoints.map((ip: any, idx: number) => (
                       <div key={ip.id} className="border border-gray-200 rounded p-3 bg-gray-50">
-                        <div className="text-xs text-gray-500 mb-2">
-                          Interruzione #{idx + 1} a <span className="font-mono font-medium text-[#4a90a4]">{Math.floor(ip.time / 1000)} secondi</span>
+                        <div className="text-xs text-gray-500 mb-2 flex items-center gap-2">
+                          Interruzione #{idx + 1} a 
+                          <input 
+                            type="number" 
+                            defaultValue={Math.floor(ip.time / 1000)} 
+                            className="w-20 px-2 py-0.5 border border-gray-300 rounded text-[#4a90a4] font-mono font-medium text-center"
+                          /> 
+                          secondi
                         </div>
                         {ip.questions?.filter((q: any) => q.id).map((q: any) => (
                           <div key={q.id} className="mb-3 last:mb-0">
