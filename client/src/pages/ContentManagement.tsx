@@ -1139,19 +1139,37 @@ export default function ContentManagement() {
                 </div>
               </div>
 
-              {/* Video Player */}
+              {/* Video Player con domande in anteprima */}
               {selectedLO.jwplayerCode && (
                 <div className="mb-6">
                   <label className="text-xs font-medium text-gray-500 mb-2 block">Video Preview</label>
-                  <div className="bg-black rounded overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                    <iframe
-                      src={`https://cdn.jwplayer.com/players/${selectedLO.jwplayerCode}-ZXcv1712.html`}
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      allow="autoplay; fullscreen"
-                      allowFullScreen
-                    />
+                  <div className="flex gap-4">
+                    <div className="flex-1 bg-black rounded overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+                      <iframe
+                        src={`https://cdn.jwplayer.com/players/${selectedLO.jwplayerCode}-ZXcv1712.html`}
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        allow="autoplay; fullscreen"
+                        allowFullScreen
+                      />
+                      {/* Anteprima domande sul video */}
+                      {loDetails?.interruptionPoints?.length > 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                          <div className="flex gap-2 overflow-x-auto">
+                            {loDetails.interruptionPoints.map((ip: any, idx: number) => (
+                              <div 
+                                key={ip.id}
+                                className="flex-shrink-0 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded cursor-pointer hover:bg-yellow-400"
+                                title={ip.questions?.filter((q: any) => q.id).map((q: any) => q.text).join('\n')}
+                              >
+                                {Math.floor(ip.time / 1000)}s
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
