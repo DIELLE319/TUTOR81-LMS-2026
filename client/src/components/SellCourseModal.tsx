@@ -527,21 +527,21 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           data-testid={`input-email-${idx}`}
                         />
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-1 py-2">
                         <Input
                           type="date"
                           value={row.startDate}
                           onChange={(e) => updateRow(idx, 'startDate', e.target.value)}
-                          className="h-8 text-xs bg-white border-gray-300 text-black"
+                          className="h-8 text-xs bg-white border-gray-300 text-black w-[120px]"
                           data-testid={`input-start-${idx}`}
                         />
                       </td>
-                      <td className="px-2 py-2">
+                      <td className="px-1 py-2">
                         <Input
                           type="date"
                           value={row.endDate}
                           onChange={(e) => updateRow(idx, 'endDate', e.target.value)}
-                          className="h-8 text-xs bg-white border-gray-300 text-black"
+                          className="h-8 text-xs bg-white border-gray-300 text-black w-[120px]"
                           data-testid={`input-end-${idx}`}
                         />
                       </td>
@@ -592,7 +592,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           onChange={(e) => updateRow(idx, 'fiscalCode', e.target.value.toUpperCase())}
                           placeholder="Codice Fiscale"
                           maxLength={16}
-                          className={`h-8 text-xs bg-white border-gray-300 text-black uppercase min-w-[140px] ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''}`}
+                          className={`h-8 text-sm bg-white border-gray-300 text-black uppercase min-w-[180px] font-mono ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-cf-${idx}`}
                         />
                       </td>
