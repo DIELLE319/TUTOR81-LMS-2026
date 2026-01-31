@@ -650,14 +650,13 @@ export default function ContentManagement() {
                         </h2>
                         <select 
                           className="bg-white/20 text-white text-[11px] px-2 py-1 rounded border border-white/30 focus:outline-none focus:border-white/50"
-                          defaultValue={selectedProject.courseType || "e-learning"}
-                          key={`coursetype-${selectedProject.id}`}
-                          onChange={(e) => updateFieldMutation.mutate({ courseType: e.target.value })}
+                          defaultValue={selectedProject.modality || "E-LEARNING"}
+                          key={`modality-${selectedProject.id}`}
+                          onChange={(e) => updateModalityMutation.mutate({ projectId: selectedProject.id, modality: e.target.value })}
                         >
-                          <option value="e-learning" className="text-gray-800">E-learning</option>
-                          <option value="aula" className="text-gray-800">Aula</option>
-                          <option value="blended" className="text-gray-800">Blended</option>
-                          <option value="videoconferenza" className="text-gray-800">Videoconferenza</option>
+                          <option value="E-LEARNING" className="text-gray-800">E-learning</option>
+                          <option value="E-LEARNING + VD" className="text-gray-800">E-learning + VD</option>
+                          <option value="VIDEOCONFERENZA" className="text-gray-800">Videoconferenza</option>
                         </select>
                       </div>
                       <div className="flex gap-2">
