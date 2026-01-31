@@ -934,38 +934,38 @@ export async function registerRoutes(
                 </div>
                 
                 <!-- Box informazioni -->
-                <div style="background-color: #ffffff; margin: 0 25px; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                  <p style="color: #333; font-size: 16px; margin: 0 0 25px 0;">
+                <div style="background-color: #ffffff; margin: 0 25px; padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  <p style="color: #333; font-size: 16px; margin: 0 0 35px 0;">
                     Buongiorno <span style="color: #0ea5e9; font-weight: bold;">${corsista.lastName} ${corsista.firstName}</span>,
                   </p>
                   
-                  <p style="color: #333; font-size: 15px; margin: 0 0 20px 0; line-height: 1.8;">
+                  <p style="color: #333; font-size: 15px; margin: 0 0 30px 0; line-height: 2.2;">
                     Sei stato iscritto al seguente corso: <span style="color: #0ea5e9; font-weight: bold;">${courseTitle}</span>
                   </p>
                   
-                  <p style="color: #333; font-size: 15px; margin: 0 0 15px 0; line-height: 1.8;">
+                  <p style="color: #333; font-size: 15px; margin: 0 0 25px 0; line-height: 2.2;">
                     Potrai iniziare a partire dal giorno: <span style="color: #ef4444; font-weight: bold;">${new Date(corsista.startDate).toLocaleDateString('it-IT')}</span>
                   </p>
                   
-                  <p style="color: #333; font-size: 15px; margin: 0 0 15px 0; line-height: 1.8;">
+                  <p style="color: #333; font-size: 15px; margin: 0 0 25px 0; line-height: 2.2;">
                     E terminare entro il giorno: <span style="color: #ef4444; font-weight: bold;">${new Date(corsista.endDate).toLocaleDateString('it-IT')}</span>
                   </p>
                   
-                  <p style="color: #333; font-size: 15px; margin: 0; line-height: 1.8;">
+                  <p style="color: #333; font-size: 15px; margin: 0; line-height: 2.2;">
                     Il tuo referente per questo corso è: <span style="color: #0ea5e9; font-weight: bold;">Tutor81 - corsi@tutor81.it</span>
                   </p>
                 </div>
                 
                 <!-- Box accesso -->
-                <div style="background-color: #e8f4fc; margin: 25px; padding: 30px; border-radius: 8px; text-align: center;">
-                  <p style="color: #0ea5e9; font-size: 16px; margin: 0 0 20px 0; line-height: 1.6;">
-                    Per accedere al corso clicca su avvia corso e inserisci il tuo nome utente in questo modo:
+                <div style="background-color: #e8f4fc; margin: 25px; padding: 50px 30px; border-radius: 8px; text-align: center;">
+                  <p style="color: #0ea5e9; font-size: 18px; margin: 0 0 40px 0; line-height: 1.8;">
+                    Per accedere al corso clicca su avvia corso e<br>inserisci il tuo nome utente in questo modo:
                   </p>
-                  <p style="color: #1a365d; font-size: 28px; font-weight: bold; margin: 0 0 25px 0;">
+                  <p style="color: #1a365d; font-size: 32px; font-weight: bold; margin: 0 0 50px 0;">
                     ${corsista.email.split('@')[0]}
                   </p>
-                  <p style="color: #333; font-size: 14px; margin: 0 0 20px 0;">Se vuoi avviare il corso clicca qui</p>
-                  <a href="${appUrl}" style="background-color: #22d3ee; color: #fff; padding: 15px 40px; text-decoration: none; border-radius: 0; font-weight: bold; display: inline-block; font-size: 18px;">
+                  <p style="color: #333; font-size: 14px; margin: 0 0 25px 0;">Se vuoi avviare il corso clicca qui</p>
+                  <a href="https://avviacorso.tutor81.com" style="background-color: #22d3ee; color: #fff; padding: 18px 50px; text-decoration: none; border-radius: 0; font-weight: bold; display: inline-block; font-size: 20px;">
                     AVVIA CORSO
                   </a>
                 </div>
@@ -978,25 +978,25 @@ export async function registerRoutes(
                 </div>
                 
                 <!-- Box istruzioni dettagliate -->
-                <div style="background-color: #f0f4f8; margin: 0; padding: 25px 30px;">
-                  <p style="color: #333; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6;">
+                <div style="background-color: #f0f4f8; margin: 0; padding: 35px 40px;">
+                  <p style="color: #333; font-size: 13px; margin: 0 0 25px 0; line-height: 1.8;">
                     Il tuo referente per questo corso può essere contattato per E-Mail scrivendo a <strong>TUTOR81</strong><br>
                     E-Mail: <a href="mailto:corsi@tutor81.it" style="color: #0ea5e9;">corsi@tutor81.it</a>
                   </p>
                   
-                  <p style="color: #333; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6;">
+                  <p style="color: #333; font-size: 13px; margin: 0 0 25px 0; line-height: 1.8;">
                     Al termine del corso potrai scaricare il tracciato di avvenuta formazione
                   </p>
                   
-                  <p style="color: #333; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6;">
+                  <p style="color: #333; font-size: 13px; margin: 0 0 25px 0; line-height: 1.8;">
                     <strong>IL CORSO PUÒ ESSERE INTERROTTO</strong> con il pulsante ESCI in alto a sinistra. Riaccendeno al corso questo ripartirà dall'ultimo punto utile.
                   </p>
                   
-                  <p style="color: #333; font-size: 13px; margin: 0 0 15px 0; line-height: 1.6;">
+                  <p style="color: #333; font-size: 13px; margin: 0 0 25px 0; line-height: 1.8;">
                     <strong>PAUSA:</strong> puoi fermare temporaneamente il corso con il pulsante Ferma, ma solo per 30 secondi, terminati i quali il corso viene interrotto.
                   </p>
                   
-                  <p style="color: #333; font-size: 13px; margin: 0; line-height: 1.6;">
+                  <p style="color: #333; font-size: 13px; margin: 0; line-height: 1.8;">
                     <strong>ASSISTENZA TECNICA:</strong> In ogni momento è possibile inviare una segnalazione anche tramite mail dal pulsante Richiedi Assistenza oppure scrivete a <a href="mailto:corsi@tutor81.it" style="color: #0ea5e9;">corsi@tutor81.it</a>
                   </p>
                 </div>
