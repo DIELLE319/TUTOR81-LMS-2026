@@ -49,6 +49,10 @@ interface LearningProject {
   id: number;
   title: string;
   category?: string;
+  totalDuration?: string;
+  totalElearning?: string;
+  maxExecutionTime?: number;
+  externalIntegration?: string;
 }
 
 interface CourseStructure {
@@ -170,6 +174,37 @@ export default function CourseStructure() {
 
       {structure && (
         <div className="space-y-6">
+          {structure.project && (
+            <Card className="bg-zinc-900 border-zinc-800">
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 block">Durata totale</span>
+                    <span className="text-white font-medium">{structure.project.totalDuration || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block">E-learning</span>
+                    <span className="text-white font-medium">{structure.project.totalElearning || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block">Videoconferenza</span>
+                    <span className="text-white font-medium">{structure.project.externalIntegration || "-"}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block">Tempo max conclusione</span>
+                    <span className="text-white font-medium">
+                      {structure.project.maxExecutionTime ? `${structure.project.maxExecutionTime} giorni` : "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block">Soglia superamento</span>
+                    <span className="text-white font-medium">80%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-semibold text-cyan-400 uppercase tracking-wide">
               Moduli Inseriti
