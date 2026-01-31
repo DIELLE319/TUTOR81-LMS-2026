@@ -73,43 +73,51 @@ export default function ContentManagement() {
 
   const getCourseCategory = (title: string) => {
     const t = title.toUpperCase();
-    if (t.includes('LAVORATORE') || t.includes('LAVORATORI') || t.includes('EL01') || t.includes('EL - ')) return 'LAVORATORE';
-    if (t.includes('PREPOSTO') || t.includes('EL02')) return 'PREPOSTO';
+    // Controlla prima i ruoli specifici (DIRIGENTE, PREPOSTO, RSPP) PRIMA di LAVORATORE
     if (t.includes('DIRIGENTE') || t.includes('EL03')) return 'DIRIGENTE';
-    if (t.includes('RSPP') || t.includes('ASPP') || t.includes('EL04') || t.includes('EL05')) return 'RSPP/ASPP';
+    if (t.includes('PREPOSTO') || t.includes('EL02')) return 'PREPOSTO';
+    if (t.includes('RSPP') || t.includes('ASPP') || t.includes('DATORE DI LAVORO') || t.includes('EL04') || t.includes('EL05')) return 'RSPP/ASPP';
     if (t.includes('RLS') || t.includes('EL07')) return 'RLS';
+    // Attrezzature
     if (t.includes('CARRELLO') || t.includes('MULETTO') || t.includes('ELEVATORE')) return 'CARRELLO ELEVATORE';
+    if (t.includes('PLE') || t.includes('PIATTAFORM')) return 'PLE';
+    if (t.includes('GRU') || t.includes('SOLLEVAMENTO')) return 'APPARECCHI SOLLEVAMENTO';
+    if (t.includes('PONTEGGI') || t.includes('LAVORI IN QUOTA')) return 'LAVORI IN QUOTA';
+    // Emergenze
     if (t.includes('ANTINCENDIO') || t.includes('EL08')) return 'ANTINCENDIO';
     if (t.includes('PRIMO SOCCORSO') || t.includes('SOCCORSO') || t.includes('EL09')) return 'PRIMO SOCCORSO';
+    // Altri corsi specifici
     if (t.includes('HACCP') || t.includes('ALIMENTAR')) return 'HACCP';
     if (t.includes('PRIVACY') || t.includes('GDPR')) return 'PRIVACY/GDPR';
-    if (t.includes('231') || t.includes('ORGANIZZATIVO')) return 'D.LGS 231';
+    if (t.includes('231') || t.includes('ORGANIZZATIVO') || t.includes('MOG')) return 'D.LGS 231';
     if (t.includes('STRESS') || t.includes('MOBBING')) return 'RISCHI PSICOSOCIALI';
     if (t.includes('AMIANTO')) return 'AMIANTO';
     if (t.includes('ELETTRIC')) return 'RISCHIO ELETTRICO';
     if (t.includes('SPAZI CONFINATI')) return 'SPAZI CONFINATI';
-    if (t.includes('PONTEGGI') || t.includes('LAVORI IN QUOTA')) return 'LAVORI IN QUOTA';
-    if (t.includes('GRU') || t.includes('SOLLEVAMENTO')) return 'APPARECCHI SOLLEVAMENTO';
-    if (t.includes('PLE') || t.includes('PIATTAFORM')) return 'PLE';
+    if (t.includes('PARITA') || t.includes('GENERE') || t.includes('LIBELLULA')) return 'PARITÀ DI GENERE';
     if (t.includes('DEMO') || t.includes('TEST')) return 'DEMO/TEST';
+    // LAVORATORE va controllato per ultimo (è il più generico)
+    if (t.includes('LAVORATORE') || t.includes('LAVORATORI') || t.includes('EL01') || t.includes('EL - ')) return 'LAVORATORE';
     return 'ALTRI CORSI';
   };
 
   const getCourseType = (title: string): { label: string; color: string } => {
     const t = title.toUpperCase();
-    if (t.includes('LAVORATORE') || t.includes('LAVORATORI')) return { label: 'LAV', color: 'bg-blue-600' };
-    if (t.includes('PREPOSTO')) return { label: 'PRE', color: 'bg-purple-600' };
+    // Controlla prima i ruoli specifici PRIMA di LAVORATORE
     if (t.includes('DIRIGENTE')) return { label: 'DIR', color: 'bg-indigo-600' };
-    if (t.includes('RSPP') || t.includes('ASPP')) return { label: 'RSPP', color: 'bg-red-600' };
+    if (t.includes('PREPOSTO')) return { label: 'PRE', color: 'bg-purple-600' };
+    if (t.includes('RSPP') || t.includes('ASPP') || t.includes('DATORE DI LAVORO')) return { label: 'RSPP', color: 'bg-red-600' };
     if (t.includes('RLS')) return { label: 'RLS', color: 'bg-orange-600' };
     if (t.includes('CARRELLO') || t.includes('MULETTO')) return { label: 'CAR', color: 'bg-amber-600' };
     if (t.includes('PLE')) return { label: 'PLE', color: 'bg-yellow-600' };
     if (t.includes('ANTINCENDIO')) return { label: 'ANT', color: 'bg-red-500' };
-    if (t.includes('PRIMO SOCCORSO') || t.includes('PS')) return { label: 'PS', color: 'bg-green-600' };
+    if (t.includes('PRIMO SOCCORSO') || t.includes('SOCCORSO')) return { label: 'PS', color: 'bg-green-600' };
     if (t.includes('HACCP')) return { label: 'HAC', color: 'bg-teal-600' };
     if (t.includes('PRIVACY') || t.includes('GDPR')) return { label: 'PRV', color: 'bg-gray-600' };
-    if (t.includes('231')) return { label: '231', color: 'bg-slate-600' };
-    if (t.includes('PARITA') || t.includes('GENERE')) return { label: 'PAR', color: 'bg-pink-600' };
+    if (t.includes('231') || t.includes('MOG')) return { label: '231', color: 'bg-slate-600' };
+    if (t.includes('PARITA') || t.includes('GENERE') || t.includes('LIBELLULA')) return { label: 'PAR', color: 'bg-pink-600' };
+    // LAVORATORE per ultimo
+    if (t.includes('LAVORATORE') || t.includes('LAVORATORI')) return { label: 'LAV', color: 'bg-blue-600' };
     return { label: 'GEN', color: 'bg-gray-500' };
   };
 
