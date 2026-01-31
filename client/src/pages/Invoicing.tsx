@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Printer, Building, Calendar, Euro } from 'lucide-react';
+import { FileText, Printer, Building, Calendar, Euro, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type Tutor = {
@@ -187,15 +187,37 @@ export default function Invoicing() {
               <Calendar size={16} />
               <span>Periodo: {invoiceData.period.label}</span>
             </div>
-            <Button
-              onClick={handlePrint}
-              variant="outline"
-              className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
-              data-testid="button-print-invoice"
-            >
-              <Printer size={18} className="mr-2" />
-              Stampa / PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  const subject = encodeURIComponent(`Fattura ${invoiceData.period.label} - TUTOR81ONLINE SL`);
+                  const body = encodeURIComponent(
+                    `Gentile ${invoiceData.tutor.businessName},\n\n` +
+                    `In allegato la fattura relativa agli acquisti e-learning del mese di ${invoiceData.period.label.toLowerCase()}.\n\n` +
+                    `Ordini: ${invoiceData.orders.map(o => `#${o.orderId}`).join(', ')}\n` +
+                    `Totale: €${invoiceData.grandTotal.toFixed(2)}\n\n` +
+                    `Cordiali saluti,\nTUTOR81ONLINE SL`
+                  );
+                  const email = invoiceData.tutor.email || '';
+                  window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+                }}
+                variant="outline"
+                className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                data-testid="button-email-invoice"
+              >
+                <Mail size={18} className="mr-2" />
+                Invia Email
+              </Button>
+              <Button
+                onClick={handlePrint}
+                variant="outline"
+                className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
+                data-testid="button-print-invoice"
+              >
+                <Printer size={18} className="mr-2" />
+                Stampa / PDF
+              </Button>
+            </div>
           </div>
 
           {/* Invoice Content (for print) - White background for print */}
