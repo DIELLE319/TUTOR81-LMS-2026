@@ -217,7 +217,11 @@ export default function ContentManagement() {
       .replace(/&igrave;/g, 'ì')
       .replace(/&ograve;/g, 'ò')
       .replace(/&ugrave;/g, 'ù')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
       .replace(/<[^>]*>/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]+/g, ' ')
       .trim();
   };
 
