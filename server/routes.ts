@@ -491,12 +491,38 @@ export async function registerRoutes(
 
   app.get("/api/platform-users", isAuthenticated, async (req, res) => {
     try {
-      const users = await db.select()
+      const users = await db.select({
+        id: schema.users.id,
+        email: schema.users.email,
+        firstName: schema.users.firstName,
+        lastName: schema.users.lastName,
+        profileImageUrl: schema.users.profileImageUrl,
+        role: schema.users.role,
+        idcompany: schema.users.idcompany,
+        fiscalCode: schema.users.fiscalCode,
+        phone: schema.users.phone,
+        createdAt: schema.users.createdAt,
+      })
         .from(schema.users)
         .orderBy(desc(schema.users.createdAt))
-        .limit(500);
+        .limit(2000);
       
-      res.json(users);
+      // Get companies to map
+      const companies = await db.select().from(schema.companies);
+      const companyMap = new Map(companies.map(c => [c.id, c]));
+      
+      // Enrich with company data
+      const enrichedUsers = users.map(u => {
+        const company = u.idcompany ? companyMap.get(u.idcompany) : null;
+        const tutorCompany = company?.parentCompanyId ? companyMap.get(company.parentCompanyId) : null;
+        return {
+          ...u,
+          companyName: company?.businessName || null,
+          tutorName: tutorCompany?.businessName || (company?.isTutor ? company.businessName : null),
+        };
+      });
+      
+      res.json(enrichedUsers);
     } catch (error) {
       console.error("Users error:", error);
       res.json([]);
