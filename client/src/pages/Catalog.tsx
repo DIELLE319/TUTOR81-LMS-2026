@@ -159,14 +159,29 @@ export default function Catalog() {
       .map(cat => ({ 
         category: cat, 
         courses: groups[cat].sort((a, b) => {
-          const typeOrder = { 'Base': 0, 'Aggiornamento': 1 };
-          const typeA = typeOrder[a.courseType as keyof typeof typeOrder] ?? 2;
-          const typeB = typeOrder[b.courseType as keyof typeof typeOrder] ?? 2;
+          // Prima per Tipo: Base (0) → Aggiornamento (1) → altri (2)
+          const getTypeOrder = (type: string | null) => {
+            if (!type) return 2;
+            const t = type.toLowerCase();
+            if (t === 'base') return 0;
+            if (t === 'aggiornamento') return 1;
+            return 2;
+          };
+          const typeA = getTypeOrder(a.courseType);
+          const typeB = getTypeOrder(b.courseType);
           if (typeA !== typeB) return typeA - typeB;
           
-          const riskOrder = { 'Basso': 0, 'Medio': 1, 'Alto': 2 };
-          const riskA = riskOrder[a.riskLevel as keyof typeof riskOrder] ?? 3;
-          const riskB = riskOrder[b.riskLevel as keyof typeof riskOrder] ?? 3;
+          // Poi per Rischio: Basso (0) → Medio (1) → Alto (2) → altri (3)
+          const getRiskOrder = (risk: string | null) => {
+            if (!risk) return 3;
+            const r = risk.toLowerCase();
+            if (r === 'basso') return 0;
+            if (r === 'medio') return 1;
+            if (r === 'alto') return 2;
+            return 3;
+          };
+          const riskA = getRiskOrder(a.riskLevel);
+          const riskB = getRiskOrder(b.riskLevel);
           return riskA - riskB;
         })
       }));
