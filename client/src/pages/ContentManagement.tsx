@@ -640,15 +640,15 @@ export default function ContentManagement() {
                       <table className="w-full text-[12px]">
                         <tbody>
                           <tr className="border-b border-gray-100">
-                            <td className="py-1.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Data di creazione</td>
-                            <td className="py-1.5 text-gray-800 w-[200px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
-                            <td className="py-1.5 pr-4 font-semibold text-gray-600 align-top w-[100px]">Creato da</td>
-                            <td className="py-1.5 text-gray-800">Superadmin Tutor81 (ID: 6)</td>
+                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Data creazione</td>
+                            <td className="py-0.5 text-gray-800 w-[200px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
+                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[100px]">Creato da</td>
+                            <td className="py-0.5 text-gray-800">Superadmin Tutor81 (ID: 6)</td>
                           </tr>
-                          <DetailRow label="Requisiti minimi per accedere al corso" value={selectedProject.prerequisites || "nessuno"} />
+                          <DetailRow label="Requisiti" value={selectedProject.prerequisites || "nessuno"} />
                           <tr className="border-b border-gray-100">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Categoria</td>
-                            <td className="py-2">
+                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Categoria</td>
+                            <td className="py-1">
                               <div className="flex items-center gap-4">
                                 <Select
                                   value={selectedProject.category || "SICUREZZA"}
@@ -754,8 +754,8 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Modalità di erogazione</td>
-                            <td className="py-2">
+                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Modalità di erogazione</td>
+                            <td className="py-1">
                               <div className="flex items-center gap-4">
                                 <Select
                                   value={selectedProject.modality || "E-LEARNING"}
@@ -797,8 +797,8 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                                                     <tr className="border-b border-gray-100">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Rischio Azienda</td>
-                            <td className="py-2">
+                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Rischio Azienda</td>
+                            <td className="py-1">
                               <div className="flex items-center gap-4">
                                 <Select
                                   value={selectedProject.riskLevel || "medio"}
@@ -842,15 +842,12 @@ export default function ContentManagement() {
                               </div>
                             </td>
                           </tr>
-                          <DetailRow 
-                            label="Obiettivi del corso" 
-                            value={stripHtml(selectedProject.objectives) || 'Formazione generale e specifica dei lavoratori'} 
-                          />
+                          <DetailRow label="Obiettivi" value={stripHtml(selectedProject.objectives) || 'Formazione generale e specifica dei lavoratori'} />
                           <DetailRow label="Rivolto a" value={selectedProject.targetAudience || ""} />
-                          <DetailRow label="Riferimento normativo" value={selectedProject.lawReference || "Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025"} />
+                          <DetailRow label="Normativa" value={selectedProject.lawReference || "D.Lgs 81 art.37 - Acc. Stato-Regioni 17/04/2025"} />
                           <tr className="border-b border-gray-100">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Validità</td>
-                            <td className="py-2">
+                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Validità</td>
+                            <td className="py-1">
                               <Select
                                 value={selectedProject.courseValidity || "quinquennale"}
                                 onValueChange={(value) => {
@@ -870,14 +867,14 @@ export default function ContentManagement() {
                               </Select>
                             </td>
                           </tr>
-                          <tr className="border-b border-gray-100 bg-yellow-50">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Parametri corso</td>
-                            <td className="py-2">
-                              <div className="flex items-center gap-4 text-sm">
-                                <span><strong>Durata:</strong> {selectedProject.hours || 0} ore</span>
-                                <span><strong>E-learning:</strong> {selectedProject.totalElearning || 0} ore</span>
-                                <span><strong>Tempo max:</strong> {selectedProject.maxExecutionTime || 60} gg</span>
-                                <span><strong>Soglia:</strong> {selectedProject.percentageToPass || 80}%</span>
+                          <tr className="border-b border-gray-100 bg-blue-50">
+                            <td className="py-1 pr-4 text-blue-700 font-semibold w-[200px] align-top">Parametri corso</td>
+                            <td className="py-1">
+                              <div className="flex items-center gap-6 text-[12px] text-gray-800">
+                                <span><strong className="text-blue-700">Durata:</strong> {selectedProject.hours || 0} ore</span>
+                                <span><strong className="text-blue-700">E-learning:</strong> {selectedProject.totalElearning || 0} ore</span>
+                                <span><strong className="text-blue-700">Tempo max:</strong> {selectedProject.maxExecutionTime || 60} gg</span>
+                                <span><strong className="text-blue-700">Soglia:</strong> {selectedProject.percentageToPass || 80}%</span>
                               </div>
                             </td>
                           </tr>
@@ -887,8 +884,8 @@ export default function ContentManagement() {
                             highlight 
                           />
                           <tr className="border-b border-gray-100">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Riservato a</td>
-                            <td className="py-2">
+                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Riservato a</td>
+                            <td className="py-1">
                               <Select
                                 value={selectedProject.reservedTo?.toString() || "none"}
                                 onValueChange={(value) => {
@@ -1291,10 +1288,10 @@ function ActionButton({ children, icon, primary, onClick }: { children: React.Re
 function DetailRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <tr className="border-b border-gray-100">
-      <td className={`py-1.5 pr-4 font-semibold text-gray-600 align-top w-[220px] ${highlight ? 'text-red-600' : ''}`}>
+      <td className={`py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px] ${highlight ? 'text-red-600' : ''}`}>
         {label}
       </td>
-      <td className={`py-1.5 text-gray-800 ${highlight ? 'font-bold text-red-600' : ''}`}>
+      <td className={`py-0.5 text-gray-800 ${highlight ? 'font-bold text-red-600' : ''}`}>
         {value}
       </td>
     </tr>
