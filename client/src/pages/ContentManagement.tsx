@@ -593,16 +593,6 @@ export default function ContentManagement() {
                             label="Obiettivi del corso" 
                             value={stripHtml(selectedProject.objectives) || 'Formazione generale e specifica dei lavoratori'} 
                           />
-                          <tr className="border-b border-gray-100">
-                            <td className="py-1.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">
-                              Programma del corso
-                            </td>
-                            <td className="py-1.5 text-gray-800">
-                              <div className="max-h-[200px] overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap">
-                                {stripHtml(selectedProject.courseProgram || selectedProject.description) || ''}
-                              </div>
-                            </td>
-                          </tr>
                           <DetailRow label="Rivolto a" value={selectedProject.targetAudience || ""} />
                           <DetailRow label="Riferimento normativo" value={selectedProject.lawReference || "Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025"} />
                           <DetailRow label="Validità" value={selectedProject.courseValidity || "quinquennale"} />
