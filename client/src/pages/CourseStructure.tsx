@@ -1,9 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   ChevronUp,
   ChevronDown, 
@@ -14,9 +17,12 @@ import {
   Play,
   Presentation,
   FileIcon,
-  Edit
+  Edit,
+  Save
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface LearningObject {
   id: number;
@@ -103,6 +109,15 @@ export default function CourseStructure() {
   const [, setLocation] = useLocation();
   const [showObjects, setShowObjects] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(params.id || "");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    hours: 0,
+    totalElearning: 0,
+    maxExecutionTime: 90,
+    externalIntegration: "",
+    percentageToPass: 80
+  });
+  const { toast } = useToast();
 
   const { data: projects } = useQuery<LearningProject[]>({
     queryKey: ["/api/learning-projects"]
@@ -117,6 +132,33 @@ export default function CourseStructure() {
     },
     enabled: !!selectedProjectId
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: typeof editForm) => {
+      return apiRequest("PATCH", `/api/learning-projects/${selectedProjectId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/learning-projects", selectedProjectId, "structure"] });
+      setEditOpen(false);
+      toast({ title: "Corso aggiornato", description: "Le modifiche sono state salvate" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile salvare le modifiche", variant: "destructive" });
+    }
+  });
+
+  const openEditDialog = () => {
+    if (structure?.project) {
+      setEditForm({
+        hours: structure.project.hours || 0,
+        totalElearning: structure.project.totalElearning || 0,
+        maxExecutionTime: structure.project.maxExecutionTime || 90,
+        externalIntegration: structure.project.externalIntegration || "",
+        percentageToPass: structure.project.percentageToPass || 80
+      });
+      setEditOpen(true);
+    }
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -178,33 +220,128 @@ export default function CourseStructure() {
           {structure.project && (
             <Card className="bg-zinc-900 border-zinc-800">
               <CardContent className="pt-4">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500 block">Durata totale</span>
-                    <span className="text-white font-medium">{structure.project.hours ? `${structure.project.hours} ore` : "-"}</span>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm flex-1">
+                    <div>
+                      <span className="text-gray-500 block">Durata totale</span>
+                      <span className="text-white font-medium">{structure.project.hours ? `${structure.project.hours} ore` : "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">E-learning</span>
+                      <span className="text-white font-medium">{structure.project.totalElearning ? `${structure.project.totalElearning} ore` : "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">Videoconferenza</span>
+                      <span className="text-white font-medium">{structure.project.externalIntegration || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">Tempo max</span>
+                      <span className="text-white font-medium">
+                        {structure.project.maxExecutionTime ? `${structure.project.maxExecutionTime} gg` : "-"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">Soglia superamento</span>
+                      <span className="text-white font-medium">{structure.project.percentageToPass || 80}%</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-gray-500 block">E-learning</span>
-                    <span className="text-white font-medium">{structure.project.totalElearning ? `${structure.project.totalElearning} ore` : "-"}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Videoconferenza</span>
-                    <span className="text-white font-medium">{structure.project.externalIntegration || "-"}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Tempo max</span>
-                    <span className="text-white font-medium">
-                      {structure.project.maxExecutionTime ? `${structure.project.maxExecutionTime} gg` : "-"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Soglia superamento</span>
-                    <span className="text-white font-medium">{structure.project.percentageToPass || 80}%</span>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={openEditDialog}
+                    data-testid="button-edit-course"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Modifica
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           )}
+
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogContent className="bg-zinc-900 border-zinc-700">
+              <DialogHeader>
+                <DialogTitle className="text-white">Modifica Parametri Corso</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hours">Durata totale (ore)</Label>
+                    <Input
+                      id="hours"
+                      type="number"
+                      value={editForm.hours}
+                      onChange={(e) => setEditForm({...editForm, hours: Number(e.target.value)})}
+                      className="bg-zinc-800 border-zinc-700"
+                      data-testid="input-hours"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="totalElearning">E-learning (ore)</Label>
+                    <Input
+                      id="totalElearning"
+                      type="number"
+                      value={editForm.totalElearning}
+                      onChange={(e) => setEditForm({...editForm, totalElearning: Number(e.target.value)})}
+                      className="bg-zinc-800 border-zinc-700"
+                      data-testid="input-elearning"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="maxExecutionTime">Tempo max conclusione (giorni)</Label>
+                    <Input
+                      id="maxExecutionTime"
+                      type="number"
+                      value={editForm.maxExecutionTime}
+                      onChange={(e) => setEditForm({...editForm, maxExecutionTime: Number(e.target.value)})}
+                      className="bg-zinc-800 border-zinc-700"
+                      data-testid="input-max-time"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="percentageToPass">Soglia superamento (%)</Label>
+                    <Input
+                      id="percentageToPass"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={editForm.percentageToPass}
+                      onChange={(e) => setEditForm({...editForm, percentageToPass: Number(e.target.value)})}
+                      className="bg-zinc-800 border-zinc-700"
+                      data-testid="input-percentage"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="externalIntegration">Videoconferenza / Integrazione esterna</Label>
+                  <Input
+                    id="externalIntegration"
+                    value={editForm.externalIntegration}
+                    onChange={(e) => setEditForm({...editForm, externalIntegration: e.target.value})}
+                    placeholder="Es: 4 ore videoconferenza"
+                    className="bg-zinc-800 border-zinc-700"
+                    data-testid="input-external"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditOpen(false)}>
+                  Annulla
+                </Button>
+                <Button 
+                  onClick={() => updateMutation.mutate(editForm)}
+                  disabled={updateMutation.isPending}
+                  data-testid="button-save-course"
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  {updateMutation.isPending ? "Salvataggio..." : "Salva"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-semibold text-cyan-400 uppercase tracking-wide">
