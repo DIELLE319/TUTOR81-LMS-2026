@@ -135,6 +135,32 @@ export default function ContentManagement() {
     },
   });
 
+  const updateValidityMutation = useMutation({
+    mutationFn: async ({ projectId, validity }: { projectId: number; validity: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/validity`, { validity });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Validità aggiornata" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare la validità", variant: "destructive" });
+    },
+  });
+
+  const updateIntegrationMutation = useMutation({
+    mutationFn: async ({ projectId, integration }: { projectId: number; integration: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/integration`, { integration });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Integrazione aggiornata" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare l'integrazione", variant: "destructive" });
+    },
+  });
+
   const getCourseCategory = (title: string) => {
     const t = title.toUpperCase();
     // Controlla prima i ruoli specifici (DIRIGENTE, PREPOSTO, RSPP) PRIMA di LAVORATORE
@@ -599,8 +625,50 @@ export default function ContentManagement() {
                           />
                           <DetailRow label="Rivolto a" value={selectedProject.targetAudience || ""} />
                           <DetailRow label="Riferimento normativo" value={selectedProject.lawReference || "Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025"} />
-                          <DetailRow label="Validità" value={selectedProject.courseValidity || "quinquennale"} />
-                          <DetailRow label="Integrazione in aula" value={selectedProject.externalIntegration || "non necessaria"} />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Validità</td>
+                            <td className="py-2">
+                              <Select
+                                value={selectedProject.courseValidity || "quinquennale"}
+                                onValueChange={(value) => {
+                                  updateValidityMutation.mutate({
+                                    projectId: selectedProject.id,
+                                    validity: value
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="annuale">annuale</SelectItem>
+                                  <SelectItem value="quinquennale">quinquennale</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Integrazione in aula</td>
+                            <td className="py-2">
+                              <Select
+                                value={selectedProject.externalIntegration === "SI" ? "SI" : "NO"}
+                                onValueChange={(value) => {
+                                  updateIntegrationMutation.mutate({
+                                    projectId: selectedProject.id,
+                                    integration: value
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="SI">SI</SelectItem>
+                                  <SelectItem value="NO">NO</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
                           <DetailRow label="Durata Totale" value={`${selectedProject.hours || 0} ore`} highlight />
                           <DetailRow label="Durata minima del corso in e-learning" value={`${selectedProject.totalElearning || selectedProject.hours || 0} ore`} />
                           <DetailRow label="Tempo massimo per la conclusione" value={`${selectedProject.maxExecutionTime || 60} giorni`} />
