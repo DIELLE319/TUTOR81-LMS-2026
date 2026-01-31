@@ -233,6 +233,36 @@ export const learningObjects = pgTable("learning_objects", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Video Test System - interruption points and questions
+export const videoTestInterruptionPoints = pgTable("video_test_interruption_points", {
+  id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
+  learningObjectId: integer("learning_object_id").references(() => learningObjects.id),
+  time: integer("time").notNull(), // milliseconds into video
+});
+
+export const questionSentences = pgTable("question_sentences", {
+  id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
+  text: text("text").notNull(),
+});
+
+export const interruptionQuestions = pgTable("interruption_questions", {
+  id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
+  interruptionPointId: integer("interruption_point_id").references(() => videoTestInterruptionPoints.id),
+  questionSentenceId: integer("question_sentence_id").references(() => questionSentences.id),
+});
+
+export const questionAnswers = pgTable("question_answers", {
+  id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
+  questionSentenceId: integer("question_sentence_id").references(() => questionSentences.id),
+  text: text("text").notNull(),
+  isCorrect: boolean("is_correct").default(false),
+  code: text("code"),
+});
+
 export const tests = pgTable("tests", {
   id: serial("id").primaryKey(),
   learningProjectId: integer("learning_project_id").references(() => learningProjects.id),

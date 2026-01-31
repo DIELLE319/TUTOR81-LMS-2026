@@ -1089,10 +1089,6 @@ export default function ContentManagement() {
               <div className="grid grid-cols-2 gap-6 text-sm">
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-gray-500">ID Legacy</label>
-                    <p className="text-gray-800">{selectedLO.legacyId || '-'}</p>
-                  </div>
-                  <div>
                     <label className="text-xs font-medium text-gray-500">Titolo</label>
                     <p className="text-gray-800 font-semibold">{selectedLO.title}</p>
                   </div>
@@ -1107,10 +1103,6 @@ export default function ContentManagement() {
                     <p className="text-gray-800">{selectedLO.duration}</p>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-500">% Superamento</label>
-                    <p className="text-gray-800">{selectedLO.percentageToPass}%</p>
-                  </div>
-                  <div>
                     <label className="text-xs font-medium text-gray-500">JWPlayer Code</label>
                     <p className="text-gray-800 font-mono">{selectedLO.jwplayerCode || '-'}</p>
                   </div>
@@ -1118,24 +1110,15 @@ export default function ContentManagement() {
                 
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-gray-500">Video File</label>
-                    <p className="text-gray-800 font-mono text-xs break-all">{selectedLO.videoFilename || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Slide File</label>
-                    <p className="text-gray-800 font-mono text-xs break-all">{selectedLO.slideFilename || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Document File</label>
-                    <p className="text-gray-800 font-mono text-xs break-all">{selectedLO.documentFilename || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Argomento ID</label>
-                    <p className="text-gray-800">{selectedLO.argumentId || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Lingua ID</label>
-                    <p className="text-gray-800">{selectedLO.languageId || 1}</p>
+                    <label className="text-xs font-medium text-gray-500">Categoria</label>
+                    <select className="w-full text-sm border border-gray-300 rounded px-2 py-1 bg-white">
+                      <option value="">Seleziona categoria</option>
+                      <option value="sicurezza">SICUREZZA</option>
+                      <option value="informatica">INFORMATICA</option>
+                      <option value="haccp">HACCP</option>
+                      <option value="231">231</option>
+                      <option value="hr">HR</option>
+                    </select>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-gray-500">Stato</label>

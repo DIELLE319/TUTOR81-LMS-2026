@@ -1511,6 +1511,50 @@ export async function registerRoutes(
     }
   });
 
+  // Get learning object details with questions
+  app.get("/api/learning-objects/:id/details", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get the learning object
+      const [lo] = await db.select()
+        .from(schema.learningObjects)
+        .where(eq(schema.learningObjects.id, parseInt(id)));
+      
+      if (!lo) {
+        return res.status(404).json({ error: "Learning object not found" });
+      }
+      
+      // Get interruption points for this learning object
+      const interruptionPoints = await db.execute(sql`
+        SELECT 
+          ip.id, ip.legacy_id, ip.time,
+          json_agg(json_build_object(
+            'id', qs.id,
+            'text', qs.text,
+            'answers', (
+              SELECT json_agg(json_build_object('id', qa.id, 'text', qa.text, 'isCorrect', qa.is_correct))
+              FROM question_answers qa WHERE qa.question_sentence_id = qs.id
+            )
+          )) as questions
+        FROM video_test_interruption_points ip
+        LEFT JOIN interruption_questions iq ON iq.interruption_point_id = ip.id
+        LEFT JOIN question_sentences qs ON qs.id = iq.question_sentence_id
+        WHERE ip.learning_object_id = ${parseInt(id)}
+        GROUP BY ip.id, ip.legacy_id, ip.time
+        ORDER BY ip.time
+      `);
+      
+      res.json({
+        learningObject: lo,
+        interruptionPoints: interruptionPoints.rows
+      });
+    } catch (error) {
+      console.error("Learning object details error:", error);
+      res.status(500).json({ error: "Failed to fetch learning object details" });
+    }
+  });
+
   app.patch("/api/learning-objects/:id/suspend", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
