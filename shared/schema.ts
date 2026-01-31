@@ -56,6 +56,7 @@ export const learningProjects = pgTable("learning_projects", {
   externalIntegration: text("external_integration"),
   lawReference: text("law_reference"),
   totalElearning: integer("total_elearning").default(0),
+  vdHours: integer("vd_hours").default(0),
   maxExecutionTime: integer("max_execution_time").default(90),
   percentageToPass: integer("percentage_to_pass").default(80),
   producers: text("producers"),

@@ -1436,7 +1436,7 @@ export async function registerRoutes(
   app.patch("/api/learning-projects/:id", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id as string);
-      const { hours, totalElearning, maxExecutionTime, percentageToPass, externalIntegration, prerequisites, objectives, targetAudience, lawReference, listPrice } = req.body;
+      const { hours, totalElearning, vdHours, maxExecutionTime, percentageToPass, externalIntegration, prerequisites, objectives, targetAudience, lawReference, listPrice } = req.body;
       
       if (isNaN(projectId)) {
         return res.status(400).json({ error: "ID progetto non valido" });
@@ -1445,6 +1445,7 @@ export async function registerRoutes(
       const updateData: Record<string, unknown> = {};
       if (hours !== undefined) updateData.hours = hours;
       if (totalElearning !== undefined) updateData.totalElearning = totalElearning;
+      if (vdHours !== undefined) updateData.vdHours = vdHours;
       if (maxExecutionTime !== undefined) updateData.maxExecutionTime = maxExecutionTime;
       if (percentageToPass !== undefined) updateData.percentageToPass = percentageToPass;
       if (externalIntegration !== undefined) updateData.externalIntegration = externalIntegration;

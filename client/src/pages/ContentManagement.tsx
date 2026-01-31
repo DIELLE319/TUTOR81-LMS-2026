@@ -938,6 +938,11 @@ export default function ContentManagement() {
                                     defaultValue={selectedProject.totalElearning || 0} key={`elearn-${selectedProject.id}`}
                                     onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.totalElearning || 0)) updateFieldMutation.mutate({ totalElearning: Number(e.target.value) }); }} /> ore
                                 </span>
+                                <span className="flex items-center gap-1"><strong className="text-blue-700">VD:</strong>
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                    defaultValue={selectedProject.vdHours || 0} key={`vd-${selectedProject.id}`}
+                                    onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.vdHours || 0)) updateFieldMutation.mutate({ vdHours: Number(e.target.value) }); }} /> ore
+                                </span>
                                 <span className="flex items-center gap-1"><strong className="text-blue-700">Tempo max:</strong>
                                   <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
                                     defaultValue={selectedProject.maxExecutionTime || 60} key={`maxtime-${selectedProject.id}`}
