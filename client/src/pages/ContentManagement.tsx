@@ -193,6 +193,19 @@ export default function ContentManagement() {
     },
   });
 
+  const updateFieldMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      if (!selectedCourseId) throw new Error("Nessun corso selezionato");
+      return apiRequest('PATCH', `/api/learning-projects/${selectedCourseId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile salvare", variant: "destructive" });
+    },
+  });
+
   const openEditDialog = () => {
     if (selectedProject) {
       setEditForm({
@@ -603,11 +616,9 @@ export default function ContentManagement() {
               <div className="h-full flex flex-col">
                 <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-1 shadow-sm flex-wrap">
                   <ActionButton icon={<FileText size={13} />}>Dettaglio corso</ActionButton>
-                  <ActionButton icon={<Edit size={13} />} onClick={openEditDialog}>Modifica</ActionButton>
                   <ActionButton icon={<List size={13} />}>Aggiungi modulo</ActionButton>
                   <ActionButton icon={<List size={13} />}>Visualizza domande</ActionButton>
-                  <ActionButton icon={<Settings size={13} />}>Modifica listino prezzi</ActionButton>
-                  
+                                    
                   {selectedProject.isPublishedInEcommerce === 1 ? (
                     <ActionButton 
                       icon={<XCircle size={13} />}
@@ -655,7 +666,22 @@ export default function ContentManagement() {
                             <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[100px]">Creato da</td>
                             <td className="py-0.5 text-gray-800">Superadmin Tutor81 (ID: 6)</td>
                           </tr>
-                          <DetailRow label="Requisiti" value={selectedProject.prerequisites || "nessuno"} />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Requisiti</td>
+                            <td className="py-0.5">
+                              <input 
+                                type="text" 
+                                className="w-full px-2 py-0.5 text-[12px] border border-gray-200 rounded focus:outline-none focus:border-blue-400"
+                                defaultValue={selectedProject.prerequisites || ""}
+                                key={`prereq-${selectedProject.id}`}
+                                onBlur={(e) => {
+                                  if (e.target.value !== (selectedProject.prerequisites || "")) {
+                                    updateFieldMutation.mutate({ prerequisites: e.target.value });
+                                  }
+                                }}
+                              />
+                            </td>
+                          </tr>
                           <tr className="border-b border-gray-100">
                             <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Categoria</td>
                             <td className="py-1">
@@ -852,9 +878,30 @@ export default function ContentManagement() {
                               </div>
                             </td>
                           </tr>
-                          <DetailRow label="Obiettivi" value={stripHtml(selectedProject.objectives) || 'Formazione generale e specifica dei lavoratori'} />
-                          <DetailRow label="Rivolto a" value={selectedProject.targetAudience || ""} />
-                          <DetailRow label="Normativa" value={selectedProject.lawReference || "D.Lgs 81 art.37 - Acc. Stato-Regioni 17/04/2025"} />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Obiettivi</td>
+                            <td className="py-0.5">
+                              <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-200 rounded focus:outline-none focus:border-blue-400"
+                                defaultValue={stripHtml(selectedProject.objectives) || ''} key={`obj-${selectedProject.id}`}
+                                onBlur={(e) => { if (e.target.value !== (stripHtml(selectedProject.objectives) || '')) updateFieldMutation.mutate({ objectives: e.target.value }); }} />
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-100">
+                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Rivolto a</td>
+                            <td className="py-0.5">
+                              <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-200 rounded focus:outline-none focus:border-blue-400"
+                                defaultValue={selectedProject.targetAudience || ''} key={`target-${selectedProject.id}`}
+                                onBlur={(e) => { if (e.target.value !== (selectedProject.targetAudience || '')) updateFieldMutation.mutate({ targetAudience: e.target.value }); }} />
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-100">
+                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Normativa</td>
+                            <td className="py-0.5">
+                              <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-200 rounded focus:outline-none focus:border-blue-400"
+                                defaultValue={selectedProject.lawReference || ''} key={`law-${selectedProject.id}`}
+                                onBlur={(e) => { if (e.target.value !== (selectedProject.lawReference || '')) updateFieldMutation.mutate({ lawReference: e.target.value }); }} />
+                            </td>
+                          </tr>
                           <tr className="border-b border-gray-100">
                             <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Validità</td>
                             <td className="py-1">
@@ -880,19 +927,38 @@ export default function ContentManagement() {
                           <tr className="border-b border-gray-100 bg-blue-50">
                             <td className="py-1 pr-4 text-blue-700 font-semibold w-[200px] align-top">Parametri corso</td>
                             <td className="py-1">
-                              <div className="flex items-center gap-6 text-[12px] text-gray-800">
-                                <span><strong className="text-blue-700">Durata:</strong> {selectedProject.hours || 0} ore</span>
-                                <span><strong className="text-blue-700">E-learning:</strong> {selectedProject.totalElearning || 0} ore</span>
-                                <span><strong className="text-blue-700">Tempo max:</strong> {selectedProject.maxExecutionTime || 60} gg</span>
-                                <span><strong className="text-blue-700">Soglia:</strong> {selectedProject.percentageToPass || 80}%</span>
+                              <div className="flex items-center gap-4 text-[12px] text-gray-800">
+                                <span className="flex items-center gap-1"><strong className="text-blue-700">Durata:</strong>
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                    defaultValue={selectedProject.hours || 0} key={`hours-${selectedProject.id}`}
+                                    onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.hours || 0)) updateFieldMutation.mutate({ hours: Number(e.target.value) }); }} /> ore
+                                </span>
+                                <span className="flex items-center gap-1"><strong className="text-blue-700">E-learning:</strong>
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                    defaultValue={selectedProject.totalElearning || 0} key={`elearn-${selectedProject.id}`}
+                                    onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.totalElearning || 0)) updateFieldMutation.mutate({ totalElearning: Number(e.target.value) }); }} /> ore
+                                </span>
+                                <span className="flex items-center gap-1"><strong className="text-blue-700">Tempo max:</strong>
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                    defaultValue={selectedProject.maxExecutionTime || 60} key={`maxtime-${selectedProject.id}`}
+                                    onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.maxExecutionTime || 60)) updateFieldMutation.mutate({ maxExecutionTime: Number(e.target.value) }); }} /> gg
+                                </span>
+                                <span className="flex items-center gap-1"><strong className="text-blue-700">Soglia:</strong>
+                                  <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
+                                    defaultValue={selectedProject.percentageToPass || 80} key={`pass-${selectedProject.id}`}
+                                    onBlur={(e) => { if (Number(e.target.value) !== (selectedProject.percentageToPass || 80)) updateFieldMutation.mutate({ percentageToPass: Number(e.target.value) }); }} /> %
+                                </span>
                               </div>
                             </td>
                           </tr>
-                          <DetailRow 
-                            label="Prezzo di listino" 
-                            value={selectedProject.listPrice && parseFloat(selectedProject.listPrice) > 0 ? `€ ${parseFloat(selectedProject.listPrice).toFixed(2)}` : 'Non definito'} 
-                            highlight 
-                          />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-0.5 pr-4 font-semibold text-red-600 align-top w-[220px]">Prezzo listino (€)</td>
+                            <td className="py-0.5">
+                              <input type="text" className="w-32 px-2 py-0.5 text-[12px] border border-gray-200 rounded focus:outline-none focus:border-blue-400 font-bold text-red-600"
+                                defaultValue={selectedProject.listPrice || ''} key={`price-${selectedProject.id}`}
+                                onBlur={(e) => { if (e.target.value !== (selectedProject.listPrice || '')) updateFieldMutation.mutate({ listPrice: e.target.value }); }} />
+                            </td>
+                          </tr>
                           <tr className="border-b border-gray-100">
                             <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Riservato a</td>
                             <td className="py-1">
