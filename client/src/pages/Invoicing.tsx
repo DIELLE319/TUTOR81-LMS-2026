@@ -48,7 +48,7 @@ export default function Invoicing() {
   });
 
   const { data: invoiceData, isLoading: isLoadingInvoice, refetch } = useQuery<InvoiceData>({
-    queryKey: ['/api/invoice', selectedTutor, selectedMonth + 1, selectedYear],
+    queryKey: [`/api/invoice/${selectedTutor}/${selectedMonth + 1}/${selectedYear}`],
     enabled: selectedTutor !== null,
   });
 
