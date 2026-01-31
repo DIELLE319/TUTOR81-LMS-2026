@@ -30,6 +30,8 @@ export default function ContentManagement() {
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [selectedLOs, setSelectedLOs] = useState<Set<number>>(new Set());
   const [selectedLO, setSelectedLO] = useState<LearningObject | null>(null);
+  const [loDetails, setLoDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
@@ -78,6 +80,22 @@ export default function ContentManagement() {
       toast({ title: "Errore", description: "Impossibile rimuovere dalla pubblicazione", variant: "destructive" });
     },
   });
+
+  // Load learning object details when selected
+  useEffect(() => {
+    if (selectedLO) {
+      setLoadingDetails(true);
+      fetch(`/api/learning-objects/${selectedLO.id}/details`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          setLoDetails(data);
+          setLoadingDetails(false);
+        })
+        .catch(() => setLoadingDetails(false));
+    } else {
+      setLoDetails(null);
+    }
+  }, [selectedLO]);
 
   const { data: tutors = [] } = useQuery<Company[]>({
     queryKey: ['/api/companies/tutors'],
@@ -1074,7 +1092,7 @@ export default function ContentManagement() {
       {/* Modal Dettaglio Learning Object */}
       {selectedLO && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedLO(null)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b bg-[#4a90a4] text-white rounded-t-lg">
               <h3 className="text-lg font-bold">Learning Object #{selectedLO.legacyId || selectedLO.id}</h3>
               <button 
@@ -1086,50 +1104,96 @@ export default function ContentManagement() {
             </div>
             
             <div className="p-6">
-              <div className="grid grid-cols-2 gap-6 text-sm">
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Titolo</label>
-                    <p className="text-gray-800 font-semibold">{selectedLO.title}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Tipo</label>
-                    <p className="text-gray-800">
-                      {selectedLO.objectType === 1 ? 'Video' : selectedLO.objectType === 2 ? 'Slide' : 'Documento'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Durata (minuti)</label>
-                    <p className="text-gray-800">{selectedLO.duration}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">JWPlayer Code</label>
-                    <p className="text-gray-800 font-mono">{selectedLO.jwplayerCode || '-'}</p>
-                  </div>
+              {/* Info base */}
+              <div className="grid grid-cols-3 gap-4 text-sm mb-6">
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Titolo</label>
+                  <p className="text-gray-800 font-semibold">{selectedLO.title}</p>
                 </div>
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Categoria</label>
-                    <select className="w-full text-sm border border-gray-300 rounded px-2 py-1 bg-white">
-                      <option value="">Seleziona categoria</option>
-                      <option value="sicurezza">SICUREZZA</option>
-                      <option value="informatica">INFORMATICA</option>
-                      <option value="haccp">HACCP</option>
-                      <option value="231">231</option>
-                      <option value="hr">HR</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500">Stato</label>
-                    <p className={selectedLO.suspended ? 'text-gray-500' : selectedLO.inUse ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                      {selectedLO.suspended ? 'Sospeso' : selectedLO.inUse ? 'Attivo' : 'Non in uso'}
-                    </p>
-                  </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Tipo</label>
+                  <p className="text-gray-800">
+                    {selectedLO.objectType === 1 ? 'Video' : selectedLO.objectType === 2 ? 'Slide' : 'Documento'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Durata</label>
+                  <p className="text-gray-800">{selectedLO.duration} minuti</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Categoria</label>
+                  <select className="w-full text-sm border border-gray-300 rounded px-2 py-1 bg-white">
+                    <option value="">Seleziona</option>
+                    <option value="sicurezza">SICUREZZA</option>
+                    <option value="informatica">INFORMATICA</option>
+                    <option value="haccp">HACCP</option>
+                    <option value="231">231</option>
+                    <option value="hr">HR</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Stato</label>
+                  <p className={selectedLO.suspended ? 'text-gray-500' : selectedLO.inUse ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                    {selectedLO.suspended ? 'Sospeso' : selectedLO.inUse ? 'Attivo' : 'Non in uso'}
+                  </p>
                 </div>
               </div>
+
+              {/* Video Player */}
+              {selectedLO.jwplayerCode && (
+                <div className="mb-6">
+                  <label className="text-xs font-medium text-gray-500 mb-2 block">Video Preview</label>
+                  <div className="bg-black rounded overflow-hidden" style={{ aspectRatio: '16/9' }}>
+                    <iframe
+                      src={`https://cdn.jwplayer.com/players/${selectedLO.jwplayerCode}-ZXcv1712.html`}
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      allow="autoplay; fullscreen"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Domande associate */}
+              <div className="mb-6">
+                <label className="text-xs font-medium text-gray-500 mb-2 block">
+                  Domande Associate ({loDetails?.interruptionPoints?.length || 0} punti di interruzione)
+                </label>
+                {loadingDetails ? (
+                  <p className="text-gray-400 text-sm">Caricamento domande...</p>
+                ) : loDetails?.interruptionPoints?.length > 0 ? (
+                  <div className="space-y-4 max-h-60 overflow-y-auto">
+                    {loDetails.interruptionPoints.map((ip: any, idx: number) => (
+                      <div key={ip.id} className="border border-gray-200 rounded p-3 bg-gray-50">
+                        <div className="text-xs text-gray-500 mb-2">
+                          Interruzione #{idx + 1} a {Math.floor(ip.time / 60000)}:{String(Math.floor((ip.time % 60000) / 1000)).padStart(2, '0')}
+                        </div>
+                        {ip.questions?.filter((q: any) => q.id).map((q: any) => (
+                          <div key={q.id} className="mb-3 last:mb-0">
+                            <p className="text-sm font-medium text-gray-800 mb-1">{q.text}</p>
+                            <div className="pl-4 space-y-1">
+                              {q.answers?.map((a: any) => (
+                                <div 
+                                  key={a.id} 
+                                  className={`text-xs flex items-center gap-2 ${a.isCorrect ? 'text-green-600 font-medium' : 'text-gray-600'}`}
+                                >
+                                  {a.isCorrect ? '✓' : '○'} {a.text}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm">Nessuna domanda associata</p>
+                )}
+              </div>
               
-              <div className="mt-6 pt-4 border-t border-gray-200 flex gap-3">
+              <div className="pt-4 border-t border-gray-200 flex gap-3">
                 <button className="px-4 py-2 text-sm bg-[#4a90a4] text-white rounded hover:bg-[#3a7084]">
                   Modifica
                 </button>
