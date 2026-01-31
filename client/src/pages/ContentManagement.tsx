@@ -1068,12 +1068,20 @@ export default function ContentManagement() {
                           defaultContent="Il metodo Tutor81 prevede una percentuale minima pari al 60% di filmati e l'integrazione di slide interattive. In ogni oggetto multimediale è inserita uno o più domande (temporizzate) rilasciate in modalità random."
                           onSave={(value) => updateFieldMutation.mutate({ caratteristicheTecniche: value })}
                         />
-                        <ContentSection 
-                          title="Programma del corso" 
-                          content={selectedProject.courseProgram}
-                          defaultContent="Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza."
-                          onSave={(value) => updateFieldMutation.mutate({ courseProgram: value })}
-                        />
+                        <div className="border-l-4 border-[#4a90a4] pl-3">
+                          <h3 className="font-bold text-black text-[12px] mb-2">Programma del corso</h3>
+                          <div className="bg-gray-50 p-3 rounded text-[11px] text-gray-700 leading-relaxed">
+                            {courseStructure?.modules && courseStructure.modules.length > 0 ? (
+                              <div className="space-y-0.5">
+                                {courseStructure.modules.flatMap(m => m.lessons).map((lesson, idx) => (
+                                  <div key={lesson.id}>Lezione {idx + 1}: {lesson.title}</div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-gray-400 italic">Nessuna lezione definita</div>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       {/* MODULI INSERITI */}
