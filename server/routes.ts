@@ -529,6 +529,71 @@ export async function registerRoutes(
     }
   });
 
+  // Update user
+  app.patch("/api/users/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { firstName, lastName, email, fiscalCode, phone, role, idcompany } = req.body;
+      
+      await db.update(schema.users)
+        .set({
+          firstName,
+          lastName,
+          email,
+          fiscalCode,
+          phone,
+          role,
+          idcompany,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.users.id, id));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ error: "Errore aggiornamento utente" });
+    }
+  });
+
+  // Get user enrollments (from tutors_purchases linked to user's company)
+  app.get("/api/user-enrollments", isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.query;
+      if (!userId) return res.json([]);
+      
+      // Get user's company
+      const user = await db.select().from(schema.users).where(eq(schema.users.id, userId as string)).limit(1);
+      if (!user.length || !user[0].idcompany) return res.json([]);
+      
+      // Get purchases for user's company
+      const purchases = await db.select({
+        id: schema.tutorsPurchases.id,
+        courseTitle: schema.learningProjects.title,
+        startDate: schema.tutorsPurchases.startDate,
+        endDate: schema.tutorsPurchases.endDate,
+        status: schema.tutorsPurchases.status,
+      })
+        .from(schema.tutorsPurchases)
+        .leftJoin(schema.learningProjects, eq(schema.tutorsPurchases.learningProjectId, schema.learningProjects.id))
+        .where(eq(schema.tutorsPurchases.customerCompanyId, user[0].idcompany))
+        .orderBy(desc(schema.tutorsPurchases.startDate))
+        .limit(50);
+      
+      const enrollments = purchases.map(p => ({
+        id: p.id,
+        courseTitle: p.courseTitle || 'Corso senza titolo',
+        startDate: p.startDate,
+        status: p.status,
+        completedAt: p.status === 'completed' ? p.endDate : null,
+      }));
+      
+      res.json(enrollments);
+    } catch (error) {
+      console.error("User enrollments error:", error);
+      res.json([]);
+    }
+  });
+
   app.get("/api/certificates", isAuthenticated, async (req, res) => {
     try {
       const certificates = await db.select()
