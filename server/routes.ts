@@ -734,7 +734,7 @@ export async function registerRoutes(
       const companyFilter = req.query.companyId as string | undefined;
       const search = req.query.search as string | undefined;
 
-      // Filter enrollments for Tutor81 companies (parent_company_id = 2)
+      // Get all enrollments ordered by most recent
       const enrollments = await db.select({
         id: schema.enrollments.id,
         userId: schema.enrollments.userId,
@@ -749,9 +749,7 @@ export async function registerRoutes(
         emailOpenedAt: schema.enrollments.emailOpenedAt,
       })
         .from(schema.enrollments)
-        .innerJoin(schema.companies, eq(schema.enrollments.companyId, schema.companies.id))
-        .where(eq(schema.companies.parentCompanyId, 2))
-        .orderBy(desc(schema.enrollments.createdAt))
+        .orderBy(desc(schema.enrollments.id))
         .limit(500);
 
       const enrichedEnrollments = await Promise.all(enrollments.map(async (e) => {

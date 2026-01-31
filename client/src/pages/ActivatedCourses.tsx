@@ -240,7 +240,7 @@ export default function ActivatedCourses() {
                   Email
                 </th>
                 <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
-                  Data Inizio
+                  Data Attivazione
                 </th>
                 <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Ultimo Accesso
@@ -302,7 +302,7 @@ export default function ActivatedCourses() {
                       </a>
                     </td>
                     <td className="p-3 text-sm text-black">
-                      {formatDate(enrollment.startDate)}
+                      {formatDate(enrollment.emailSentAt)}
                     </td>
                     <td className="p-3 text-sm text-black">
                       {formatDate(enrollment.lastAccessAt)}
