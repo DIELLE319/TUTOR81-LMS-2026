@@ -199,7 +199,7 @@ export default function Catalog() {
                           </td>
                           <td className="px-3 py-2 text-gray-500">{course.id}</td>
                           <td className="px-3 py-2 text-gray-800 font-medium">{course.title}</td>
-                          <td className="px-3 py-2 text-center text-gray-600">{getCourseDuration(course.title, course.hours)}</td>
+                          <td className="px-3 py-2 text-center text-red-600 font-semibold">{getCourseDuration(course.title, course.hours)}</td>
                           <td className="px-3 py-2 text-right text-gray-700">{formatPrice(course.listPrice)}</td>
                           <td className="px-3 py-2 text-right text-green-600 font-medium">
                             {formatPrice(calculateTutorCost(course.listPrice))}
