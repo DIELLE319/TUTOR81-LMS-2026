@@ -883,6 +883,26 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/learning-projects/:id/sector", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id as string);
+      const { sector } = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
+      }
+
+      await db.update(schema.learningProjects)
+        .set({ sector: sector })
+        .where(eq(schema.learningProjects.id, projectId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update sector error:", error);
+      res.status(500).json({ error: "Failed to update sector" });
+    }
+  });
+
   app.patch("/api/learning-projects/:id/modality", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id as string);

@@ -116,6 +116,19 @@ export default function ContentManagement() {
     },
   });
 
+  const updateSectorMutation = useMutation({
+    mutationFn: async ({ projectId, sector }: { projectId: number; sector: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/sector`, { sector });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Settore aggiornato" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare il settore", variant: "destructive" });
+    },
+  });
+
   const updateModalityMutation = useMutation({
     mutationFn: async ({ projectId, modality }: { projectId: number; modality: string }) => {
       return apiRequest('PATCH', `/api/learning-projects/${projectId}/modality`, { modality });
@@ -611,6 +624,30 @@ export default function ContentManagement() {
                                     <SelectItem value="ANTINCENDIO">ANTINCENDIO</SelectItem>
                                     <SelectItem value="PRIMO SOCCORSO">PRIMO SOCCORSO</SelectItem>
                                     <SelectItem value="ALTRO">ALTRO</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <span className="text-gray-600 font-medium text-[12px]">Settore</span>
+                                <Select
+                                  value={selectedProject.sector || "TUTTI"}
+                                  onValueChange={(value) => {
+                                    updateSectorMutation.mutate({
+                                      projectId: selectedProject.id,
+                                      sector: value
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[160px] h-8 text-[12px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="TUTTI">TUTTI</SelectItem>
+                                    <SelectItem value="EDILIZIA">EDILIZIA</SelectItem>
+                                    <SelectItem value="INDUSTRIA">INDUSTRIA</SelectItem>
+                                    <SelectItem value="COMMERCIO">COMMERCIO</SelectItem>
+                                    <SelectItem value="SANITA">SANITA</SelectItem>
+                                    <SelectItem value="ALIMENTARE">ALIMENTARE</SelectItem>
+                                    <SelectItem value="TRASPORTI">TRASPORTI</SelectItem>
+                                    <SelectItem value="UFFICI">UFFICI</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
