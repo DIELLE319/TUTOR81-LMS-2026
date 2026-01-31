@@ -42,6 +42,7 @@ export const learningProjects = pgTable("learning_projects", {
   listPrice: decimal("list_price", { precision: 10, scale: 2 }).default("0"),
   tutorCost: decimal("tutor_cost", { precision: 10, scale: 2 }).default("0"),
   isPublished: boolean("is_published").default(true),
+  isPublishedInEcommerce: integer("is_published_in_ecommerce").default(0), // 0=non pubblicato, 1=attivo, 2=sospeso
   createdAt: timestamp("created_at").defaultNow(),
 });
 

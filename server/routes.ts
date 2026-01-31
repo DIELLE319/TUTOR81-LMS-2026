@@ -273,7 +273,7 @@ export async function registerRoutes(
       // Se il corso è già collegato a un learning project, aggiorna solo lo stato
       if (course.learningProjectId) {
         await db.update(schema.learningProjects)
-          .set({ isPublished: true })
+          .set({ isPublishedInEcommerce: 1 }) // 1 = attivo
           .where(eq(schema.learningProjects.id, course.learningProjectId));
         
         await db.update(schema.courses)
@@ -291,7 +291,7 @@ export async function registerRoutes(
       const [newProject] = await db.insert(schema.learningProjects).values({
         title: course.title,
         description: course.description,
-        isPublished: true,
+        isPublishedInEcommerce: 1, // 1 = attivo
         hours: 0,
         language: 'IT',
       }).returning();
@@ -332,7 +332,7 @@ export async function registerRoutes(
       
       if (course?.learningProjectId) {
         await db.update(schema.learningProjects)
-          .set({ isPublished: false })
+          .set({ isPublishedInEcommerce: 0 }) // 0 = non pubblicato
           .where(eq(schema.learningProjects.id, course.learningProjectId));
       }
 
@@ -343,11 +343,35 @@ export async function registerRoutes(
     }
   });
 
+  // Sospendi un corso (stato 2)
+  app.post("/api/courses/:id/suspend", isAuthenticated, async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.id as string);
+      
+      if (isNaN(courseId)) {
+        return res.status(400).json({ error: "ID corso non valido" });
+      }
+
+      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, courseId));
+      
+      if (course?.learningProjectId) {
+        await db.update(schema.learningProjects)
+          .set({ isPublishedInEcommerce: 2 }) // 2 = sospeso
+          .where(eq(schema.learningProjects.id, course.learningProjectId));
+      }
+
+      res.json({ success: true, message: "Corso sospeso" });
+    } catch (error) {
+      console.error("Suspend course error:", error);
+      res.status(500).json({ error: "Errore durante la sospensione del corso" });
+    }
+  });
+
   app.get("/api/catalog", isAuthenticated, async (req, res) => {
     try {
       const courses = await db.select()
         .from(schema.learningProjects)
-        .where(eq(schema.learningProjects.isPublished, true))
+        .where(eq(schema.learningProjects.isPublishedInEcommerce, 1)) // 1 = attivo
         .orderBy(schema.learningProjects.title);
       
       res.json(courses);
