@@ -33,10 +33,14 @@ interface Attestato {
 export default function Certificates() {
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState("50");
+  const [selectedCompany, setSelectedCompany] = useState("all");
 
   const { data: attestati = [], isLoading } = useQuery<Attestato[]>({
     queryKey: ["/api/attestati"],
   });
+
+  // Ottieni lista aziende uniche
+  const companies = Array.from(new Set(attestati.map(a => a.company_name).filter((c): c is string => c !== null))).sort();
 
   const formatDate = (date: string | null) => {
     if (!date) return "-";
@@ -44,6 +48,10 @@ export default function Certificates() {
   };
 
   const filteredAttestati = attestati.filter((a) => {
+    // Filtro azienda
+    if (selectedCompany !== "all" && a.company_name !== selectedCompany) return false;
+    
+    // Filtro ricerca
     if (!search) return true;
     const s = search.toLowerCase();
     return (
@@ -98,6 +106,22 @@ export default function Certificates() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Azienda</span>
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger className="w-64 bg-white" data-testid="select-company">
+                  <SelectValue placeholder="Tutte le aziende" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutte le aziende</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company} value={company}>
+                      {company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Mostra</span>
               <Select value={pageSize} onValueChange={setPageSize}>
