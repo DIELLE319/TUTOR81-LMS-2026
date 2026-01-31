@@ -14,7 +14,14 @@ import {
 } from "@/components/ui/select";
 
 type Tab = 'catalogo' | 'lezioni' | 'learningObjects';
-type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati' | 'riservati';
+type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati' | 'riservati' | 'test';
+
+// Keywords per identificare corsi di test/demo
+const TEST_KEYWORDS = ['komplett', 'trops', 'innovyn', 'prova', 'test'];
+const isTestCourse = (title: string) => {
+  const lowerTitle = title.toLowerCase();
+  return TEST_KEYWORDS.some(keyword => lowerTitle.includes(keyword));
+};
 
 export default function ContentManagement() {
   const [activeTab, setActiveTab] = useState<Tab>('catalogo');
@@ -269,13 +276,15 @@ export default function ContentManagement() {
       const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
       let matchesStatus = true;
       if (statusFilter === 'attivi') {
-        matchesStatus = p.isPublishedInEcommerce === 1;
+        matchesStatus = p.isPublishedInEcommerce === 1 && !isTestCourse(p.title);
       } else if (statusFilter === 'nonPubblicati') {
-        matchesStatus = p.isPublishedInEcommerce === 0;
+        matchesStatus = p.isPublishedInEcommerce === 0 && !isTestCourse(p.title);
       } else if (statusFilter === 'sospesi') {
-        matchesStatus = p.isPublishedInEcommerce === 2;
+        matchesStatus = p.isPublishedInEcommerce === 2 && !isTestCourse(p.title);
       } else if (statusFilter === 'riservati') {
-        matchesStatus = !!(p.reservedTo && p.reservedTo > 0);
+        matchesStatus = !!(p.reservedTo && p.reservedTo > 0) && !isTestCourse(p.title);
+      } else if (statusFilter === 'test') {
+        matchesStatus = isTestCourse(p.title);
       }
       return matchesSearch && matchesStatus;
     });
@@ -320,11 +329,12 @@ export default function ContentManagement() {
   }, [projects, selectedCourseId]);
 
   const activeCounts = useMemo(() => {
-    const attivi = projects.filter(p => p.isPublishedInEcommerce === 1).length;
-    const nonPubblicati = projects.filter(p => p.isPublishedInEcommerce === 0).length;
-    const sospesi = projects.filter(p => p.isPublishedInEcommerce === 2).length;
-    const riservati = projects.filter(p => p.reservedTo && p.reservedTo > 0).length;
-    return { attivi, sospesi, nonPubblicati, riservati };
+    const test = projects.filter(p => isTestCourse(p.title)).length;
+    const attivi = projects.filter(p => p.isPublishedInEcommerce === 1 && !isTestCourse(p.title)).length;
+    const nonPubblicati = projects.filter(p => p.isPublishedInEcommerce === 0 && !isTestCourse(p.title)).length;
+    const sospesi = projects.filter(p => p.isPublishedInEcommerce === 2 && !isTestCourse(p.title)).length;
+    const riservati = projects.filter(p => p.reservedTo && p.reservedTo > 0 && !isTestCourse(p.title)).length;
+    return { attivi, sospesi, nonPubblicati, riservati, test };
   }, [projects]);
 
   return (
@@ -397,6 +407,13 @@ export default function ContentManagement() {
                   onClick={() => setStatusFilter('riservati')}
                 >
                   Riservati ({activeCounts.riservati})
+                </StatusButton>
+                <StatusButton 
+                  active={statusFilter === 'test'} 
+                  color="gray"
+                  onClick={() => setStatusFilter('test')}
+                >
+                  Test ({activeCounts.test})
                 </StatusButton>
               </div>
 
@@ -863,7 +880,7 @@ function TabButton({ children, active, onClick }: { children: React.ReactNode; a
 function StatusButton({ children, active, color, onClick }: { 
   children: React.ReactNode; 
   active: boolean; 
-  color: 'green' | 'orange' | 'red' | 'purple';
+  color: 'green' | 'orange' | 'red' | 'purple' | 'gray';
   onClick: () => void;
 }) {
   const colors = {
@@ -871,6 +888,7 @@ function StatusButton({ children, active, color, onClick }: {
     orange: active ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-orange-600 border-orange-300 hover:bg-orange-50',
     red: active ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-600 border-red-300 hover:bg-red-50',
     purple: active ? 'bg-purple-500 text-white border-purple-500' : 'bg-white text-purple-600 border-purple-300 hover:bg-purple-50',
+    gray: active ? 'bg-gray-500 text-white border-gray-500' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
   };
   
   return (
