@@ -707,7 +707,7 @@ export default function ContentManagement() {
                                     });
                                   }}
                                 >
-                                  <SelectTrigger className="w-[140px] h-8 text-[12px]">
+                                  <SelectTrigger className="w-[140px] h-8 text-[12px] text-gray-700">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -728,7 +728,7 @@ export default function ContentManagement() {
                                       });
                                     }}
                                   >
-                                    <SelectTrigger className="w-[160px] h-8 text-[12px]">
+                                    <SelectTrigger className="w-[160px] h-8 text-[12px] text-gray-700">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -765,7 +765,7 @@ export default function ContentManagement() {
                                     });
                                   }}
                                 >
-                                  <SelectTrigger className="w-[140px] h-8 text-[12px]">
+                                  <SelectTrigger className="w-[140px] h-8 text-[12px] text-gray-700">
                                     <SelectValue placeholder="Non definito" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -784,7 +784,7 @@ export default function ContentManagement() {
                                     });
                                   }}
                                 >
-                                  <SelectTrigger className="w-[160px] h-8 text-[12px]">
+                                  <SelectTrigger className="w-[160px] h-8 text-[12px] text-gray-700">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -814,7 +814,7 @@ export default function ContentManagement() {
                                     });
                                   }}
                                 >
-                                  <SelectTrigger className="w-[100px] h-8 text-[12px]">
+                                  <SelectTrigger className="w-[100px] h-8 text-[12px] text-gray-700">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -834,7 +834,7 @@ export default function ContentManagement() {
                                     });
                                   }}
                                 >
-                                  <SelectTrigger className="w-[160px] h-8 text-[12px]">
+                                  <SelectTrigger className="w-[160px] h-8 text-[12px] text-gray-700">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -883,7 +883,7 @@ export default function ContentManagement() {
                                   });
                                 }}
                               >
-                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
+                                <SelectTrigger className="w-[200px] h-8 text-[12px] text-gray-700">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -945,7 +945,7 @@ export default function ContentManagement() {
                                   });
                                 }}
                               >
-                                <SelectTrigger className="w-[300px] h-8 text-xs" data-testid="select-reserved-to">
+                                <SelectTrigger className="w-[300px] h-8 text-xs text-gray-700" data-testid="select-reserved-to">
                                   <SelectValue placeholder="Seleziona ente formativo..." />
                                 </SelectTrigger>
                                 <SelectContent>
