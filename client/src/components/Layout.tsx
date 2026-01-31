@@ -152,14 +152,10 @@ export default function Layout({ children }: LayoutProps) {
               </>
             )}
 
-            {/* CONTENT MANAGEMENT - Solo Super Admin */}
-            {isSuperAdmin && (
-              <>
-                <SectionHeader title="CONTENT MANAGEMENT" />
-                <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" />
-                <MenuItem to="/learning-objects" label="Oggetti Multimediali" iconName="Video" />
-              </>
-            )}
+            {/* CONTENT MANAGEMENT */}
+            <SectionHeader title="CONTENT MANAGEMENT" />
+            <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" />
+            <MenuItem to="/learning-objects" label="Oggetti Multimediali" iconName="Video" />
             
             {/* Referente: gestisce utenti della sua azienda */}
             {isReferente && (
