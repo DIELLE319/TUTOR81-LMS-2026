@@ -28,6 +28,7 @@ export default function ContentManagement() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('attivi');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
+  const [selectedLOs, setSelectedLOs] = useState<Set<number>>(new Set());
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
@@ -930,6 +931,31 @@ export default function ContentManagement() {
               </div>
             </div>
             
+            {selectedLOs.size > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 rounded flex items-center justify-between">
+                <span className="text-sm text-blue-700">
+                  {selectedLOs.size} oggetti selezionati
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                    onClick={() => {
+                      toast({ title: `Sospesi ${selectedLOs.size} oggetti` });
+                      setSelectedLOs(new Set());
+                    }}
+                  >
+                    Sospendi selezionati
+                  </button>
+                  <button 
+                    className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                    onClick={() => setSelectedLOs(new Set())}
+                  >
+                    Deseleziona
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {loadingLOs ? (
               <div className="text-center py-8 text-gray-400">Caricamento...</div>
             ) : (
@@ -937,6 +963,20 @@ export default function ContentManagement() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-gray-200 text-left">
+                      <th className="py-2 px-2 w-8">
+                        <input 
+                          type="checkbox"
+                          checked={selectedLOs.size === learningObjects.length && learningObjects.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedLOs(new Set(learningObjects.map(lo => lo.id)));
+                            } else {
+                              setSelectedLOs(new Set());
+                            }
+                          }}
+                          className="w-3 h-3 accent-[#4a90a4]"
+                        />
+                      </th>
                       <th className="py-2 px-2 font-medium text-gray-500 w-8"></th>
                       <th className="py-2 px-2 font-medium text-gray-500">ID</th>
                       <th className="py-2 px-2 font-medium text-gray-500">Tipo</th>
@@ -950,8 +990,24 @@ export default function ContentManagement() {
                     {learningObjects.slice(0, 100).map(lo => (
                       <tr 
                         key={lo.id} 
-                        className={`border-b border-gray-100 hover:bg-gray-50 ${!lo.inUse ? 'bg-red-50' : ''}`}
+                        className={`border-b border-gray-100 hover:bg-gray-50 ${!lo.inUse ? 'bg-red-50' : ''} ${selectedLOs.has(lo.id) ? 'bg-blue-50' : ''}`}
                       >
+                        <td className="py-2 px-2">
+                          <input 
+                            type="checkbox"
+                            checked={selectedLOs.has(lo.id)}
+                            onChange={(e) => {
+                              const newSet = new Set(selectedLOs);
+                              if (e.target.checked) {
+                                newSet.add(lo.id);
+                              } else {
+                                newSet.delete(lo.id);
+                              }
+                              setSelectedLOs(newSet);
+                            }}
+                            className="w-3 h-3 accent-[#4a90a4]"
+                          />
+                        </td>
                         <td className="py-2 px-2 text-center">
                           {lo.objectType === 1 && <Film size={14} className="text-blue-500" />}
                           {lo.objectType === 2 && <FileText size={14} className="text-purple-500" />}
