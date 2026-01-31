@@ -367,7 +367,7 @@ export default function ContentManagement() {
                           <DetailRow label="Requisiti minimi per accedere al corso" value={selectedProject.prerequisites || "nessuno"} />
                           <DetailRow label="Categoria" value={selectedProject.category || "sicurezza"} />
                           <DetailRow label="Sottocategoria" value={selectedProject.subcategory || "lavoratore"} />
-                          <DetailRow label="Tipo" value={selectedProject.courseType || getCourseType(selectedProject.title).toLowerCase()} />
+                          <DetailRow label="Tipo" value={selectedProject.courseType || getCourseType(selectedProject.title).label} />
                           <DetailRow label="Test in presenza" value="No" />
                           <DetailRow label="Rischio Azienda" value={selectedProject.riskLevel || "medio"} />
                           <DetailRow label="Destinazione" value={selectedProject.destination || "Base+Specifico"} />
