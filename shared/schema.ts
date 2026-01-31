@@ -195,23 +195,53 @@ export const companyUsersRelations = relations(companyUsers, ({ one }) => ({
 // Content Management Tables
 export const modules = pgTable("modules", {
   id: serial("id").primaryKey(),
-  learningProjectId: integer("learning_project_id").notNull().references(() => learningProjects.id),
+  legacyId: integer("legacy_id"),
   title: text("title").notNull(),
   description: text("description"),
+  duration: integer("duration").default(0),
+  maxExecutionTime: integer("max_execution_time").default(0),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const lessons = pgTable("lessons", {
   id: serial("id").primaryKey(),
-  moduleId: integer("module_id").notNull().references(() => modules.id),
+  legacyId: integer("legacy_id"),
   title: text("title").notNull(),
   description: text("description"),
-  contentType: text("content_type").default("video"), // video, audio, document, scorm
-  contentUrl: text("content_url"),
-  duration: integer("duration").default(0), // in minutes
+  duration: integer("duration").default(0),
+  percentageToPass: integer("percentage_to_pass").default(60),
+  code: text("code"),
+  ownerUserId: integer("owner_user_id"),
+  suspended: boolean("suspended").default(false),
+  closed: boolean("closed").default(false),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relazioni many-to-many
+export const courseModules = pgTable("course_modules", {
+  id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
+  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
+  moduleId: integer("module_id").references(() => modules.id),
+  position: integer("position").default(0),
+});
+
+export const moduleLessons = pgTable("module_lessons", {
+  id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
+  moduleId: integer("module_id").references(() => modules.id),
+  lessonId: integer("lesson_id").references(() => lessons.id),
+  position: integer("position").default(0),
+});
+
+export const lessonLearningObjects = pgTable("lesson_learning_objects", {
+  id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
+  lessonId: integer("lesson_id").references(() => lessons.id),
+  learningObjectId: integer("learning_object_id").references(() => learningObjects.id),
+  position: integer("position").default(0),
 });
 
 export const learningObjects = pgTable("learning_objects", {
@@ -297,19 +327,47 @@ export const answers = pgTable("answers", {
 });
 
 // Relations for Content Management
-export const modulesRelations = relations(modules, ({ one, many }) => ({
-  learningProject: one(learningProjects, {
-    fields: [modules.learningProjectId],
-    references: [learningProjects.id],
-  }),
-  lessons: many(lessons),
+export const modulesRelations = relations(modules, ({ many }) => ({
+  courseModules: many(courseModules),
+  moduleLessons: many(moduleLessons),
   tests: many(tests),
 }));
 
-export const lessonsRelations = relations(lessons, ({ one }) => ({
+export const lessonsRelations = relations(lessons, ({ many }) => ({
+  moduleLessons: many(moduleLessons),
+  lessonLearningObjects: many(lessonLearningObjects),
+}));
+
+export const courseModulesRelations = relations(courseModules, ({ one }) => ({
+  learningProject: one(learningProjects, {
+    fields: [courseModules.learningProjectId],
+    references: [learningProjects.id],
+  }),
   module: one(modules, {
-    fields: [lessons.moduleId],
+    fields: [courseModules.moduleId],
     references: [modules.id],
+  }),
+}));
+
+export const moduleLessonsRelations = relations(moduleLessons, ({ one }) => ({
+  module: one(modules, {
+    fields: [moduleLessons.moduleId],
+    references: [modules.id],
+  }),
+  lesson: one(lessons, {
+    fields: [moduleLessons.lessonId],
+    references: [lessons.id],
+  }),
+}));
+
+export const lessonLearningObjectsRelations = relations(lessonLearningObjects, ({ one }) => ({
+  lesson: one(lessons, {
+    fields: [lessonLearningObjects.lessonId],
+    references: [lessons.id],
+  }),
+  learningObject: one(learningObjects, {
+    fields: [lessonLearningObjects.learningObjectId],
+    references: [learningObjects.id],
   }),
 }));
 
