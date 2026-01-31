@@ -196,7 +196,7 @@ export default function Catalog() {
   return (
     <div className="bg-gray-100 min-h-screen font-sans">
       <div className="bg-gradient-to-r from-[#1a1a1a] to-[#2d2d2d] border-b border-gray-700 px-6 py-4">
-        <div className="max-w-[1600px] mx-auto">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-xl font-bold text-white" data-testid="text-catalog-title">
