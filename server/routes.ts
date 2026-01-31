@@ -204,6 +204,56 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/courses", isAuthenticated, async (req, res) => {
+    try {
+      const allCourses = await db.select().from(schema.courses);
+      res.json(allCourses);
+    } catch (error) {
+      console.error("Get courses error:", error);
+      res.status(500).json({ error: "Failed to fetch courses" });
+    }
+  });
+
+  app.patch("/api/learning-projects/:id/link-course", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { courseId } = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID" });
+      }
+
+      await db.update(schema.learningProjects)
+        .set({ id: projectId }) // Just a placeholder if we were using a join table, but we link in courses
+        .where(eq(schema.learningProjects.id, projectId));
+
+      await db.update(schema.courses)
+        .set({ learningProjectId: null })
+        .where(eq(schema.courses.learningProjectId, projectId));
+
+      if (courseId) {
+        await db.update(schema.courses)
+          .set({ learningProjectId: projectId })
+          .where(eq(schema.courses.id, courseId));
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Link course error:", error);
+      res.status(500).json({ error: "Failed to link course" });
+    }
+  });
+
+  app.get("/api/learning-projects", isAuthenticated, async (req, res) => {
+    try {
+      const projects = await db.select().from(schema.learningProjects);
+      res.json(projects);
+    } catch (error) {
+      console.error("Learning projects error:", error);
+      res.status(500).json({ error: "Failed to fetch learning projects" });
+    }
+  });
+
   app.get("/api/catalog", isAuthenticated, async (req, res) => {
     try {
       const courses = await db.select()
