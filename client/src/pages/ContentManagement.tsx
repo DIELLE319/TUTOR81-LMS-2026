@@ -222,31 +222,6 @@ export default function ContentManagement() {
                 </StatusButton>
               </div>
 
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-[11px] font-semibold text-gray-700 uppercase whitespace-nowrap">Destinatario</span>
-                <Select
-                  value={typeFilter || "all"}
-                  onValueChange={(value) => setTypeFilter(value === "all" ? null : value as any)}
-                >
-                  <SelectTrigger className="h-7 text-xs flex-1" data-testid="select-course-type">
-                    <SelectValue placeholder="Tutti" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tutti</SelectItem>
-                    <SelectItem value="LAVORATORE">Lavoratore</SelectItem>
-                    <SelectItem value="PREPOSTO">Preposto</SelectItem>
-                    <SelectItem value="DIRIGENTE">Dirigente</SelectItem>
-                    <SelectItem value="RSPP/ASPP">RSPP/ASPP</SelectItem>
-                    <SelectItem value="RLS">RLS</SelectItem>
-                    <SelectItem value="CARRELLO ELEVATORE">Carrello Elevatore</SelectItem>
-                    <SelectItem value="PLE">PLE</SelectItem>
-                    <SelectItem value="ANTINCENDIO">Antincendio</SelectItem>
-                    <SelectItem value="PRIMO SOCCORSO">Primo Soccorso</SelectItem>
-                    <SelectItem value="HACCP">HACCP</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-semibold text-gray-700 uppercase whitespace-nowrap">Filtra i corsi</span>
                 <input 
