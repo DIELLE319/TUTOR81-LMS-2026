@@ -340,12 +340,12 @@ export default function ContentManagement() {
           </div>
           
           <div className="flex items-center gap-1">
-            <button className="bg-yellow-500 hover:bg-yellow-600 text-black text-[11px] px-3 py-1.5 rounded flex items-center gap-1 mr-2">
-              <Edit size={12} /> Crea Corso
-            </button>
             <NavTab active={activeTab === 'catalogo'} onClick={() => setActiveTab('catalogo')}>
               Catalogo corsi
             </NavTab>
+            <button className="bg-yellow-500 hover:bg-yellow-600 text-black text-[11px] px-3 py-1.5 rounded flex items-center gap-1 ml-2">
+              <Edit size={12} /> Crea Corso
+            </button>
             <NavTab active={activeTab === 'lezioni'} onClick={() => setActiveTab('lezioni')}>
               Lezioni
             </NavTab>
