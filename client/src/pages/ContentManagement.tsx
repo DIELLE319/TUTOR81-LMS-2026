@@ -621,7 +621,6 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                           <DetailRow label="Tipo" value={selectedProject.courseType || getCourseType(selectedProject.title).label} />
-                          <DetailRow label="Test in presenza" value="No" />
                           <tr className="border-b border-gray-100">
                             <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Rischio Azienda</td>
                             <td className="py-2">
