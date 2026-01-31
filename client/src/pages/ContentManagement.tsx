@@ -1,10 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle } from 'lucide-react';
-import type { Course, LearningProject } from '@shared/schema';
+import type { Course, LearningProject, Company } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Tab = 'catalogo' | 'lezioni' | 'learningObjects';
 type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati';
@@ -54,6 +61,23 @@ export default function ContentManagement() {
 
   const { data: projects = [] } = useQuery<LearningProject[]>({
     queryKey: ['/api/learning-projects'],
+  });
+
+  const { data: tutors = [] } = useQuery<Company[]>({
+    queryKey: ['/api/companies/tutors'],
+  });
+
+  const reserveMutation = useMutation({
+    mutationFn: async ({ learningProjectId, reservedTo }: { learningProjectId: number; reservedTo: number | null }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${learningProjectId}/reserve`, { reservedTo });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Corso aggiornato", description: "La reservation è stata salvata" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare la reservation", variant: "destructive" });
+    },
   });
 
   const getCourseCategory = (title: string) => {
@@ -374,6 +398,32 @@ export default function ContentManagement() {
                               <DetailRow label="Durata Totale" value={`${linkedProject.hours} ore`} highlight />
                               <DetailRow label="Durata minima del corso in e-learning" value={`${linkedProject.hours} ore`} />
                               <DetailRow label="Tempo massimo per la conclusione" value="60 giorni" />
+                              <tr className="border-b border-gray-100">
+                                <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Riservato a</td>
+                                <td className="py-2">
+                                  <Select
+                                    value={linkedProject.reservedTo?.toString() || "none"}
+                                    onValueChange={(value) => {
+                                      reserveMutation.mutate({
+                                        learningProjectId: linkedProject.id,
+                                        reservedTo: value === "none" ? null : parseInt(value)
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-[300px] h-8 text-xs" data-testid="select-reserved-to">
+                                      <SelectValue placeholder="Seleziona ente formativo..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">Nessuna reservation</SelectItem>
+                                      {tutors.map(tutor => (
+                                        <SelectItem key={tutor.id} value={tutor.id.toString()}>
+                                          {tutor.businessName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                              </tr>
                             </>
                           )}
                         </tbody>

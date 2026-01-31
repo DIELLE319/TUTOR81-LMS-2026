@@ -893,6 +893,39 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/companies/tutors", isAuthenticated, async (req, res) => {
+    try {
+      const tutors = await db.select()
+        .from(schema.companies)
+        .where(eq(schema.companies.isTutor, true))
+        .orderBy(schema.companies.businessName);
+      res.json(tutors);
+    } catch (error) {
+      console.error("Tutors list error:", error);
+      res.json([]);
+    }
+  });
+
+  app.patch("/api/learning-projects/:id/reserve", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id as string);
+      const { reservedTo } = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
+      }
+
+      await db.update(schema.learningProjects)
+        .set({ reservedTo: reservedTo })
+        .where(eq(schema.learningProjects.id, projectId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Reserve project error:", error);
+      res.status(500).json({ error: "Failed to reserve project" });
+    }
+  });
+
   // Attestati endpoints
   app.get("/api/attestati", isAuthenticated, async (req, res) => {
     try {
