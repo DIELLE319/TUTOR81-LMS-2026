@@ -39,7 +39,12 @@ export default function ContentManagement() {
     hours: 0,
     totalElearning: 0,
     maxExecutionTime: 90,
-    percentageToPass: 80
+    percentageToPass: 80,
+    prerequisites: '',
+    objectives: '',
+    targetAudience: '',
+    lawReference: '',
+    listPrice: ''
   });
   const [, navigate] = useLocation();
   const { user, logout } = useAuth();
@@ -174,7 +179,7 @@ export default function ContentManagement() {
   });
 
   const updateDurationsMutation = useMutation({
-    mutationFn: async (data: { hours: number; totalElearning: number; maxExecutionTime: number; percentageToPass: number }) => {
+    mutationFn: async (data: { hours: number; totalElearning: number; maxExecutionTime: number; percentageToPass: number; prerequisites: string; objectives: string; targetAudience: string; lawReference: string; listPrice: string }) => {
       if (!selectedCourseId) throw new Error("Nessun corso selezionato");
       return apiRequest('PATCH', `/api/learning-projects/${selectedCourseId}`, data);
     },
@@ -194,7 +199,12 @@ export default function ContentManagement() {
         hours: selectedProject.hours || 0,
         totalElearning: selectedProject.totalElearning || 0,
         maxExecutionTime: selectedProject.maxExecutionTime || 90,
-        percentageToPass: selectedProject.percentageToPass || 80
+        percentageToPass: selectedProject.percentageToPass || 80,
+        prerequisites: selectedProject.prerequisites || '',
+        objectives: selectedProject.objectives || '',
+        targetAudience: selectedProject.targetAudience || '',
+        lawReference: selectedProject.lawReference || '',
+        listPrice: selectedProject.listPrice || ''
       });
       setEditOpen(true);
     }
@@ -1130,67 +1140,55 @@ export default function ContentManagement() {
       )}
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="bg-white border-gray-200">
+        <DialogContent className="bg-white border-gray-200 max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-800">Modifica Parametri Corso</DialogTitle>
+            <DialogTitle className="text-gray-800">Modifica Corso</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="hours">Durata totale (ore)</Label>
-                <Input
-                  id="hours"
-                  type="number"
-                  value={editForm.hours}
-                  onChange={(e) => setEditForm({...editForm, hours: Number(e.target.value)})}
-                  data-testid="input-hours"
-                />
+          <div className="grid gap-3 py-2 max-h-[70vh] overflow-y-auto">
+            <div className="grid grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="hours" className="text-xs">Durata (ore)</Label>
+                <Input id="hours" type="number" className="h-8" value={editForm.hours} onChange={(e) => setEditForm({...editForm, hours: Number(e.target.value)})} data-testid="input-hours" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="totalElearning">E-learning (ore)</Label>
-                <Input
-                  id="totalElearning"
-                  type="number"
-                  value={editForm.totalElearning}
-                  onChange={(e) => setEditForm({...editForm, totalElearning: Number(e.target.value)})}
-                  data-testid="input-elearning"
-                />
+              <div className="space-y-1">
+                <Label htmlFor="totalElearning" className="text-xs">E-learning (ore)</Label>
+                <Input id="totalElearning" type="number" className="h-8" value={editForm.totalElearning} onChange={(e) => setEditForm({...editForm, totalElearning: Number(e.target.value)})} data-testid="input-elearning" />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="maxExecutionTime" className="text-xs">Tempo max (gg)</Label>
+                <Input id="maxExecutionTime" type="number" className="h-8" value={editForm.maxExecutionTime} onChange={(e) => setEditForm({...editForm, maxExecutionTime: Number(e.target.value)})} data-testid="input-max-time" />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="percentageToPass" className="text-xs">Soglia (%)</Label>
+                <Input id="percentageToPass" type="number" min={0} max={100} className="h-8" value={editForm.percentageToPass} onChange={(e) => setEditForm({...editForm, percentageToPass: Number(e.target.value)})} data-testid="input-percentage" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="maxExecutionTime">Tempo max conclusione (giorni)</Label>
-                <Input
-                  id="maxExecutionTime"
-                  type="number"
-                  value={editForm.maxExecutionTime}
-                  onChange={(e) => setEditForm({...editForm, maxExecutionTime: Number(e.target.value)})}
-                  data-testid="input-max-time"
-                />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="listPrice" className="text-xs">Prezzo listino (€)</Label>
+                <Input id="listPrice" type="text" className="h-8" value={editForm.listPrice} onChange={(e) => setEditForm({...editForm, listPrice: e.target.value})} data-testid="input-price" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="percentageToPass">Soglia superamento (%)</Label>
-                <Input
-                  id="percentageToPass"
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={editForm.percentageToPass}
-                  onChange={(e) => setEditForm({...editForm, percentageToPass: Number(e.target.value)})}
-                  data-testid="input-percentage"
-                />
+              <div className="space-y-1">
+                <Label htmlFor="targetAudience" className="text-xs">Rivolto a</Label>
+                <Input id="targetAudience" type="text" className="h-8" value={editForm.targetAudience} onChange={(e) => setEditForm({...editForm, targetAudience: e.target.value})} data-testid="input-target" />
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="prerequisites" className="text-xs">Requisiti</Label>
+              <Input id="prerequisites" type="text" className="h-8" value={editForm.prerequisites} onChange={(e) => setEditForm({...editForm, prerequisites: e.target.value})} data-testid="input-prerequisites" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="lawReference" className="text-xs">Riferimento normativo</Label>
+              <Input id="lawReference" type="text" className="h-8" value={editForm.lawReference} onChange={(e) => setEditForm({...editForm, lawReference: e.target.value})} data-testid="input-law" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="objectives" className="text-xs">Obiettivi del corso</Label>
+              <textarea id="objectives" className="w-full h-20 px-3 py-2 text-sm border rounded-md resize-none" value={editForm.objectives} onChange={(e) => setEditForm({...editForm, objectives: e.target.value})} data-testid="input-objectives" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
-              Annulla
-            </Button>
-            <Button 
-              onClick={() => updateDurationsMutation.mutate(editForm)}
-              disabled={updateDurationsMutation.isPending}
-              data-testid="button-save-course"
-            >
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Annulla</Button>
+            <Button onClick={() => updateDurationsMutation.mutate(editForm)} disabled={updateDurationsMutation.isPending} data-testid="button-save-course">
               <Save className="h-4 w-4 mr-1" />
               {updateDurationsMutation.isPending ? "Salvataggio..." : "Salva"}
             </Button>

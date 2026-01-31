@@ -1436,7 +1436,7 @@ export async function registerRoutes(
   app.patch("/api/learning-projects/:id", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id as string);
-      const { hours, totalElearning, maxExecutionTime, percentageToPass, externalIntegration } = req.body;
+      const { hours, totalElearning, maxExecutionTime, percentageToPass, externalIntegration, prerequisites, objectives, targetAudience, lawReference, listPrice } = req.body;
       
       if (isNaN(projectId)) {
         return res.status(400).json({ error: "ID progetto non valido" });
@@ -1448,6 +1448,11 @@ export async function registerRoutes(
       if (maxExecutionTime !== undefined) updateData.maxExecutionTime = maxExecutionTime;
       if (percentageToPass !== undefined) updateData.percentageToPass = percentageToPass;
       if (externalIntegration !== undefined) updateData.externalIntegration = externalIntegration;
+      if (prerequisites !== undefined) updateData.prerequisites = prerequisites;
+      if (objectives !== undefined) updateData.objectives = objectives;
+      if (targetAudience !== undefined) updateData.targetAudience = targetAudience;
+      if (lawReference !== undefined) updateData.lawReference = lawReference;
+      if (listPrice !== undefined) updateData.listPrice = listPrice;
 
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({ error: "Nessun campo da aggiornare" });
