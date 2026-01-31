@@ -240,9 +240,9 @@ export default function Catalog() {
             <table className="w-full text-sm table-fixed">
               <colgroup>
                 <col style={{ width: '10%' }} />
-                <col style={{ width: '8%' }} />
                 <col style={{ width: '7%' }} />
-                <col style={{ width: '30%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '32%' }} />
                 <col style={{ width: '5%' }} />
                 <col style={{ width: '12%' }} />
                 <col style={{ width: '9%' }} />
