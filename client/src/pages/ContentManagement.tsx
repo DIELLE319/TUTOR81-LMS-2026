@@ -600,24 +600,44 @@ export default function ContentManagement() {
                           <tr className="border-b border-gray-100">
                             <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Modalità di erogazione</td>
                             <td className="py-2">
-                              <Select
-                                value={selectedProject.modality || "E-LEARNING"}
-                                onValueChange={(value) => {
-                                  updateModalityMutation.mutate({
-                                    projectId: selectedProject.id,
-                                    modality: value
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="E-LEARNING">E-LEARNING</SelectItem>
-                                  <SelectItem value="E-LEARNING + VD">E-LEARNING + VD</SelectItem>
-                                  <SelectItem value="VIDEOCONFERENZA">VIDEOCONFERENZA</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="flex items-center gap-4">
+                                <Select
+                                  value={selectedProject.modality || "E-LEARNING"}
+                                  onValueChange={(value) => {
+                                    updateModalityMutation.mutate({
+                                      projectId: selectedProject.id,
+                                      modality: value
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[180px] h-8 text-[12px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="E-LEARNING">E-LEARNING</SelectItem>
+                                    <SelectItem value="E-LEARNING + VD">E-LEARNING + VD</SelectItem>
+                                    <SelectItem value="VIDEOCONFERENZA">VIDEOCONFERENZA</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <span className="text-gray-600 font-medium text-[12px]">Integrazione in aula</span>
+                                <Select
+                                  value={selectedProject.externalIntegration === "SI" ? "SI" : "NO"}
+                                  onValueChange={(value) => {
+                                    updateIntegrationMutation.mutate({
+                                      projectId: selectedProject.id,
+                                      integration: value
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[80px] h-8 text-[12px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="SI">SI</SelectItem>
+                                    <SelectItem value="NO">NO</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </td>
                           </tr>
                                                     <tr className="border-b border-gray-100">
@@ -692,28 +712,6 @@ export default function ContentManagement() {
                                 <SelectContent>
                                   <SelectItem value="annuale">annuale</SelectItem>
                                   <SelectItem value="quinquennale">quinquennale</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
-                          </tr>
-                          <tr className="border-b border-gray-100">
-                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Integrazione in aula</td>
-                            <td className="py-2">
-                              <Select
-                                value={selectedProject.externalIntegration === "SI" ? "SI" : "NO"}
-                                onValueChange={(value) => {
-                                  updateIntegrationMutation.mutate({
-                                    projectId: selectedProject.id,
-                                    integration: value
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="SI">SI</SelectItem>
-                                  <SelectItem value="NO">NO</SelectItem>
                                 </SelectContent>
                               </Select>
                             </td>
