@@ -122,6 +122,19 @@ export default function ContentManagement() {
     },
   });
 
+  const updateRiskLevelMutation = useMutation({
+    mutationFn: async ({ projectId, riskLevel }: { projectId: number; riskLevel: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/risk-level`, { riskLevel });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Rischio aggiornato" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare il rischio", variant: "destructive" });
+    },
+  });
+
   const getCourseCategory = (title: string) => {
     const t = title.toUpperCase();
     // Controlla prima i ruoli specifici (DIRIGENTE, PREPOSTO, RSPP) PRIMA di LAVORATORE
@@ -551,7 +564,30 @@ export default function ContentManagement() {
                           </tr>
                           <DetailRow label="Tipo" value={selectedProject.courseType || getCourseType(selectedProject.title).label} />
                           <DetailRow label="Test in presenza" value="No" />
-                          <DetailRow label="Rischio Azienda" value={selectedProject.riskLevel || "medio"} />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Rischio Azienda</td>
+                            <td className="py-2">
+                              <Select
+                                value={selectedProject.riskLevel || "medio"}
+                                onValueChange={(value) => {
+                                  updateRiskLevelMutation.mutate({
+                                    projectId: selectedProject.id,
+                                    riskLevel: value
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="basso">basso</SelectItem>
+                                  <SelectItem value="medio">medio</SelectItem>
+                                  <SelectItem value="alto">alto</SelectItem>
+                                  <SelectItem value="nd">nd</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
                           <DetailRow label="Destinazione" value={selectedProject.destination || "Base+Specifico"} />
                           <DetailRow 
                             label="Obiettivi del corso" 

@@ -903,6 +903,26 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/learning-projects/:id/risk-level", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id as string);
+      const { riskLevel } = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
+      }
+
+      await db.update(schema.learningProjects)
+        .set({ riskLevel: riskLevel })
+        .where(eq(schema.learningProjects.id, projectId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update risk level error:", error);
+      res.status(500).json({ error: "Failed to update risk level" });
+    }
+  });
+
   // Attestati endpoints
   app.get("/api/attestati", isAuthenticated, async (req, res) => {
     try {
