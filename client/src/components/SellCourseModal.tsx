@@ -590,9 +590,9 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                         <Input
                           value={row.fiscalCode}
                           onChange={(e) => updateRow(idx, 'fiscalCode', e.target.value.toUpperCase())}
-                          placeholder="CF"
+                          placeholder="Codice Fiscale"
                           maxLength={16}
-                          className={`h-8 text-xs bg-white border-gray-300 text-black uppercase ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''}`}
+                          className={`h-8 text-xs bg-white border-gray-300 text-black uppercase min-w-[140px] ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-cf-${idx}`}
                         />
                       </td>
