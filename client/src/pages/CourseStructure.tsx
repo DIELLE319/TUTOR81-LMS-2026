@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -13,8 +13,7 @@ import {
   File,
   ArrowLeft,
   Clock,
-  Layers,
-  Search
+  Layers
 } from "lucide-react";
 import { useState } from "react";
 
@@ -43,8 +42,15 @@ interface Module {
   lessons: Lesson[];
 }
 
+interface LearningProject {
+  id: number;
+  title: string;
+  category?: string;
+}
+
 interface CourseStructure {
-  legacyCourseId: number;
+  projectId: number;
+  project: LearningProject | null;
   modules: Module[];
   stats: {
     totalModules: number;
@@ -77,18 +83,23 @@ function formatDuration(seconds: number) {
 
 export default function CourseStructure() {
   const params = useParams();
-  const courseId = params.id || "10";
+  const [, setLocation] = useLocation();
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
   const [expandedLessons, setExpandedLessons] = useState<Set<number>>(new Set());
-  const [searchCourseId, setSearchCourseId] = useState(courseId);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(params.id || "");
+
+  const { data: projects } = useQuery<LearningProject[]>({
+    queryKey: ["/api/learning-projects"]
+  });
 
   const { data: structure, isLoading, error } = useQuery<CourseStructure>({
-    queryKey: ["/api/learning-projects", courseId, "structure"],
+    queryKey: ["/api/learning-projects", selectedProjectId, "structure"],
     queryFn: async () => {
-      const res = await fetch(`/api/learning-projects/${courseId}/structure`);
+      const res = await fetch(`/api/learning-projects/${selectedProjectId}/structure`);
       if (!res.ok) throw new Error("Errore nel caricamento");
       return res.json();
-    }
+    },
+    enabled: !!selectedProjectId
   });
 
   const toggleModule = (moduleId: number) => {
@@ -140,24 +151,27 @@ export default function CourseStructure() {
 
       <Card className="mb-6 bg-zinc-900 border-zinc-800">
         <CardContent className="pt-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-gray-400" />
-              <Input
-                type="number"
-                placeholder="ID Corso Legacy"
-                value={searchCourseId}
-                onChange={(e) => setSearchCourseId(e.target.value)}
-                className="w-40 bg-zinc-800 border-zinc-700"
-                data-testid="input-course-id"
-              />
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex-1 min-w-[300px]">
+              <Select
+                value={selectedProjectId}
+                onValueChange={(value) => {
+                  setSelectedProjectId(value);
+                  setLocation(`/course-structure/${value}`);
+                }}
+              >
+                <SelectTrigger className="bg-zinc-800 border-zinc-700" data-testid="select-course">
+                  <SelectValue placeholder="Seleziona un corso..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  {projects?.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)} data-testid={`option-course-${p.id}`}>
+                      {p.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Link href={`/course-structure/${searchCourseId}`}>
-              <Button variant="default" data-testid="button-load-course">
-                Carica Corso
-              </Button>
-            </Link>
-            <div className="flex-1" />
             <Button variant="outline" size="sm" onClick={expandAll} data-testid="button-expand-all">
               Espandi tutto
             </Button>
@@ -174,10 +188,18 @@ export default function CourseStructure() {
         </div>
       )}
 
-      {error && (
+      {!selectedProjectId && (
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardContent className="py-12 text-center text-gray-400">
+            Seleziona un corso dal menu per visualizzare la struttura
+          </CardContent>
+        </Card>
+      )}
+
+      {error && selectedProjectId && (
         <Card className="bg-red-900/20 border-red-800">
           <CardContent className="pt-4 text-red-400">
-            Nessun dato trovato per il corso ID {courseId}
+            Nessun dato trovato per il corso selezionato
           </CardContent>
         </Card>
       )}
@@ -188,7 +210,7 @@ export default function CourseStructure() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Layers className="h-5 w-5 text-yellow-500" />
-                Corso Legacy ID: {structure.legacyCourseId}
+                {structure.project?.title || `Corso ID: ${structure.projectId}`}
               </CardTitle>
             </CardHeader>
             <CardContent>
