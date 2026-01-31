@@ -1175,6 +1175,10 @@ export default function ContentManagement() {
                             className="w-20 px-2 py-0.5 border border-gray-300 rounded text-[#4a90a4] font-mono font-medium text-center"
                           /> 
                           secondi
+                          <label className="flex items-center gap-1 ml-4 cursor-pointer">
+                            <input type="checkbox" className="w-4 h-4 accent-[#4a90a4]" />
+                            <span className="text-gray-600">Domanda a fine lezione</span>
+                          </label>
                         </div>
                         {ip.questions?.filter((q: any) => q.id).map((q: any) => (
                           <div key={q.id} className="mb-3 last:mb-0">
