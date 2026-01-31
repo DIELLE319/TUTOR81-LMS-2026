@@ -17,7 +17,7 @@ type Tab = 'catalogo' | 'lezioni' | 'learningObjects';
 type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati' | 'riservati' | 'test';
 
 // Keywords per identificare corsi di test/demo
-const TEST_KEYWORDS = ['komplett', 'trops', 'innovyn', 'prova', 'test', 'italpress'];
+const TEST_KEYWORDS = ['komplett', 'trops', 'innovyn', 'inovyn', 'prova', 'test', 'italpress'];
 const isTestCourse = (title: string) => {
   const lowerTitle = title.toLowerCase();
   return TEST_KEYWORDS.some(keyword => lowerTitle.includes(keyword));
