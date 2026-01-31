@@ -109,6 +109,19 @@ export default function ContentManagement() {
     },
   });
 
+  const updateModalityMutation = useMutation({
+    mutationFn: async ({ projectId, modality }: { projectId: number; modality: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/modality`, { modality });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Modalità aggiornata" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare la modalità", variant: "destructive" });
+    },
+  });
+
   const getCourseCategory = (title: string) => {
     const t = title.toUpperCase();
     // Controlla prima i ruoli specifici (DIRIGENTE, PREPOSTO, RSPP) PRIMA di LAVORATORE
@@ -509,6 +522,29 @@ export default function ContentManagement() {
                                   <SelectItem value="ANTINCENDIO">ANTINCENDIO</SelectItem>
                                   <SelectItem value="PRIMO SOCCORSO">PRIMO SOCCORSO</SelectItem>
                                   <SelectItem value="ALTRO">ALTRO</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Modalità di erogazione</td>
+                            <td className="py-2">
+                              <Select
+                                value={selectedProject.modality || "E-LEARNING"}
+                                onValueChange={(value) => {
+                                  updateModalityMutation.mutate({
+                                    projectId: selectedProject.id,
+                                    modality: value
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="E-LEARNING">E-LEARNING</SelectItem>
+                                  <SelectItem value="E-LEARNING + VD">E-LEARNING + VD</SelectItem>
+                                  <SelectItem value="VIDEOCONFERENZA">VIDEOCONFERENZA</SelectItem>
                                 </SelectContent>
                               </Select>
                             </td>
