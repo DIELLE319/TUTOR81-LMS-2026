@@ -206,17 +206,34 @@ export default function Invoicing() {
 
             <div className="info-section" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
               <div className="info-box" style={{ background: '#2a2a2a', padding: '15px', borderRadius: '8px', width: '45%' }}>
+                <h3 style={{ color: '#EAB308', marginBottom: '10px' }}>Mittente</h3>
+                <p style={{ color: 'white', fontWeight: 'bold', margin: '5px 0' }}>tutor81online, S.L.</p>
+                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>CIF: B21797709</p>
+                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>C.C San Agustin - Calle las Dalias, 12</p>
+                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>Planta 5, Local 340</p>
+                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>35100 San Bartolomé de Tirajana - Las Palmas</p>
+              </div>
+              <div className="info-box" style={{ background: '#2a2a2a', padding: '15px', borderRadius: '8px', width: '45%' }}>
                 <h3 style={{ color: '#EAB308', marginBottom: '10px' }}>Destinatario</h3>
                 <p style={{ color: 'white', fontWeight: 'bold', margin: '5px 0' }}>{invoiceData.tutor.businessName}</p>
                 {invoiceData.tutor.address && <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>{invoiceData.tutor.address}</p>}
                 {invoiceData.tutor.city && <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>{invoiceData.tutor.city}</p>}
                 {invoiceData.tutor.vatNumber && <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>P.IVA: {invoiceData.tutor.vatNumber}</p>}
               </div>
-              <div className="info-box" style={{ background: '#2a2a2a', padding: '15px', borderRadius: '8px', width: '45%' }}>
-                <h3 style={{ color: '#EAB308', marginBottom: '10px' }}>Periodo</h3>
-                <p style={{ color: 'white', fontWeight: 'bold', margin: '5px 0' }}>{invoiceData.period.label}</p>
-                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>Vendite totali: {invoiceData.totalSales}</p>
-                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>Generata il: {new Date(invoiceData.generatedAt).toLocaleDateString('it-IT')}</p>
+            </div>
+
+            <div style={{ marginBottom: '20px', padding: '10px', background: '#1a1a1a', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <span style={{ color: '#888' }}>Periodo: </span>
+                <span style={{ color: 'white', fontWeight: 'bold' }}>{invoiceData.period.label}</span>
+              </div>
+              <div>
+                <span style={{ color: '#888' }}>Vendite: </span>
+                <span style={{ color: 'white', fontWeight: 'bold' }}>{invoiceData.totalSales}</span>
+              </div>
+              <div>
+                <span style={{ color: '#888' }}>Data: </span>
+                <span style={{ color: 'white', fontWeight: 'bold' }}>{new Date(invoiceData.generatedAt).toLocaleDateString('it-IT')}</span>
               </div>
             </div>
 
