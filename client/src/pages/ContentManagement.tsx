@@ -564,7 +564,7 @@ export default function ContentManagement() {
                   groupedProjects.map(group => (
                     <tbody key={group.category}>
                       <tr className="bg-[#d0d0d0]">
-                        <td colSpan={4} className="px-2 py-1.5 font-bold text-gray-800 text-[11px] uppercase tracking-wide">
+                        <td colSpan={4} className="px-2 py-1.5 font-bold text-black text-[11px] uppercase tracking-wide">
                           {group.category}
                         </td>
                       </tr>
@@ -592,7 +592,7 @@ export default function ContentManagement() {
                             <td className={`px-2 py-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
                               {project.id}
                             </td>
-                            <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-gray-800'}`}>
+                            <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-black'}`}>
                               <div className="flex items-center gap-1.5">
                                 <span className={`inline-block w-2 h-2 rounded-full ${project.isPublishedInEcommerce === 1 ? 'bg-green-500' : 'bg-orange-400'}`} title={project.isPublishedInEcommerce === 1 ? 'Pubblicato' : 'Bozza'}></span>
                                 {formatCourseTitle(project.title)}
@@ -654,9 +654,9 @@ export default function ContentManagement() {
                           key={`modality-${selectedProject.id}`}
                           onChange={(e) => updateModalityMutation.mutate({ projectId: selectedProject.id, modality: e.target.value })}
                         >
-                          <option value="E-LEARNING" className="text-gray-800">E-learning</option>
-                          <option value="E-LEARNING + VD" className="text-gray-800">E-learning + VD</option>
-                          <option value="VIDEOCONFERENZA" className="text-gray-800">Videoconferenza</option>
+                          <option value="E-LEARNING" className="text-black">E-learning</option>
+                          <option value="E-LEARNING + VD" className="text-black">E-learning + VD</option>
+                          <option value="VIDEOCONFERENZA" className="text-black">Videoconferenza</option>
                         </select>
                       </div>
                       <div className="flex gap-2">
@@ -673,13 +673,13 @@ export default function ContentManagement() {
                       <table className="w-full text-[12px]">
                         <tbody>
                           <tr className="border-b border-gray-100">
-                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Data creazione</td>
-                            <td className="py-0.5 text-gray-800 w-[200px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
-                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[100px]">Creato da</td>
-                            <td className="py-0.5 text-gray-800">Superadmin Tutor81 (ID: 6)</td>
+                            <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Data creazione</td>
+                            <td className="py-0.5 text-black w-[200px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
+                            <td className="py-0.5 pr-4 font-semibold text-black align-top w-[100px]">Creato da</td>
+                            <td className="py-0.5 text-black">Superadmin Tutor81 (ID: 6)</td>
                           </tr>
                           <tr className="border-b border-gray-100">
-                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Requisiti</td>
+                            <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Requisiti</td>
                             <td className="py-0.5">
                               <input 
                                 type="text" 
@@ -695,7 +695,7 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100">
-                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Categoria</td>
+                            <td className="py-1 pr-4 text-black font-medium w-[200px] align-top">Categoria</td>
                             <td className="py-1">
                               <div className="flex items-center gap-4">
                                 <Select
@@ -717,7 +717,7 @@ export default function ContentManagement() {
                                     <SelectItem value="HR">HR</SelectItem>
                                   </SelectContent>
                                 </Select>
-                                <span className="text-gray-600 font-medium text-[12px]">Sottocategoria</span>
+                                <span className="text-black font-medium text-[12px]">Sottocategoria</span>
                                 <div className="flex flex-col gap-1">
                                   <Select
                                     value={selectedProject.subcategory || "LAVORATORE"}
@@ -755,7 +755,7 @@ export default function ContentManagement() {
                                     + Categoria
                                   </button>
                                 </div>
-                                <span className="text-gray-600 font-medium text-[12px]">Tipo</span>
+                                <span className="text-black font-medium text-[12px]">Tipo</span>
                                 <Select
                                   value={selectedProject.courseType || "ND"}
                                   onValueChange={(value) => {
@@ -774,7 +774,7 @@ export default function ContentManagement() {
                                     <SelectItem value="ND">NON DEFINITO</SelectItem>
                                   </SelectContent>
                                 </Select>
-                                <span className="text-gray-600 font-medium text-[12px]">Settore</span>
+                                <span className="text-black font-medium text-[12px]">Settore</span>
                                 <Select
                                   value={selectedProject.sector || "TUTTI"}
                                   onValueChange={(value) => {
@@ -802,7 +802,7 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                                                                               <tr className="border-b border-gray-100">
-                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Rischio Azienda</td>
+                            <td className="py-1 pr-4 text-black font-medium w-[200px] align-top">Rischio Azienda</td>
                             <td className="py-1">
                               <div className="flex items-center gap-4">
                                 <Select
@@ -824,7 +824,7 @@ export default function ContentManagement() {
                                     <SelectItem value="nd">nd</SelectItem>
                                   </SelectContent>
                                 </Select>
-                                <span className="text-gray-600 font-medium text-[12px]">Destinazione</span>
+                                <span className="text-black font-medium text-[12px]">Destinazione</span>
                                 <Select
                                   value={selectedProject.destination || "BASE + SPECIFICA"}
                                   onValueChange={(value) => {
@@ -848,7 +848,7 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100">
-                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Obiettivi</td>
+                            <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Obiettivi</td>
                             <td className="py-0.5">
                               <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-200 rounded focus:outline-none focus:border-blue-400"
                                 defaultValue={stripHtml(selectedProject.objectives) || ''} key={`obj-${selectedProject.id}`}
@@ -856,7 +856,7 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100">
-                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Rivolto a</td>
+                            <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Rivolto a</td>
                             <td className="py-0.5">
                               <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-200 rounded focus:outline-none focus:border-blue-400"
                                 defaultValue={selectedProject.targetAudience || ''} key={`target-${selectedProject.id}`}
@@ -864,7 +864,7 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100">
-                            <td className="py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Normativa</td>
+                            <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Normativa</td>
                             <td className="py-0.5">
                               <input type="text" className="w-full px-2 py-0.5 text-[12px] border border-gray-200 rounded focus:outline-none focus:border-blue-400"
                                 defaultValue={selectedProject.lawReference || ''} key={`law-${selectedProject.id}`}
@@ -872,7 +872,7 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100">
-                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Validità</td>
+                            <td className="py-1 pr-4 text-black font-medium w-[200px] align-top">Validità</td>
                             <td className="py-1">
                               <Select
                                 value={selectedProject.courseValidity || "quinquennale"}
@@ -896,7 +896,7 @@ export default function ContentManagement() {
                           <tr className="border-b border-gray-100 bg-blue-50">
                             <td className="py-1 pr-4 text-blue-700 font-semibold w-[200px] align-top">Parametri corso</td>
                             <td className="py-1">
-                              <div className="flex items-center gap-4 text-[12px] text-gray-800">
+                              <div className="flex items-center gap-4 text-[12px] text-black">
                                 <span className="flex items-center gap-1"><strong className="text-blue-700">Durata:</strong>
                                   <input type="number" className="w-14 px-1 py-0.5 text-[12px] border border-blue-200 rounded focus:outline-none focus:border-blue-400 text-center"
                                     defaultValue={selectedProject.hours || 0} key={`hours-${selectedProject.id}`}
@@ -934,7 +934,7 @@ export default function ContentManagement() {
                             </td>
                           </tr>
                           <tr className="border-b border-gray-100">
-                            <td className="py-1 pr-4 text-gray-600 font-medium w-[200px] align-top">Riservato a</td>
+                            <td className="py-1 pr-4 text-black font-medium w-[200px] align-top">Riservato a</td>
                             <td className="py-1">
                               <Select
                                 value={selectedProject.reservedTo?.toString() || "none"}
@@ -980,7 +980,7 @@ export default function ContentManagement() {
                           content="Il metodo Tutor81 prevede una percentuale minima pari al 60% di filmati e l'integrazione di slide interattive. In ogni oggetto multimediale è inserita uno o più domande (temporizzate) rilasciate in modalità random."
                         />
                         <div className="border-l-4 border-[#4a90a4] pl-3 bg-blue-50 p-3 rounded-r">
-                          <h3 className="font-bold text-gray-800 text-[13px] mb-2">Programma del corso</h3>
+                          <h3 className="font-bold text-black text-[13px] mb-2">Programma del corso</h3>
                           <div className="max-h-[300px] overflow-y-auto">
                             <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">
                               {stripHtml(selectedProject.courseProgram || selectedProject.description) || 'Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza.'}
@@ -1009,7 +1009,7 @@ export default function ContentManagement() {
       {activeTab === 'lezioni' && (
         <div className="p-6">
           <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-black mb-4 flex items-center gap-2">
               <Film size={24} className="text-[#4a90a4]" />
               Gestione Lezioni
             </h2>
@@ -1025,7 +1025,7 @@ export default function ContentManagement() {
         <div className="p-6">
           <div className="bg-white rounded shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-black flex items-center gap-2">
                 <PlayCircle size={24} className="text-[#4a90a4]" />
                 Learning Objects ({learningObjects.length})
               </h2>
@@ -1141,7 +1141,7 @@ export default function ContentManagement() {
                           {lo.objectType === 2 && <span className="text-purple-600">Slide</span>}
                           {lo.objectType === 3 && <span className="text-orange-600">Doc</span>}
                         </td>
-                        <td className={`py-2 px-2 ${!lo.inUse ? 'text-red-600' : 'text-gray-800'}`}>
+                        <td className={`py-2 px-2 ${!lo.inUse ? 'text-red-600' : 'text-black'}`}>
                           {lo.title}
                         </td>
                         <td className="py-2 px-2 text-gray-500">{lo.duration} min</td>
@@ -1182,7 +1182,7 @@ export default function ContentManagement() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="bg-white border-gray-200 max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-800">Modifica Corso</DialogTitle>
+            <DialogTitle className="text-black">Modifica Corso</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2 max-h-[70vh] overflow-y-auto">
             <div className="grid grid-cols-4 gap-3">
@@ -1326,10 +1326,10 @@ function ActionButton({ children, icon, primary, onClick }: { children: React.Re
 function DetailRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <tr className="border-b border-gray-100">
-      <td className={`py-0.5 pr-4 font-semibold text-gray-600 align-top w-[220px] ${highlight ? 'text-red-600' : ''}`}>
+      <td className={`py-0.5 pr-4 font-semibold text-black align-top w-[220px] ${highlight ? 'text-red-600' : ''}`}>
         {label}
       </td>
-      <td className={`py-0.5 text-gray-800 ${highlight ? 'font-bold text-red-600' : ''}`}>
+      <td className={`py-0.5 text-black ${highlight ? 'font-bold text-red-600' : ''}`}>
         {value}
       </td>
     </tr>
@@ -1339,7 +1339,7 @@ function DetailRow({ label, value, highlight }: { label: string; value: string; 
 function ContentSection({ title, content }: { title: string; content: string }) {
   return (
     <div className="border-l-4 border-[#4a90a4] pl-3">
-      <h3 className="font-bold text-gray-800 text-[12px] mb-1">{title}</h3>
+      <h3 className="font-bold text-black text-[12px] mb-1">{title}</h3>
       <p className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-wrap">{content}</p>
     </div>
   );
