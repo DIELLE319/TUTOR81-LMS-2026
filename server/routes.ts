@@ -167,7 +167,7 @@ export async function registerRoutes(
 
   app.delete("/api/companies/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid company ID" });
       }
@@ -216,7 +216,7 @@ export async function registerRoutes(
 
   app.patch("/api/learning-projects/:id/link-course", isAuthenticated, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
+      const projectId = parseInt(req.params.id as string);
       const { courseId } = req.body;
       
       if (isNaN(projectId)) {
@@ -519,7 +519,7 @@ export async function registerRoutes(
     try {
       const { tutorId } = req.query;
       
-      let query = db.select().from(schema.invoices);
+      let query = db.select().from(schema.invoices).$dynamic();
       
       if (tutorId) {
         query = query.where(eq(schema.invoices.tutorId, parseInt(tutorId as string)));
@@ -536,8 +536,9 @@ export async function registerRoutes(
   // Delete invoice
   app.delete("/api/invoices/:id", isAuthenticated, async (req, res) => {
     try {
-      const { id } = req.params;
-      await db.delete(schema.invoices).where(eq(schema.invoices.id, parseInt(id)));
+      const idStr = req.params.id as string;
+      const id = parseInt(idStr);
+      await db.delete(schema.invoices).where(eq(schema.invoices.id, id));
       res.json({ success: true });
     } catch (error) {
       console.error("Delete invoice error:", error);
@@ -588,7 +589,7 @@ export async function registerRoutes(
   // Update user
   app.patch("/api/users/:id", isAuthenticated, async (req, res) => {
     try {
-      const { id } = req.params;
+      const idStr = req.params.id as string;
       const { firstName, lastName, email, fiscalCode, phone, role, idcompany } = req.body;
       
       await db.update(schema.users)
@@ -602,7 +603,7 @@ export async function registerRoutes(
           idcompany,
           updatedAt: new Date(),
         })
-        .where(eq(schema.users.id, id));
+        .where(eq(schema.users.id, idStr));
       
       res.json({ success: true });
     } catch (error) {
@@ -614,11 +615,11 @@ export async function registerRoutes(
   // Get user enrollments (from tutors_purchases linked to user's company)
   app.get("/api/user-enrollments", isAuthenticated, async (req, res) => {
     try {
-      const { userId } = req.query;
+      const userId = req.query.userId as string;
       if (!userId) return res.json([]);
       
       // Get user's company
-      const user = await db.select().from(schema.users).where(eq(schema.users.id, userId as string)).limit(1);
+      const user = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
       if (!user.length || !user[0].idcompany) return res.json([]);
       
       // Get purchases for user's company
