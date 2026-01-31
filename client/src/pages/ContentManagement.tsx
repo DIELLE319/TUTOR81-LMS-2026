@@ -221,19 +221,23 @@ export default function ContentManagement() {
                 </StatusButton>
               </div>
 
-              <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-[11px] text-gray-600">
-                <RadioOption checked={typeFilter === 'generico'} onChange={() => setTypeFilter(typeFilter === 'generico' ? null : 'generico')}>
-                  Generico
-                </RadioOption>
-                <RadioOption checked={typeFilter === 'specifico'} onChange={() => setTypeFilter(typeFilter === 'specifico' ? null : 'specifico')}>
-                  Specifico
-                </RadioOption>
-                <RadioOption checked={typeFilter === 'demo'} onChange={() => setTypeFilter(typeFilter === 'demo' ? null : 'demo')}>
-                  Demo
-                </RadioOption>
-                <RadioOption checked={typeFilter === 'test'} onChange={() => setTypeFilter(typeFilter === 'test' ? null : 'test')}>
-                  Test
-                </RadioOption>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[11px] font-semibold text-gray-700 uppercase whitespace-nowrap">Tipo</span>
+                <Select
+                  value={typeFilter || "all"}
+                  onValueChange={(value) => setTypeFilter(value === "all" ? null : value as 'generico' | 'specifico' | 'demo' | 'test')}
+                >
+                  <SelectTrigger className="h-7 text-xs flex-1" data-testid="select-course-type">
+                    <SelectValue placeholder="Tutti i tipi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutti i tipi</SelectItem>
+                    <SelectItem value="generico">Generico</SelectItem>
+                    <SelectItem value="specifico">Specifico</SelectItem>
+                    <SelectItem value="demo">Demo</SelectItem>
+                    <SelectItem value="test">Test</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-center gap-2">
