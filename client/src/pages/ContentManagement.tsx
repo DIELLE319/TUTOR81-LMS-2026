@@ -662,10 +662,8 @@ export default function ContentManagement() {
                         <tbody>
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-black align-top w-[140px]">Data creazione</td>
-                            <td className="py-0.5 text-black w-[160px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
-                            <td className="py-0.5 pr-4 font-semibold text-black align-top w-[80px]">Creato da</td>
-                            <td className="py-0.5 text-black w-[180px]">Superadmin Tutor81 (ID: 6)</td>
-                            <td className="py-0.5">
+                            <td className="py-0.5 text-black w-[200px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
+                            <td className="py-0.5 pl-8">
                               <Select
                                 value={selectedProject.modality || "E-LEARNING"}
                                 onValueChange={(value) => {
@@ -675,7 +673,7 @@ export default function ContentManagement() {
                                   });
                                 }}
                               >
-                                <SelectTrigger className="w-[200px] h-8 text-[12px] text-gray-700 font-semibold">
+                                <SelectTrigger className="w-[220px] h-8 text-[13px] text-gray-700 font-semibold">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
