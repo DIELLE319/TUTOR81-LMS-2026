@@ -7,6 +7,9 @@ import * as schema from "@shared/schema";
 import { eq, and, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import * as ftp from "basic-ftp";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function registerRoutes(
   httpServer: Server,
@@ -882,9 +885,14 @@ export async function registerRoutes(
           usrId = newUser.id;
         }
 
+        // Get course info for email
+        const [course] = await db.select()
+          .from(schema.learningProjects)
+          .where(eq(schema.learningProjects.id, courseId));
+
         // Create enrollment
         const trackingId = `track_${usrId}_${courseId}_${Date.now()}`;
-        await db.insert(schema.enrollments)
+        const [enrollment] = await db.insert(schema.enrollments)
           .values({
             userId: usrId,
             companyId: companyId,
@@ -893,9 +901,63 @@ export async function registerRoutes(
             endDate: new Date(corsista.endDate),
             daysToAlert: corsista.daysToAlert,
             status: 'active',
-            emailSentAt: now,
             emailTrackingId: trackingId,
+          })
+          .returning();
+
+        // Send email with Resend
+        try {
+          const appUrl = process.env.REPLIT_DEV_DOMAIN 
+            ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+            : 'https://tutor81.replit.app';
+          
+          const trackingPixelUrl = `${appUrl}/api/email-track/${trackingId}`;
+          const courseTitle = course?.title || 'Corso';
+          
+          await resend.emails.send({
+            from: 'Tutor81 <onboarding@resend.dev>',
+            to: corsista.email,
+            subject: `Accesso al corso: ${courseTitle}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #000; padding: 20px; text-align: center;">
+                  <h1 style="color: #EAB308; margin: 0;">TUTOR81</h1>
+                </div>
+                <div style="padding: 30px; background-color: #FCD34D;">
+                  <h2 style="color: #000; margin-top: 0;">Gentile ${corsista.firstName} ${corsista.lastName},</h2>
+                  <p style="color: #000; font-size: 16px;">
+                    È stato attivato il tuo accesso al corso:
+                  </p>
+                  <div style="background-color: #000; color: #EAB308; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <strong style="font-size: 18px;">${courseTitle}</strong>
+                  </div>
+                  <p style="color: #000; font-size: 14px;">
+                    <strong>Data inizio:</strong> ${new Date(corsista.startDate).toLocaleDateString('it-IT')}<br>
+                    <strong>Data fine:</strong> ${new Date(corsista.endDate).toLocaleDateString('it-IT')}
+                  </p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${appUrl}" style="background-color: #000; color: #EAB308; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                      ACCEDI AL CORSO
+                    </a>
+                  </div>
+                  <p style="color: #666; font-size: 12px; margin-top: 30px;">
+                    Per qualsiasi necessità contattaci a info@tutor81.com
+                  </p>
+                </div>
+                <img src="${trackingPixelUrl}" width="1" height="1" style="display:none;" alt="" />
+              </div>
+            `,
           });
+
+          // Update email sent timestamp
+          await db.update(schema.enrollments)
+            .set({ emailSentAt: now })
+            .where(eq(schema.enrollments.id, enrollment.id));
+
+          console.log(`Email sent to ${corsista.email} for course ${courseId}`);
+        } catch (emailError) {
+          console.error(`Failed to send email to ${corsista.email}:`, emailError);
+        }
 
         createdCount++;
         console.log(`Enrollment created for ${corsista.email} - course ${courseId}`);
