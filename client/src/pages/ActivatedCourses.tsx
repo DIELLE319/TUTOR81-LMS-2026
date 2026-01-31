@@ -54,21 +54,21 @@ export default function ActivatedCourses() {
   const getProgressColor = (progress: number) => {
     if (progress === 0) return "bg-red-500";
     if (progress < 50) return "bg-orange-500";
-    if (progress < 100) return "bg-yellow-500";
+    if (progress < 100) return "bg-amber-500";
     return "bg-green-500";
   };
 
   const filteredEnrollments = enrollments.filter((e) => {
     if (statusFilter === "active" && (e.progress === 0 || e.progress === 100)) return false;
     if (statusFilter === "not_started" && e.progress !== 0) return false;
-    if (companyFilter !== "all" && !e.companyName.toLowerCase().includes(companyFilter.toLowerCase())) return false;
+    if (companyFilter !== "all" && !e.companyName?.toLowerCase().includes(companyFilter.toLowerCase())) return false;
     if (search) {
       const s = search.toLowerCase();
       return (
-        e.userName.toLowerCase().includes(s) ||
-        e.userEmail.toLowerCase().includes(s) ||
-        e.companyName.toLowerCase().includes(s) ||
-        e.courseName.toLowerCase().includes(s)
+        e.userName?.toLowerCase().includes(s) ||
+        e.userEmail?.toLowerCase().includes(s) ||
+        e.companyName?.toLowerCase().includes(s) ||
+        e.courseName?.toLowerCase().includes(s)
       );
     }
     return true;
@@ -77,18 +77,18 @@ export default function ActivatedCourses() {
   const displayedEnrollments = filteredEnrollments.slice(0, parseInt(pageSize));
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-yellow-500 py-4 px-6">
+    <div className="min-h-screen bg-yellow-400">
+      <div className="bg-black py-4 px-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-800" data-testid="text-page-title">
+          <h1 className="text-xl font-bold text-yellow-400" data-testid="text-page-title">
             Lista Corsi Attivati
           </h1>
           <div className="flex gap-2">
             <Button
               variant={statusFilter === "active" ? "default" : "outline"}
               className={statusFilter === "active" 
-                ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
+                ? "bg-yellow-500 hover:bg-yellow-400 text-black font-bold" 
+                : "bg-transparent text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-black"
               }
               onClick={() => setStatusFilter(statusFilter === "active" ? "all" : "active")}
               data-testid="button-filter-active"
@@ -98,8 +98,8 @@ export default function ActivatedCourses() {
             <Button
               variant={statusFilter === "not_started" ? "default" : "outline"}
               className={statusFilter === "not_started"
-                ? "bg-red-600 hover:bg-red-700 text-white"
-                : "bg-white text-red-600 border-red-600 hover:bg-red-50"
+                ? "bg-red-600 hover:bg-red-700 text-white font-bold"
+                : "bg-transparent text-red-400 border-red-400 hover:bg-red-500 hover:text-white"
               }
               onClick={() => setStatusFilter(statusFilter === "not_started" ? "all" : "not_started")}
               data-testid="button-filter-not-started"
@@ -114,9 +114,9 @@ export default function ActivatedCourses() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Show</span>
+              <span className="text-sm text-black font-medium">Show</span>
               <Select value={pageSize} onValueChange={setPageSize}>
-                <SelectTrigger className="w-20 bg-white" data-testid="select-page-size">
+                <SelectTrigger className="w-20 bg-white border-black" data-testid="select-page-size">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -128,13 +128,13 @@ export default function ActivatedCourses() {
               </Select>
             </div>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
-              <SelectTrigger className="w-64 bg-white" data-testid="select-company-filter">
+              <SelectTrigger className="w-64 bg-white border-black" data-testid="select-company-filter">
                 <SelectValue placeholder="Tutte le Aziende" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tutte le Aziende</SelectItem>
                 {companies.slice(0, 100).map((c) => (
-                  <SelectItem key={c.id} value={c.businessName}>
+                  <SelectItem key={c.id} value={c.businessName || ''}>
                     {c.businessName}
                   </SelectItem>
                 ))}
@@ -142,50 +142,50 @@ export default function ActivatedCourses() {
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Search:</span>
+            <span className="text-sm text-black font-medium">Search:</span>
             <div className="relative">
               <Input
                 type="text"
                 placeholder="Cerca..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-48 bg-white pr-8"
+                className="w-48 bg-white border-black pr-8"
                 data-testid="input-search"
               />
-              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow-lg border-2 border-black overflow-hidden">
           <table className="w-full" data-testid="table-enrollments">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-black">
               <tr>
                 <th className="w-10 p-3">
-                  <Checkbox data-testid="checkbox-select-all" />
+                  <Checkbox className="border-yellow-400" data-testid="checkbox-select-all" />
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Azienda
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Cognome Nome
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Corso
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Email
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Data Inizio
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Ultimo Accesso
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Termine Programmato
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Progresso
                 </th>
               </tr>
@@ -193,13 +193,13 @@ export default function ActivatedCourses() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-gray-500">
+                  <td colSpan={9} className="text-center py-8 text-black">
                     Caricamento...
                   </td>
                 </tr>
               ) : displayedEnrollments.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-gray-500">
+                  <td colSpan={9} className="text-center py-8 text-black">
                     Nessun corso attivato trovato
                   </td>
                 </tr>
@@ -207,37 +207,37 @@ export default function ActivatedCourses() {
                 displayedEnrollments.map((enrollment, idx) => (
                   <tr
                     key={enrollment.id}
-                    className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    className={idx % 2 === 0 ? "bg-white" : "bg-yellow-50"}
                     data-testid={`row-enrollment-${enrollment.id}`}
                   >
                     <td className="p-3">
                       <Checkbox data-testid={`checkbox-row-${enrollment.id}`} />
                     </td>
-                    <td className="p-3 text-sm text-gray-800">
+                    <td className="p-3 text-sm text-black">
                       {enrollment.companyName}
                     </td>
-                    <td className="p-3 text-sm font-medium text-gray-900">
+                    <td className="p-3 text-sm font-medium text-black">
                       {enrollment.userName}
                     </td>
-                    <td className="p-3 text-sm text-gray-800 max-w-xs">
+                    <td className="p-3 text-sm text-black max-w-xs">
                       {enrollment.courseName}
                     </td>
                     <td className="p-3 text-sm">
                       <a
                         href={`mailto:${enrollment.userEmail}`}
-                        className="text-blue-600 hover:underline"
+                        className="text-amber-700 hover:underline font-medium"
                         data-testid={`link-email-${enrollment.id}`}
                       >
                         {enrollment.userEmail}
                       </a>
                     </td>
-                    <td className="p-3 text-sm text-gray-600">
+                    <td className="p-3 text-sm text-black">
                       {formatDate(enrollment.startDate)}
                     </td>
-                    <td className="p-3 text-sm text-gray-600">
+                    <td className="p-3 text-sm text-black">
                       {formatDate(enrollment.lastAccessAt)}
                     </td>
-                    <td className="p-3 text-sm text-gray-900 font-medium">
+                    <td className="p-3 text-sm text-black font-medium">
                       {formatDate(enrollment.endDate)}
                     </td>
                     <td className="p-3">
@@ -265,7 +265,7 @@ export default function ActivatedCourses() {
           </table>
         </div>
 
-        <div className="mt-4 text-sm text-gray-600">
+        <div className="mt-4 text-sm text-black font-medium">
           Mostrando {displayedEnrollments.length} di {filteredEnrollments.length} risultati
         </div>
       </div>
