@@ -973,28 +973,34 @@ export default function ContentManagement() {
                       <div className="mt-6 space-y-4">
                         <ContentSection 
                           title="Profili e competenze per la gestione didattica" 
-                          content="Il discente ha la disponibilità dei profili di competenza per la gestione didattica e tecnica E-learning quali: • Responsabile scientifico dei corsi • Mentor di contenuto • Sviluppatore della piattaforma • Tutor di processo"
+                          content={selectedProject.profiliCompetenze}
+                          defaultContent="Il discente ha la disponibilità dei profili di competenza per la gestione didattica e tecnica E-learning quali: • Responsabile scientifico dei corsi • Mentor di contenuto • Sviluppatore della piattaforma • Tutor di processo"
+                          onSave={(value) => updateFieldMutation.mutate({ profiliCompetenze: value })}
                         />
                         <ContentSection 
                           title="Relatori e docenti" 
-                          content="Tutte le lezioni sono state progettate e scritte da docenti qualificati con esperienza almeno decennale nel settore di competenza. In alcuni casi i docenti sono stati affiancati da attori per l'aspetto comunicativo."
+                          content={selectedProject.relatoriDocenti}
+                          defaultContent="Tutte le lezioni sono state progettate e scritte da docenti qualificati con esperienza almeno decennale nel settore di competenza. In alcuni casi i docenti sono stati affiancati da attori per l'aspetto comunicativo."
+                          onSave={(value) => updateFieldMutation.mutate({ relatoriDocenti: value })}
                         />
                         <ContentSection 
                           title="Verifica di apprendimento" 
-                          content="La verifica di apprendimento principale privilegiata nell'ambiente Tutor81 è la verifica in itinere. Si tratta di un tempo trasmessi frequentemente e con lo scopo non solo di controllare la presenza del partecipante ma di stimolare l'attenzione. Il corsista riceve un feedback immediato alla risposta rilasciata. I test sono trasmessi in modalità random, ciò significa che per la stessa domanda esistono varie alternative. In caso il risultato finale del test, sia inferiore alla soglia minima prevista dai test corretti, l'attestato non viene generato dal sistema."
+                          content={selectedProject.verificaApprendimento}
+                          defaultContent="La verifica di apprendimento principale privilegiata nell'ambiente Tutor81 è la verifica in itinere. Si tratta di un tempo trasmessi frequentemente e con lo scopo non solo di controllare la presenza del partecipante ma di stimolare l'attenzione. Il corsista riceve un feedback immediato alla risposta rilasciata. I test sono trasmessi in modalità random, ciò significa che per la stessa domanda esistono varie alternative. In caso il risultato finale del test, sia inferiore alla soglia minima prevista dai test corretti, l'attestato non viene generato dal sistema."
+                          onSave={(value) => updateFieldMutation.mutate({ verificaApprendimento: value })}
                         />
                         <ContentSection 
                           title="Caratteristiche tecniche della piattaforma" 
-                          content="Il metodo Tutor81 prevede una percentuale minima pari al 60% di filmati e l'integrazione di slide interattive. In ogni oggetto multimediale è inserita uno o più domande (temporizzate) rilasciate in modalità random."
+                          content={selectedProject.caratteristicheTecniche}
+                          defaultContent="Il metodo Tutor81 prevede una percentuale minima pari al 60% di filmati e l'integrazione di slide interattive. In ogni oggetto multimediale è inserita uno o più domande (temporizzate) rilasciate in modalità random."
+                          onSave={(value) => updateFieldMutation.mutate({ caratteristicheTecniche: value })}
                         />
-                        <div className="border-l-4 border-[#4a90a4] pl-3 bg-blue-50 p-3 rounded-r">
-                          <h3 className="font-bold text-black text-[13px] mb-2">Programma del corso</h3>
-                          <div className="max-h-[300px] overflow-y-auto">
-                            <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">
-                              {stripHtml(selectedProject.courseProgram || selectedProject.description) || 'Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza.'}
-                            </p>
-                          </div>
-                        </div>
+                        <ContentSection 
+                          title="Programma del corso" 
+                          content={selectedProject.courseProgram}
+                          defaultContent="Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza."
+                          onSave={(value) => updateFieldMutation.mutate({ courseProgram: value })}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1344,11 +1350,21 @@ function DetailRow({ label, value, highlight }: { label: string; value: string; 
   );
 }
 
-function ContentSection({ title, content }: { title: string; content: string }) {
+function ContentSection({ title, content, defaultContent, onSave }: { 
+  title: string; 
+  content: string | null | undefined; 
+  defaultContent: string;
+  onSave: (value: string) => void;
+}) {
+  const displayValue = content || defaultContent;
   return (
     <div className="border-l-4 border-[#4a90a4] pl-3">
       <h3 className="font-bold text-black text-[12px] mb-1">{title}</h3>
-      <p className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-wrap">{content}</p>
+      <textarea 
+        className="w-full text-[11px] text-gray-700 leading-relaxed p-2 border border-gray-200 rounded resize-y min-h-[60px]"
+        defaultValue={displayValue}
+        onBlur={(e) => { if (e.target.value !== displayValue) onSave(e.target.value); }}
+      />
     </div>
   );
 }

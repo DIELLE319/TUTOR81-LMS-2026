@@ -66,6 +66,10 @@ export const learningProjects = pgTable("learning_projects", {
   targetAudience: text("target_audience"),
   prerequisites: text("prerequisites"),
   courseProgram: text("course_program"),
+  profiliCompetenze: text("profili_competenze"),
+  relatoriDocenti: text("relatori_docenti"),
+  verificaApprendimento: text("verifica_apprendimento"),
+  caratteristicheTecniche: text("caratteristiche_tecniche"),
   ownerUserId: integer("owner_user_id"),
 });
 
