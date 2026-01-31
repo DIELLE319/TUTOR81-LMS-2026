@@ -307,17 +307,17 @@ export default function Catalog() {
                           data-testid={`row-course-${course.id}`}
                         >
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold text-white ${subcategory.color}`}>
+                            <span className={`inline-block w-[90px] text-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${subcategory.color}`}>
                               {subcategory.label}
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold text-white ${courseType.color}`}>
+                            <span className={`inline-block w-[70px] text-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${courseType.color}`}>
                               {courseType.label}
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold text-white ${risk.color}`}>
+                            <span className={`inline-block w-[50px] text-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${risk.color}`}>
                               {risk.label}
                             </span>
                           </td>
