@@ -237,27 +237,34 @@ export default function Catalog() {
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '35%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '9%' }} />
+              </colgroup>
               <thead className="bg-[#1a1a1a] text-white">
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Sottocategoria</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Tipo</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Rischio</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide w-[450px]">Nome Corso</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome Corso</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">Ore</th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide">
-                    <div>Listino €</div>
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide">
-                    <div>Tuo Costo €</div>
-                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide">Listino €</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide">Tuo Costo €</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">Azione</th>
                 </tr>
               </thead>
               <tbody>
                 {groupedCourses.map(group => (
-                  <tbody key={group.category}>
+                  <>
                     <tr 
+                      key={`cat-${group.category}`}
                       className="bg-[#2d2d2d] cursor-pointer hover:bg-[#3d3d3d] transition-colors"
                       onClick={() => toggleCategory(group.category)}
                     >
@@ -321,7 +328,7 @@ export default function Catalog() {
                         </tr>
                       );
                     })}
-                  </tbody>
+                  </>
                 ))}
               </tbody>
             </table>
