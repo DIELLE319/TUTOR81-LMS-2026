@@ -915,7 +915,7 @@ export async function registerRoutes(
           const courseTitle = course?.title || 'Corso';
           
           await resend.emails.send({
-            from: 'Tutor81 <onboarding@resend.dev>',
+            from: 'Tutor81 <corsi@tutor81.it>',
             to: corsista.email,
             subject: `Accesso al corso: ${courseTitle}`,
             html: `
