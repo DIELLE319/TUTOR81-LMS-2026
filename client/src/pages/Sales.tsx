@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'wouter';
-import { Calendar, Building, ChevronDown, Receipt } from 'lucide-react';
+import { Calendar, Building, Receipt, Printer, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Company } from '@shared/schema';
 import {
@@ -11,6 +10,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+type InvoiceData = {
+  tutor: {
+    id: number;
+    businessName: string;
+    address: string | null;
+    city: string | null;
+    vatNumber: string | null;
+  };
+  period: { label: string };
+  orders: Array<{ orderId: number; courseId: number; qty: number; price: number; total: number }>;
+  totalSales: number;
+  grandTotal: number;
+  generatedAt: string;
+};
 
 interface Sale {
   id: number;
