@@ -80,15 +80,19 @@ export const certificates = pgTable("certificates", {
 
 export const enrollments = pgTable("enrollments", {
   id: serial("id").primaryKey(),
+  legacyId: integer("legacy_id"),
   purchaseId: integer("purchase_id").references(() => tutorsPurchases.id),
   userId: varchar("user_id").references(() => users.id),
+  legacyUserId: integer("legacy_user_id"),
   companyId: integer("company_id").references(() => companies.id),
   learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
   lastAccessAt: timestamp("last_access_at"),
   progress: integer("progress").default(0),
-  status: text("status").default("active"), // active, completed, suspended, not_started
+  status: text("status").default("active"),
+  accreditationCode: text("accreditation_code"),
+  daysToAlert: integer("days_to_alert").default(15),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
