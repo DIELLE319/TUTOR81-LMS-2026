@@ -112,6 +112,13 @@ export default function ContentManagement() {
     return 'Base';
   };
 
+  const formatCourseTitle = (title: string) => {
+    return title
+      .replace(/^EL\d*[a-zA-Z]?\s*-\s*/i, '')
+      .replace(/^EL\s*-\s*/i, '')
+      .trim();
+  };
+
   const filteredCourses = useMemo(() => {
     const items = viewMode === 'corsi' ? courses : [];
     return items.filter(c => {
@@ -321,7 +328,7 @@ export default function ContentManagement() {
                                 {course.id}
                               </td>
                               <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-gray-800'}`}>
-                                {course.title}
+                                {formatCourseTitle(course.title)}
                               </td>
                             </tr>
                           );
@@ -369,7 +376,7 @@ export default function ContentManagement() {
                   <div className="bg-white rounded shadow-sm border border-gray-200">
                     <div className="bg-gradient-to-r from-[#4a90a4] to-[#5ba3b8] px-4 py-2 rounded-t">
                       <h2 className="text-base font-bold text-white">
-                        (ID:{selectedCourse.id}) {selectedCourse.title.toUpperCase()}
+                        (ID:{selectedCourse.id}) {formatCourseTitle(selectedCourse.title).toUpperCase()}
                       </h2>
                     </div>
 
