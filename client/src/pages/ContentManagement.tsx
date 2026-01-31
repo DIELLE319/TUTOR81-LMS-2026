@@ -161,6 +161,19 @@ export default function ContentManagement() {
     },
   });
 
+  const updateDestinationMutation = useMutation({
+    mutationFn: async ({ projectId, destination }: { projectId: number; destination: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/destination`, { destination });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Destinazione aggiornata" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare la destinazione", variant: "destructive" });
+    },
+  });
+
   const getCourseCategory = (title: string) => {
     const t = title.toUpperCase();
     // Controlla prima i ruoli specifici (DIRIGENTE, PREPOSTO, RSPP) PRIMA di LAVORATORE
@@ -618,7 +631,30 @@ export default function ContentManagement() {
                               </Select>
                             </td>
                           </tr>
-                          <DetailRow label="Destinazione" value={selectedProject.destination || "Base+Specifico"} />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Destinazione</td>
+                            <td className="py-2">
+                              <Select
+                                value={selectedProject.destination || "BASE + SPECIFICA"}
+                                onValueChange={(value) => {
+                                  updateDestinationMutation.mutate({
+                                    projectId: selectedProject.id,
+                                    destination: value
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="BASE">BASE</SelectItem>
+                                  <SelectItem value="BASE + SPECIFICA">BASE + SPECIFICA</SelectItem>
+                                  <SelectItem value="SPECIFICA">SPECIFICA</SelectItem>
+                                  <SelectItem value="ND">ND</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
                           <DetailRow 
                             label="Obiettivi del corso" 
                             value={stripHtml(selectedProject.objectives) || 'Formazione generale e specifica dei lavoratori'} 
