@@ -129,6 +129,19 @@ export default function ContentManagement() {
     },
   });
 
+  const updateCourseTypeMutation = useMutation({
+    mutationFn: async ({ projectId, courseType }: { projectId: number; courseType: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/course-type`, { courseType });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Tipo corso aggiornato" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare il tipo corso", variant: "destructive" });
+    },
+  });
+
   const updateModalityMutation = useMutation({
     mutationFn: async ({ projectId, modality }: { projectId: number; modality: string }) => {
       return apiRequest('PATCH', `/api/learning-projects/${projectId}/modality`, { modality });
@@ -634,6 +647,25 @@ export default function ContentManagement() {
                                     <SelectItem value="ANTINCENDIO">ANTINCENDIO</SelectItem>
                                     <SelectItem value="PRIMO SOCCORSO">PRIMO SOCCORSO</SelectItem>
                                     <SelectItem value="ALTRO">ALTRO</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <span className="text-gray-600 font-medium text-[12px]">Tipo</span>
+                                <Select
+                                  value={selectedProject.courseType || "ND"}
+                                  onValueChange={(value) => {
+                                    updateCourseTypeMutation.mutate({
+                                      projectId: selectedProject.id,
+                                      courseType: value === "ND" ? "" : value
+                                    });
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[140px] h-8 text-[12px]">
+                                    <SelectValue placeholder="Non definito" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Base">BASE</SelectItem>
+                                    <SelectItem value="Aggiornamento">AGGIORNAMENTO</SelectItem>
+                                    <SelectItem value="ND">NON DEFINITO</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <span className="text-gray-600 font-medium text-[12px]">Settore</span>

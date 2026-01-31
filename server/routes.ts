@@ -903,6 +903,26 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/learning-projects/:id/course-type", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id as string);
+      const { courseType } = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
+      }
+
+      await db.update(schema.learningProjects)
+        .set({ courseType: courseType })
+        .where(eq(schema.learningProjects.id, projectId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update courseType error:", error);
+      res.status(500).json({ error: "Failed to update courseType" });
+    }
+  });
+
   app.patch("/api/learning-projects/:id/modality", isAuthenticated, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id as string);
