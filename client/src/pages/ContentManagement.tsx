@@ -35,6 +35,9 @@ export default function ContentManagement() {
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [selectedLOs, setSelectedLOs] = useState<Set<number>>(new Set());
   const [editOpen, setEditOpen] = useState(false);
+  const [showNewSector, setShowNewSector] = useState(false);
+  const [newSectorValue, setNewSectorValue] = useState('');
+  const [customSectors, setCustomSectors] = useState<string[]>([]);
   const [editForm, setEditForm] = useState({
     hours: 0,
     totalElearning: 0,
@@ -785,30 +788,68 @@ export default function ContentManagement() {
                                   </SelectContent>
                                 </Select>
                                 <span className="text-black font-medium text-[12px]">Settore</span>
-                                <Select
-                                  value={selectedProject.sector || "TUTTI"}
-                                  onValueChange={(value) => {
-                                    updateSectorMutation.mutate({
-                                      projectId: selectedProject.id,
-                                      sector: value
-                                    });
-                                  }}
-                                >
-                                  <SelectTrigger className="w-[160px] h-8 text-[12px] text-gray-700">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="TUTTI">TUTTI</SelectItem>
-                                    <SelectItem value="EDILIZIA">EDILIZIA</SelectItem>
-                                    <SelectItem value="INDUSTRIA">INDUSTRIA</SelectItem>
-                                    <SelectItem value="COMMERCIO">COMMERCIO</SelectItem>
-                                    <SelectItem value="SANITA">SANITA</SelectItem>
-                                    <SelectItem value="ALIMENTARE">ALIMENTARE</SelectItem>
-                                    <SelectItem value="TRASPORTI">TRASPORTI</SelectItem>
-                                    <SelectItem value="UFFICI">UFFICI</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <button className="text-[11px] text-[#4a90a4] hover:text-[#3a7084] font-medium">+ settore</button>
+                                <div className="relative">
+                                  {showNewSector && (
+                                    <div className="absolute bottom-full left-0 mb-1 flex items-center gap-1 bg-white border border-gray-300 rounded p-1 shadow-lg z-10">
+                                      <input
+                                        type="text"
+                                        className="w-[120px] h-6 text-[11px] px-2 border border-gray-200 rounded"
+                                        placeholder="Nuovo settore..."
+                                        value={newSectorValue}
+                                        onChange={(e) => setNewSectorValue(e.target.value.toUpperCase())}
+                                        autoFocus
+                                      />
+                                      <button 
+                                        className="text-[10px] bg-[#4a90a4] text-white px-2 py-1 rounded hover:bg-[#3a7084]"
+                                        onClick={() => {
+                                          if (newSectorValue.trim()) {
+                                            setCustomSectors([...customSectors, newSectorValue.trim()]);
+                                            updateSectorMutation.mutate({
+                                              projectId: selectedProject.id,
+                                              sector: newSectorValue.trim()
+                                            });
+                                            setNewSectorValue('');
+                                            setShowNewSector(false);
+                                          }
+                                        }}
+                                      >OK</button>
+                                      <button 
+                                        className="text-[10px] text-gray-500 hover:text-gray-700"
+                                        onClick={() => { setShowNewSector(false); setNewSectorValue(''); }}
+                                      >✕</button>
+                                    </div>
+                                  )}
+                                  <Select
+                                    value={selectedProject.sector || "TUTTI"}
+                                    onValueChange={(value) => {
+                                      updateSectorMutation.mutate({
+                                        projectId: selectedProject.id,
+                                        sector: value
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-[160px] h-8 text-[12px] text-gray-700">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="TUTTI">TUTTI</SelectItem>
+                                      <SelectItem value="EDILIZIA">EDILIZIA</SelectItem>
+                                      <SelectItem value="INDUSTRIA">INDUSTRIA</SelectItem>
+                                      <SelectItem value="COMMERCIO">COMMERCIO</SelectItem>
+                                      <SelectItem value="SANITA">SANITA</SelectItem>
+                                      <SelectItem value="ALIMENTARE">ALIMENTARE</SelectItem>
+                                      <SelectItem value="TRASPORTI">TRASPORTI</SelectItem>
+                                      <SelectItem value="UFFICI">UFFICI</SelectItem>
+                                      {customSectors.map(s => (
+                                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <button 
+                                  className="text-[11px] text-[#4a90a4] hover:text-[#3a7084] font-medium"
+                                  onClick={() => setShowNewSector(true)}
+                                >+ settore</button>
                               </div>
                             </td>
                           </tr>
