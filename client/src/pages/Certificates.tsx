@@ -36,6 +36,7 @@ export default function Certificates() {
   const [pageSize, setPageSize] = useState("50");
   const [selectedCompany, setSelectedCompany] = useState("all");
   const [selectedUser, setSelectedUser] = useState("all");
+  const [selectedTutor, setSelectedTutor] = useState("all");
 
   const { data: attestati = [], isLoading } = useQuery<Attestato[]>({
     queryKey: ["/api/attestati"],
@@ -52,6 +53,9 @@ export default function Certificates() {
     return null;
   }).filter((u): u is string => u !== null && u !== ''))).sort();
 
+  // Ottieni lista enti formativi unici
+  const tutors = Array.from(new Set(attestati.map(a => a.tutor_name).filter((t): t is string => t !== null))).sort();
+
   const formatDate = (date: string | null) => {
     if (!date) return "-";
     return format(new Date(date), "dd/MM/yyyy", { locale: it });
@@ -63,6 +67,9 @@ export default function Certificates() {
   };
 
   const filteredAttestati = attestati.filter((a) => {
+    // Filtro ente formativo
+    if (selectedTutor !== "all" && a.tutor_name !== selectedTutor) return false;
+    
     // Filtro azienda
     if (selectedCompany !== "all" && a.company_name !== selectedCompany) return false;
     
@@ -82,7 +89,7 @@ export default function Certificates() {
       (a.user_fiscal_code?.toLowerCase() || "").includes(s) ||
       (a.course_title?.toLowerCase() || "").includes(s) ||
       (a.company_name?.toLowerCase() || "").includes(s) ||
-      (a.accreditation_code?.toLowerCase() || "").includes(s)
+      (a.tutor_name?.toLowerCase() || "").includes(s)
     );
   });
 
@@ -115,9 +122,24 @@ export default function Certificates() {
     <div className="min-h-screen bg-gray-100">
       <div className="bg-yellow-500 py-4 px-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-800" data-testid="text-page-title">
-            Attestati
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-semibold text-gray-800" data-testid="text-page-title">
+              Attestati
+            </h1>
+            <Select value={selectedTutor} onValueChange={setSelectedTutor}>
+              <SelectTrigger className="w-64 bg-white" data-testid="select-tutor">
+                <SelectValue placeholder="Tutti gli enti formativi" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tutti gli enti formativi</SelectItem>
+                {tutors.map((tutor) => (
+                  <SelectItem key={tutor} value={tutor}>
+                    {tutor}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="text-sm text-gray-700">
             {filteredAttestati.length.toLocaleString()} attestati disponibili
           </div>
