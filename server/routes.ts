@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { Writable } from "stream";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import * as schema from "@shared/schema";
@@ -781,7 +782,7 @@ export async function registerRoutes(
       
       // Create a temporary buffer to store the file
       const chunks: Buffer[] = [];
-      const writable = new (require('stream').Writable)({
+      const writable = new Writable({
         write(chunk: Buffer, encoding: string, callback: () => void) {
           chunks.push(chunk);
           callback();
