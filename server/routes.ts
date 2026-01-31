@@ -260,6 +260,113 @@ export async function registerRoutes(
     }
   });
 
+  // Struttura gerarchica di un corso (moduli > lezioni > learning objects)
+  app.get("/api/learning-projects/:id/structure", isAuthenticated, async (req, res) => {
+    try {
+      const legacyCourseId = parseInt(req.params.id as string);
+      
+      if (isNaN(legacyCourseId)) {
+        return res.status(400).json({ error: "ID corso non valido" });
+      }
+
+      // Query per ottenere la struttura completa
+      const structure = await db.execute(sql`
+        SELECT 
+          cm.id as course_module_id,
+          cm.position as module_position,
+          cm.legacy_course_id,
+          m.id as module_id,
+          m.title as module_title,
+          m.description as module_description,
+          m.duration as module_duration,
+          ml.id as module_lesson_id,
+          ml.position as lesson_position,
+          l.id as lesson_id,
+          l.title as lesson_title,
+          l.duration as lesson_duration,
+          llo.id as lesson_lo_id,
+          llo.position as lo_position,
+          lo.id as lo_id,
+          lo.title as lo_title,
+          lo.type as lo_type,
+          lo.duration as lo_duration
+        FROM course_modules cm
+        JOIN modules m ON m.id = cm.module_id
+        LEFT JOIN module_lessons ml ON ml.module_id = m.id
+        LEFT JOIN lessons l ON l.id = ml.lesson_id
+        LEFT JOIN lesson_learning_objects llo ON llo.lesson_id = l.id
+        LEFT JOIN learning_objects lo ON lo.id = llo.learning_object_id
+        WHERE cm.legacy_course_id = ${legacyCourseId}
+        ORDER BY cm.position, ml.position, llo.position
+      `);
+
+      // Trasforma in struttura gerarchica
+      const modulesMap = new Map<number, any>();
+      
+      for (const row of structure.rows) {
+        const moduleId = row.module_id as number;
+        
+        if (!modulesMap.has(moduleId)) {
+          modulesMap.set(moduleId, {
+            id: moduleId,
+            title: row.module_title,
+            description: row.module_description,
+            duration: row.module_duration,
+            position: row.module_position,
+            lessons: new Map()
+          });
+        }
+        
+        const module = modulesMap.get(moduleId);
+        const lessonId = row.lesson_id as number;
+        
+        if (lessonId && !module.lessons.has(lessonId)) {
+          module.lessons.set(lessonId, {
+            id: lessonId,
+            title: row.lesson_title,
+            duration: row.lesson_duration,
+            position: row.lesson_position,
+            learningObjects: []
+          });
+        }
+        
+        if (lessonId && row.lo_id) {
+          const lesson = module.lessons.get(lessonId);
+          const loExists = lesson.learningObjects.some((lo: any) => lo.id === row.lo_id);
+          if (!loExists) {
+            lesson.learningObjects.push({
+              id: row.lo_id,
+              title: row.lo_title,
+              type: row.lo_type,
+              duration: row.lo_duration,
+              position: row.lo_position
+            });
+          }
+        }
+      }
+      
+      // Converti in array
+      const result = Array.from(modulesMap.values()).map(module => ({
+        ...module,
+        lessons: Array.from(module.lessons.values())
+      }));
+
+      res.json({
+        legacyCourseId,
+        modules: result,
+        stats: {
+          totalModules: result.length,
+          totalLessons: result.reduce((sum, m) => sum + m.lessons.length, 0),
+          totalLearningObjects: result.reduce((sum, m) => 
+            sum + m.lessons.reduce((lsum: number, l: any) => lsum + l.learningObjects.length, 0), 0)
+        }
+      });
+    } catch (error) {
+      console.error("Course structure error:", error);
+      res.status(500).json({ error: "Errore nel recupero della struttura" });
+    }
+  });
+
   // Pubblica un learning project (stato 1 = attivo)
   app.post("/api/learning-projects/:id/publish", isAuthenticated, async (req, res) => {
     try {

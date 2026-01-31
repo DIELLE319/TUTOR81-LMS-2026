@@ -20,6 +20,7 @@ import ContentManagement from "@/pages/ContentManagement";
 import EmailPreview from "@/pages/EmailPreview";
 import LearningObjects from "@/pages/LearningObjects";
 import LearningObjectDetail from "@/pages/LearningObjectDetail";
+import CourseStructure from "@/pages/CourseStructure";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -170,6 +171,14 @@ function Router() {
         {(params) => (
           <ProtectedRoute><LearningObjectDetail id={params.id} /></ProtectedRoute>
         )}
+      </Route>
+
+      <Route path="/course-structure/:id">
+        <ProtectedRoute><CourseStructure /></ProtectedRoute>
+      </Route>
+
+      <Route path="/course-structure">
+        <ProtectedRoute><CourseStructure /></ProtectedRoute>
       </Route>
 
       <Route path="/email-preview">
