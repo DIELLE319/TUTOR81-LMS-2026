@@ -6,7 +6,16 @@ This is a full-stack e-learning management platform for Tutor81/TutorItalia, bui
 
 The platform supports multiple user roles including administrators, tutors, and client companies, with features for course catalog management, sales tracking, user management, and certificate generation.
 
-## Recent Changes (January 30, 2026)
+## Recent Changes (January 31, 2026)
+
+- **Attestati (Certificates)**: Integrated FTP access to download PDF certificates from Vultr server
+  - FTP Path: `/media/media/attestati/` (24,584 PDF files)
+  - File naming: `attestato_licenza_{legacy_id}.pdf`
+  - API endpoints: `/api/attestati`, `/api/attestato/:legacyId/download`
+- **Enrollments Table**: Added `legacy_id`, `legacy_user_id`, `accreditation_code`, `days_to_alert` columns
+- **Imported learning_project_users data**: 33,216 records updated with legacy IDs
+
+## Previous Changes (January 30, 2026)
 
 - **Migrated from Vultr**: Imported all components from the Vultr server (React Router → wouter)
 - **Auth System**: Replaced localStorage auth with Replit OIDC Auth

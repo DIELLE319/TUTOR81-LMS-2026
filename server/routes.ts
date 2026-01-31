@@ -3,8 +3,9 @@ import { createServer, type Server } from "http";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, desc, sql, ilike, or } from "drizzle-orm";
+import { eq, and, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
 import { z } from "zod";
+import * as ftp from "basic-ftp";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -720,6 +721,114 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Companies list error:", error);
       res.json([]);
+    }
+  });
+
+  // Attestati endpoints
+  app.get("/api/attestati", isAuthenticated, async (req, res) => {
+    try {
+      // Get enrollments that have a legacy_id (meaning they have a certificate file)
+      const attestati = await db.execute(sql`
+        SELECT 
+          e.id,
+          e.legacy_id,
+          e.legacy_user_id,
+          e.start_date,
+          e.end_date,
+          e.accreditation_code,
+          e.progress,
+          u.first_name as user_first_name,
+          u.last_name as user_last_name,
+          u.email as user_email,
+          u.fiscal_code as user_fiscal_code,
+          lp.title as course_title,
+          lp.hours as course_hours,
+          c.business_name as company_name
+        FROM enrollments e
+        LEFT JOIN users u ON e.legacy_user_id::text = u.id
+        LEFT JOIN learning_projects lp ON e.learning_project_id = lp.id
+        LEFT JOIN companies c ON e.company_id = c.id
+        WHERE e.legacy_id IS NOT NULL
+        ORDER BY e.end_date DESC NULLS LAST
+        LIMIT 1000
+      `);
+      
+      res.json(attestati.rows);
+    } catch (error) {
+      console.error("Attestati error:", error);
+      res.status(500).json({ error: "Failed to fetch attestati" });
+    }
+  });
+
+  app.get("/api/attestato/:legacyId/download", isAuthenticated, async (req, res) => {
+    const { legacyId } = req.params;
+    
+    if (!legacyId || isNaN(Number(legacyId))) {
+      return res.status(400).json({ error: "Invalid legacy ID" });
+    }
+    
+    const client = new ftp.Client();
+    
+    try {
+      await client.access({
+        host: process.env.FTP_HOST || "135.125.205.19",
+        user: process.env.FTP_USERNAME!,
+        password: process.env.FTP_PASSWORD!,
+        secure: false,
+      });
+      
+      const remotePath = `${process.env.FTP_ATTESTATI_PATH || "/media/media/attestati"}/attestato_licenza_${legacyId}.pdf`;
+      
+      // Create a temporary buffer to store the file
+      const chunks: Buffer[] = [];
+      const writable = new (require('stream').Writable)({
+        write(chunk: Buffer, encoding: string, callback: () => void) {
+          chunks.push(chunk);
+          callback();
+        }
+      });
+      
+      await client.downloadTo(writable, remotePath);
+      
+      const fileBuffer = Buffer.concat(chunks);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="attestato_${legacyId}.pdf"`);
+      res.send(fileBuffer);
+      
+    } catch (error: any) {
+      console.error("FTP download error:", error.message);
+      res.status(404).json({ error: "Attestato non trovato" });
+    } finally {
+      client.close();
+    }
+  });
+
+  app.get("/api/attestato/:legacyId/check", isAuthenticated, async (req, res) => {
+    const { legacyId } = req.params;
+    
+    if (!legacyId || isNaN(Number(legacyId))) {
+      return res.status(400).json({ exists: false });
+    }
+    
+    const client = new ftp.Client();
+    
+    try {
+      await client.access({
+        host: process.env.FTP_HOST || "135.125.205.19",
+        user: process.env.FTP_USERNAME!,
+        password: process.env.FTP_PASSWORD!,
+        secure: false,
+      });
+      
+      const remotePath = `${process.env.FTP_ATTESTATI_PATH || "/media/media/attestati"}/attestato_licenza_${legacyId}.pdf`;
+      const size = await client.size(remotePath);
+      
+      res.json({ exists: true, size });
+    } catch (error) {
+      res.json({ exists: false });
+    } finally {
+      client.close();
     }
   });
 
