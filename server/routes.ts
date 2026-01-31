@@ -329,6 +329,96 @@ export async function registerRoutes(
     }
   });
 
+  // Invoice API - get sales summary for a tutor in a specific month
+  app.get("/api/invoice", isAuthenticated, async (req, res) => {
+    try {
+      const tutorId = parseInt(req.query.tutorId as string);
+      const month = parseInt(req.query.month as string); // 1-12
+      const year = parseInt(req.query.year as string);
+      
+      if (isNaN(tutorId) || isNaN(month) || isNaN(year)) {
+        return res.status(400).json({ error: "tutorId, month and year are required" });
+      }
+      
+      // Get tutor info
+      const [tutor] = await db.select()
+        .from(schema.companies)
+        .where(eq(schema.companies.id, tutorId));
+      
+      if (!tutor) {
+        return res.status(404).json({ error: "Tutor not found" });
+      }
+      
+      // Calculate date range for the month
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
+      
+      // Get all sales for this tutor in the specified month
+      const sales = await db.execute(sql`
+        SELECT 
+          tp.id,
+          tp.creation_date,
+          tp.qta,
+          tp.price,
+          lp.title as course_title,
+          c.business_name as client_name,
+          c.id as client_id
+        FROM tutors_purchases tp
+        LEFT JOIN learning_projects lp ON lp.id = tp.learning_project_id
+        LEFT JOIN companies c ON c.id = tp.customer_company_id
+        WHERE tp.tutor_id = ${tutorId}
+          AND tp.creation_date >= ${startDate}
+          AND tp.creation_date <= ${endDate}
+        ORDER BY tp.creation_date
+      `);
+      
+      // Group by course and calculate totals
+      const coursesSummary: Record<string, { title: string; qty: number; unitPrice: number; total: number }> = {};
+      let grandTotal = 0;
+      
+      for (const sale of sales.rows) {
+        const title = (sale.course_title as string) || 'Corso sconosciuto';
+        const qty = (sale.qta as number) || 1;
+        const price = parseFloat(String(sale.price || 0));
+        const lineTotal = qty * price;
+        
+        if (!coursesSummary[title]) {
+          coursesSummary[title] = { title, qty: 0, unitPrice: price, total: 0 };
+        }
+        coursesSummary[title].qty += qty;
+        coursesSummary[title].total += lineTotal;
+        grandTotal += lineTotal;
+      }
+      
+      const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 
+                          'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+      
+      res.json({
+        tutor: {
+          id: tutor.id,
+          businessName: tutor.businessName,
+          address: tutor.address,
+          city: tutor.city,
+          vatNumber: tutor.vatNumber,
+          email: tutor.email,
+        },
+        period: {
+          month,
+          year,
+          monthName: monthNames[month - 1],
+          label: `${monthNames[month - 1]} ${year}`
+        },
+        courses: Object.values(coursesSummary),
+        totalSales: sales.rows.length,
+        grandTotal,
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Invoice error:", error);
+      res.status(500).json({ error: "Failed to generate invoice" });
+    }
+  });
+
   app.get("/api/platform-users", isAuthenticated, async (req, res) => {
     try {
       const users = await db.select()

@@ -15,6 +15,7 @@ import Users from "@/pages/Users";
 import Certificates from "@/pages/Certificates";
 import CreateCompany from "@/pages/CreateCompany";
 import ActivatedCourses from "@/pages/ActivatedCourses";
+import Invoicing from "@/pages/Invoicing";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -117,6 +118,10 @@ function Router() {
       
       <Route path="/sales">
         <ProtectedRoute><Sales /></ProtectedRoute>
+      </Route>
+      
+      <Route path="/invoicing">
+        <ProtectedRoute><Invoicing /></ProtectedRoute>
       </Route>
       
       <Route path="/users">
