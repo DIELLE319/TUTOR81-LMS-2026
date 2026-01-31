@@ -398,6 +398,11 @@ export default function ContentManagement() {
                               <DetailRow label="Durata Totale" value={`${linkedProject.hours} ore`} highlight />
                               <DetailRow label="Durata minima del corso in e-learning" value={`${linkedProject.hours} ore`} />
                               <DetailRow label="Tempo massimo per la conclusione" value="60 giorni" />
+                              <DetailRow 
+                                label="Prezzo di listino" 
+                                value={linkedProject.listPrice && parseFloat(linkedProject.listPrice) > 0 ? `€ ${parseFloat(linkedProject.listPrice).toFixed(2)}` : 'Non definito'} 
+                                highlight 
+                              />
                               <tr className="border-b border-gray-100">
                                 <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Riservato a</td>
                                 <td className="py-2">
