@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { Calendar, Building, Receipt, Printer, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Company } from '@shared/schema';

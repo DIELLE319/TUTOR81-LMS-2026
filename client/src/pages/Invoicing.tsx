@@ -198,84 +198,79 @@ export default function Invoicing() {
             </Button>
           </div>
 
-          {/* Invoice Content (for print) */}
-          <div ref={printRef} className="p-6">
-            <div className="header">
-              <h1>TUTOR81 LMS</h1>
-              <p style={{ margin: '10px 0 0 0', color: '#666' }}>Acquisti del mese {invoiceData.period.label}</p>
-            </div>
-
-            <div className="info-section" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
-              <div className="info-box" style={{ background: '#2a2a2a', padding: '15px', borderRadius: '8px', width: '45%' }}>
-                <h3 style={{ color: '#EAB308', marginBottom: '10px' }}>Mittente</h3>
-                <p style={{ color: 'white', fontWeight: 'bold', margin: '5px 0' }}>tutor81online, S.L.</p>
-                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>CIF: B21797709</p>
-                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>C.C San Agustin - Calle las Dalias, 12</p>
-                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>Planta 5, Local 340</p>
-                <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>35100 San Bartolomé de Tirajana - Las Palmas</p>
-              </div>
-              <div className="info-box" style={{ background: '#2a2a2a', padding: '15px', borderRadius: '8px', width: '45%' }}>
-                <h3 style={{ color: '#EAB308', marginBottom: '10px' }}>Destinatario</h3>
-                <p style={{ color: 'white', fontWeight: 'bold', margin: '5px 0' }}>{invoiceData.tutor.businessName}</p>
-                {invoiceData.tutor.address && <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>{invoiceData.tutor.address}</p>}
-                {invoiceData.tutor.city && <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>{invoiceData.tutor.city}</p>}
-                {invoiceData.tutor.vatNumber && <p style={{ color: '#aaa', margin: '3px 0', fontSize: '13px' }}>P.IVA: {invoiceData.tutor.vatNumber}</p>}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '20px', padding: '10px', background: '#1a1a1a', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+          {/* Invoice Content (for print) - White background for print */}
+          <div ref={printRef} style={{ background: 'white', padding: '40px', color: 'black', fontFamily: 'Arial, sans-serif' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px', borderBottom: '3px solid #EAB308', paddingBottom: '20px' }}>
               <div>
-                <span style={{ color: '#888' }}>Periodo: </span>
-                <span style={{ color: 'white', fontWeight: 'bold' }}>{invoiceData.period.label}</span>
+                <h1 style={{ margin: 0, fontSize: '24px', color: '#333' }}>Fattura TUTOR81ONLINE SL</h1>
+                <div style={{ marginTop: '15px', fontSize: '13px', color: '#555', lineHeight: '1.6' }}>
+                  <p style={{ margin: '3px 0', fontWeight: 'bold' }}>TUTOR81ONLINE SL</p>
+                  <p style={{ margin: '3px 0' }}>CIF: B21797709</p>
+                  <p style={{ margin: '3px 0' }}>C.C San Agustin - Calle las Dalias, 12</p>
+                  <p style={{ margin: '3px 0' }}>Planta 5, Local 340</p>
+                  <p style={{ margin: '3px 0' }}>35100 San Bartolomé de Tirajana - Las Palmas</p>
+                  <p style={{ margin: '3px 0' }}>assistenza@tutor81.it</p>
+                </div>
               </div>
-              <div>
-                <span style={{ color: '#888' }}>Vendite: </span>
-                <span style={{ color: 'white', fontWeight: 'bold' }}>{invoiceData.totalSales}</span>
-              </div>
-              <div>
-                <span style={{ color: '#888' }}>Data: </span>
-                <span style={{ color: 'white', fontWeight: 'bold' }}>{new Date(invoiceData.generatedAt).toLocaleDateString('it-IT')}</span>
+              <div style={{ textAlign: 'right' }}>
+                <h2 style={{ margin: 0, fontSize: '20px', color: '#EAB308', fontWeight: 'bold' }}>FACTURA</h2>
+                <div style={{ marginTop: '15px', fontSize: '13px', color: '#555' }}>
+                  <p style={{ margin: '5px 0' }}><strong>Fecha:</strong> {new Date(invoiceData.generatedAt).toLocaleDateString('es-ES')}</p>
+                  <p style={{ margin: '5px 0' }}><strong>Nº Factura:</strong> ___/2025</p>
+                </div>
               </div>
             </div>
 
-            {invoiceData.orders.length > 0 ? (
-              <>
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'left', border: '1px solid #444', width: '100px' }}>ID Ordine</th>
-                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'left', border: '1px solid #444', width: '100px' }}>ID Corso</th>
-                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'center', border: '1px solid #444', width: '60px' }}>Qtà</th>
-                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'right', border: '1px solid #444', width: '100px' }}>Prezzo</th>
-                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'right', border: '1px solid #444', width: '100px' }}>Totale</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoiceData.orders.map((order, idx) => (
-                      <tr key={idx} style={{ background: idx % 2 === 0 ? '#1e1e1e' : '#252525' }}>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', fontFamily: 'monospace' }}>#{order.orderId}</td>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', fontFamily: 'monospace' }}>#{order.courseId}</td>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'center' }}>{order.qty}</td>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'right' }}>{formatCurrency(order.price)}</td>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'right' }}>{formatCurrency(order.total)}</td>
-                      </tr>
-                    ))}
-                    <tr style={{ background: '#3d3400' }}>
-                      <td colSpan={4} style={{ padding: '12px', border: '1px solid #444', color: '#EAB308', fontWeight: 'bold', textAlign: 'right' }}>TOTALE</td>
-                      <td style={{ padding: '12px', border: '1px solid #444', color: '#EAB308', fontWeight: 'bold', textAlign: 'right', fontSize: '18px' }}>{formatCurrency(invoiceData.grandTotal)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                <p>Nessuna vendita in questo periodo</p>
-              </div>
-            )}
+            {/* Cliente */}
+            <div style={{ marginBottom: '40px', padding: '20px', background: '#f9f9f9', borderRadius: '8px', border: '1px solid #eee' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#888', textTransform: 'uppercase' }}>Cliente</h3>
+              <p style={{ margin: '5px 0', fontWeight: 'bold', fontSize: '16px', color: '#333' }}>{invoiceData.tutor.businessName}</p>
+              {invoiceData.tutor.vatNumber && <p style={{ margin: '3px 0', fontSize: '13px', color: '#555' }}>P.IVA: {invoiceData.tutor.vatNumber}</p>}
+              {invoiceData.tutor.address && <p style={{ margin: '3px 0', fontSize: '13px', color: '#555' }}>{invoiceData.tutor.address}</p>}
+              {invoiceData.tutor.city && <p style={{ margin: '3px 0', fontSize: '13px', color: '#555' }}>{invoiceData.tutor.city}</p>}
+            </div>
 
-            <div className="footer" style={{ textAlign: 'center', marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #444', fontSize: '12px', color: '#666' }}>
-              <p>TUTOR81 LMS - Piattaforma E-Learning</p>
-              <p>Documento generato automaticamente</p>
+            {/* Concepto Table */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
+              <thead>
+                <tr>
+                  <th style={{ background: '#EAB308', color: 'black', padding: '15px', textAlign: 'left', fontSize: '14px', fontWeight: 'bold' }}>Concepto</th>
+                  <th style={{ background: '#EAB308', color: 'black', padding: '15px', textAlign: 'right', fontSize: '14px', fontWeight: 'bold', width: '150px' }}>Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: '20px 15px', borderBottom: '1px solid #eee', fontSize: '14px', color: '#333' }}>
+                    Acquisti e-learning mese di {invoiceData.period.label.toLowerCase()} piattaforma LMS TUTOR81
+                  </td>
+                  <td style={{ padding: '20px 15px', borderBottom: '1px solid #eee', textAlign: 'right', fontSize: '14px', color: '#333' }}>
+                    {formatCurrency(invoiceData.grandTotal)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* Total */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px' }}>
+              <div style={{ background: '#EAB308', padding: '15px 30px', borderRadius: '8px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 'bold', color: 'black' }}>TOTAL: </span>
+                <span style={{ fontSize: '24px', fontWeight: 'bold', color: 'black' }}>{formatCurrency(invoiceData.grandTotal)}</span>
+              </div>
+            </div>
+
+            {/* Legal Note - VAT Exemption */}
+            <div style={{ marginBottom: '30px', padding: '15px', background: '#f5f5f5', borderRadius: '8px', fontSize: '11px', color: '#666', fontStyle: 'italic', lineHeight: '1.5' }}>
+              <p style={{ margin: 0 }}>
+                Operación no sujeta al IGIC conforme a la Ley de localización, Artículo 17 de la Ley 20/1991. 
+                A efectos de IVA, Inversión de Sujeto Pasivo.
+              </p>
+            </div>
+
+            {/* Bank Details */}
+            <div style={{ borderTop: '2px solid #eee', paddingTop: '20px', fontSize: '12px', color: '#555' }}>
+              <p style={{ margin: '5px 0' }}><strong>Pagamento immediato</strong> presso Banca Santander intestato a Tutor81online</p>
+              <p style={{ margin: '5px 0' }}><strong>IBAN:</strong> ES76 0049 5875 2821 1631 6735</p>
             </div>
           </div>
 
