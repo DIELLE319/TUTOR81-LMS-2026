@@ -870,9 +870,17 @@ export default function ContentManagement() {
                               </Select>
                             </td>
                           </tr>
-                          <DetailRow label="Durata Totale" value={`${selectedProject.hours || 0} ore`} highlight />
-                          <DetailRow label="Durata minima del corso in e-learning" value={`${selectedProject.totalElearning || selectedProject.hours || 0} ore`} />
-                          <DetailRow label="Tempo massimo per la conclusione" value={`${selectedProject.maxExecutionTime || 60} giorni`} />
+                          <tr className="border-b border-gray-100 bg-yellow-50">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Parametri corso</td>
+                            <td className="py-2">
+                              <div className="flex items-center gap-4 text-sm">
+                                <span><strong>Durata:</strong> {selectedProject.hours || 0} ore</span>
+                                <span><strong>E-learning:</strong> {selectedProject.totalElearning || 0} ore</span>
+                                <span><strong>Tempo max:</strong> {selectedProject.maxExecutionTime || 60} gg</span>
+                                <span><strong>Soglia:</strong> {selectedProject.percentageToPass || 80}%</span>
+                              </div>
+                            </td>
+                          </tr>
                           <DetailRow 
                             label="Prezzo di listino" 
                             value={selectedProject.listPrice && parseFloat(selectedProject.listPrice) > 0 ? `€ ${parseFloat(selectedProject.listPrice).toFixed(2)}` : 'Non definito'} 
