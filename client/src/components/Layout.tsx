@@ -131,7 +131,7 @@ export default function Layout({ children }: LayoutProps) {
               <>
                 <SectionHeader title="VENDITA" />
                 <MenuItem to="/companies/new" label="Crea Cliente" color="text-gray-300" iconName="UserPlus" />
-                <MenuItem to="/catalog" label="Iscrivi ai Corsi" color="text-gray-300" iconName="ShoppingCart" />
+                <MenuItem to="/catalog" label="Invia avvio corso" color="text-gray-300" iconName="ShoppingCart" />
                 <MenuItem to="/sales" label="Corsi Venduti" iconName="FileText" />
                 <MenuItem to="/invoicing" label="Fatturazione" iconName="Receipt" />
               </>
