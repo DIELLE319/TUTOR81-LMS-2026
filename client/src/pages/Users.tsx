@@ -29,6 +29,7 @@ export default function Users() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserWithCompany | null>(null);
   const [editData, setEditData] = useState<Partial<UserWithCompany>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const { data: users = [], isLoading } = useQuery<UserWithCompany[]>({
@@ -132,7 +133,21 @@ export default function Users() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-100 text-left text-xs text-gray-600 uppercase">
-                <th className="px-2 py-2 w-8"></th>
+                <th className="px-2 py-2 w-8">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 rounded border-gray-300"
+                    checked={filteredUsers.length > 0 && selectedIds.size === filteredUsers.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedIds(new Set(filteredUsers.map(u => u.id)));
+                      } else {
+                        setSelectedIds(new Set());
+                      }
+                    }}
+                    data-testid="checkbox-select-all"
+                  />
+                </th>
                 <th className="px-3 py-2 font-medium">ID</th>
                 <th className="px-3 py-2 font-medium">Nome</th>
                 <th className="px-3 py-2 font-medium">Cognome</th>
@@ -154,6 +169,16 @@ export default function Users() {
                     <input 
                       type="checkbox" 
                       className="w-4 h-4 rounded border-gray-300"
+                      checked={selectedIds.has(user.id)}
+                      onChange={(e) => {
+                        const newSet = new Set(selectedIds);
+                        if (e.target.checked) {
+                          newSet.add(user.id);
+                        } else {
+                          newSet.delete(user.id);
+                        }
+                        setSelectedIds(newSet);
+                      }}
                       data-testid={`checkbox-user-${user.id}`}
                     />
                   </td>
