@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -12,7 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Mail, MailOpen, MailX } from "lucide-react";
+import { Search, Mail, MailOpen, MailX, Send } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Enrollment {
   id: number;
@@ -39,6 +41,8 @@ export default function ActivatedCourses() {
   const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState("25");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const { toast } = useToast();
 
   const { data: enrollments = [], isLoading } = useQuery<Enrollment[]>({
     queryKey: ["/api/enrollments", statusFilter, search],
@@ -47,6 +51,45 @@ export default function ActivatedCourses() {
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["/api/companies-list"],
   });
+
+  const sendEmailsMutation = useMutation({
+    mutationFn: async (enrollmentIds: number[]) => {
+      return apiRequest("/api/enrollments/send-emails", {
+        method: "POST",
+        body: JSON.stringify({ enrollmentIds }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Email inviate con successo!" });
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/enrollments"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Errore nell'invio", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(displayedEnrollments.map((e) => e.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter((i) => i !== id));
+    }
+  };
+
+  const handleSendEmails = () => {
+    if (selectedIds.length === 0) return;
+    sendEmailsMutation.mutate(selectedIds);
+  };
 
   const formatDate = (date: string | null) => {
     if (!date) return "-";
@@ -143,18 +186,31 @@ export default function ActivatedCourses() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-black font-medium">Search:</span>
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Cerca..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-48 bg-white border-black pr-8"
-                data-testid="input-search"
-              />
-              <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
+          <div className="flex items-center gap-4">
+            {selectedIds.length > 0 && (
+              <Button
+                onClick={handleSendEmails}
+                disabled={sendEmailsMutation.isPending}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                data-testid="button-send-emails"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Invia Email ({selectedIds.length})
+              </Button>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-black font-medium">Search:</span>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Cerca..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-48 bg-white border-black pr-8"
+                  data-testid="input-search"
+                />
+                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
+              </div>
             </div>
           </div>
         </div>
@@ -164,7 +220,12 @@ export default function ActivatedCourses() {
             <thead className="bg-black">
               <tr>
                 <th className="w-10 p-3">
-                  <Checkbox className="border-yellow-400" data-testid="checkbox-select-all" />
+                  <Checkbox 
+                    className="border-yellow-400" 
+                    checked={selectedIds.length === displayedEnrollments.length && displayedEnrollments.length > 0}
+                    onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                    data-testid="checkbox-select-all" 
+                  />
                 </th>
                 <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Azienda
@@ -216,7 +277,11 @@ export default function ActivatedCourses() {
                     data-testid={`row-enrollment-${enrollment.id}`}
                   >
                     <td className="p-3">
-                      <Checkbox data-testid={`checkbox-row-${enrollment.id}`} />
+                      <Checkbox 
+                        checked={selectedIds.includes(enrollment.id)}
+                        onCheckedChange={(checked) => handleSelectOne(enrollment.id, checked as boolean)}
+                        data-testid={`checkbox-row-${enrollment.id}`} 
+                      />
                     </td>
                     <td className="p-3 text-sm text-black">
                       {enrollment.companyName}

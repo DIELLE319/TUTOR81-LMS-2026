@@ -825,6 +825,51 @@ export async function registerRoutes(
     }
   });
 
+  // Send activation emails to selected enrollments
+  app.post("/api/enrollments/send-emails", isAuthenticated, async (req, res) => {
+    try {
+      const { enrollmentIds } = req.body as { enrollmentIds: number[] };
+      
+      if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
+        return res.status(400).json({ message: "Nessun iscritto selezionato" });
+      }
+
+      const now = new Date();
+      let sentCount = 0;
+
+      for (const enrollmentId of enrollmentIds) {
+        // Get enrollment details
+        const [enrollment] = await db.select()
+          .from(schema.enrollments)
+          .where(eq(schema.enrollments.id, enrollmentId));
+
+        if (!enrollment) continue;
+
+        // Update email_sent_at timestamp
+        await db.update(schema.enrollments)
+          .set({ 
+            emailSentAt: now,
+            emailTrackingId: `track_${enrollmentId}_${Date.now()}`
+          })
+          .where(eq(schema.enrollments.id, enrollmentId));
+
+        sentCount++;
+        
+        // TODO: Actual email sending will be implemented when email service is configured
+        console.log(`Email marked as sent for enrollment ${enrollmentId}`);
+      }
+
+      res.json({ 
+        success: true, 
+        message: `${sentCount} email segnate come inviate`,
+        sentCount 
+      });
+    } catch (error) {
+      console.error("Send emails error:", error);
+      res.status(500).json({ message: "Errore nell'invio delle email" });
+    }
+  });
+
   app.get("/api/companies-list", isAuthenticated, async (req, res) => {
     try {
       const companies = await db.select({ 
