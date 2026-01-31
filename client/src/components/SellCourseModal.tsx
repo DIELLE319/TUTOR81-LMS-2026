@@ -102,8 +102,8 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   const filteredCompanies = useMemo(() => {
     return companies
-      .filter(c => !c.business_name?.toLowerCase().includes('tutor'))
-      .sort((a, b) => a.business_name.localeCompare(b.business_name));
+      .filter(c => c.business_name && !c.business_name.toLowerCase().includes('tutor'))
+      .sort((a, b) => (a.business_name || '').localeCompare(b.business_name || ''));
   }, [companies]);
 
   const selectedCompanyName = useMemo(() => {
