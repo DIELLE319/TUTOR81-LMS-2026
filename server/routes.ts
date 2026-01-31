@@ -415,6 +415,60 @@ export async function registerRoutes(
     }
   });
 
+  // Save invoice to archive
+  app.post("/api/invoices", isAuthenticated, async (req, res) => {
+    try {
+      const { tutorId, tutorName, month, year, orderIds, totalAmount, invoiceNumber } = req.body;
+      
+      // Check if invoice already exists for this tutor/month/year
+      const existing = await db.select()
+        .from(schema.invoices)
+        .where(and(
+          eq(schema.invoices.tutorId, tutorId),
+          eq(schema.invoices.month, month),
+          eq(schema.invoices.year, year)
+        ));
+      
+      if (existing.length > 0) {
+        return res.status(400).json({ error: "Fattura già salvata per questo periodo" });
+      }
+      
+      const [invoice] = await db.insert(schema.invoices).values({
+        tutorId,
+        tutorName,
+        month,
+        year,
+        orderIds,
+        totalAmount: totalAmount.toString(),
+        invoiceNumber,
+      }).returning();
+      
+      res.json(invoice);
+    } catch (error) {
+      console.error("Save invoice error:", error);
+      res.status(500).json({ error: "Errore nel salvataggio della fattura" });
+    }
+  });
+
+  // Get saved invoices
+  app.get("/api/invoices", isAuthenticated, async (req, res) => {
+    try {
+      const { tutorId } = req.query;
+      
+      let query = db.select().from(schema.invoices);
+      
+      if (tutorId) {
+        query = query.where(eq(schema.invoices.tutorId, parseInt(tutorId as string)));
+      }
+      
+      const invoices = await query.orderBy(desc(schema.invoices.createdAt)).limit(100);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Get invoices error:", error);
+      res.json([]);
+    }
+  });
+
   app.get("/api/platform-users", isAuthenticated, async (req, res) => {
     try {
       const users = await db.select()

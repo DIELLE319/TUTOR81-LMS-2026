@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { FileText, Printer, Building, Calendar, Euro, Mail } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { FileText, Printer, Building, Calendar, Euro, Mail, Save, Archive, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 type Tutor = {
   id: number;
@@ -35,12 +37,25 @@ type InvoiceData = {
   generatedAt: string;
 };
 
+type SavedInvoice = {
+  id: number;
+  tutorId: number;
+  tutorName: string;
+  month: number;
+  year: number;
+  orderIds: string;
+  totalAmount: string;
+  invoiceNumber: string | null;
+  createdAt: string;
+};
+
 export default function Invoicing() {
   const currentDate = new Date();
   const [selectedTutor, setSelectedTutor] = useState<number | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth()); // 0-11 for UI, will be 1-12 for API
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const printRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const { data: tutors = [] } = useQuery<Tutor[]>({
     queryKey: ['/api/tutors'],
@@ -50,6 +65,24 @@ export default function Invoicing() {
   const { data: invoiceData, isLoading: isLoadingInvoice, refetch } = useQuery<InvoiceData>({
     queryKey: [`/api/invoice?tutorId=${selectedTutor}&month=${selectedMonth + 1}&year=${selectedYear}`],
     enabled: selectedTutor !== null,
+  });
+
+  const { data: savedInvoices = [] } = useQuery<SavedInvoice[]>({
+    queryKey: ['/api/invoices'],
+  });
+
+  const saveInvoiceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('POST', '/api/invoices', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      toast({ title: "Fattura salvata", description: "La fattura è stata archiviata con successo" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Errore", description: error.message || "Fattura già salvata per questo periodo", variant: "destructive" });
+    },
   });
 
   const months = [
@@ -188,6 +221,45 @@ export default function Invoicing() {
               <span>Periodo: {invoiceData.period.label}</span>
             </div>
             <div className="flex gap-2">
+              {(() => {
+                const isSaved = savedInvoices.some(inv => 
+                  inv.tutorId === invoiceData.tutor.id && 
+                  inv.month === invoiceData.period.month && 
+                  inv.year === invoiceData.period.year
+                );
+                return isSaved ? (
+                  <Button
+                    disabled
+                    variant="outline"
+                    className="border-green-500 text-green-500"
+                    data-testid="button-saved-invoice"
+                  >
+                    <Check size={18} className="mr-2" />
+                    Salvata
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      saveInvoiceMutation.mutate({
+                        tutorId: invoiceData.tutor.id,
+                        tutorName: invoiceData.tutor.businessName,
+                        month: invoiceData.period.month,
+                        year: invoiceData.period.year,
+                        orderIds: invoiceData.orders.map(o => o.orderId).join(','),
+                        totalAmount: invoiceData.grandTotal,
+                        invoiceNumber: `FAT-${invoiceData.period.year}-${String(invoiceData.period.month).padStart(2, '0')}-${invoiceData.tutor.id}`,
+                      });
+                    }}
+                    disabled={saveInvoiceMutation.isPending}
+                    variant="outline"
+                    className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                    data-testid="button-save-invoice"
+                  >
+                    <Save size={18} className="mr-2" />
+                    {saveInvoiceMutation.isPending ? 'Salvataggio...' : 'Salva'}
+                  </Button>
+                );
+              })()}
               <Button
                 onClick={() => {
                   const subject = encodeURIComponent(`Fattura ${invoiceData.period.label} - TUTOR81ONLINE SL`);
@@ -319,6 +391,51 @@ export default function Invoicing() {
           </div>
         </div>
       ) : null}
+
+      {/* Archive Section */}
+      {savedInvoices.length > 0 && (
+        <div className="mt-6 bg-[#1e1e1e] rounded-xl border border-gray-800 overflow-hidden">
+          <div className="p-4 border-b border-gray-800 flex items-center gap-2">
+            <Archive size={20} className="text-yellow-500" />
+            <h2 className="text-lg font-bold text-white">Archivio Fatture</h2>
+            <span className="text-gray-500 text-sm">({savedInvoices.length})</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-900 text-left text-sm text-gray-400">
+                  <th className="px-4 py-3">N. Fattura</th>
+                  <th className="px-4 py-3">Ente Formativo</th>
+                  <th className="px-4 py-3">Periodo</th>
+                  <th className="px-4 py-3">Ordini</th>
+                  <th className="px-4 py-3 text-right">Totale</th>
+                  <th className="px-4 py-3">Data Creazione</th>
+                </tr>
+              </thead>
+              <tbody>
+                {savedInvoices.map((inv) => (
+                  <tr key={inv.id} className="border-t border-gray-800 hover:bg-gray-900/50">
+                    <td className="px-4 py-3 text-yellow-500 font-mono text-sm">{inv.invoiceNumber || '-'}</td>
+                    <td className="px-4 py-3 text-white">#{inv.tutorId} {inv.tutorName}</td>
+                    <td className="px-4 py-3 text-gray-300">
+                      {months[inv.month - 1]} {inv.year}
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-sm">
+                      {inv.orderIds.split(',').map(id => `#${id}`).join(', ')}
+                    </td>
+                    <td className="px-4 py-3 text-right text-green-400 font-medium">
+                      {formatCurrency(parseFloat(inv.totalAmount))}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-sm">
+                      {new Date(inv.createdAt).toLocaleDateString('it-IT')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

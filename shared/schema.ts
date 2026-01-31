@@ -345,3 +345,20 @@ export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 
 export type Answer = typeof answers.$inferSelect;
 export type InsertAnswer = z.infer<typeof insertAnswerSchema>;
+
+// Invoices archive
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  tutorId: integer("tutor_id").references(() => companies.id),
+  tutorName: text("tutor_name").notNull(),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  orderIds: text("order_ids").notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  invoiceNumber: text("invoice_number"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true });
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
