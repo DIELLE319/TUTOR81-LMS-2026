@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle, Mail, Printer, Save } from 'lucide-react';
+import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle, Mail, Printer, Save, ChevronDown, ChevronRight, Video, FileSliders, FileQuestion, Eye, EyeOff } from 'lucide-react';
 import type { LearningProject, Company, LearningObject } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +38,8 @@ export default function ContentManagement() {
   const [showNewSector, setShowNewSector] = useState(false);
   const [newSectorValue, setNewSectorValue] = useState('');
   const [customSectors, setCustomSectors] = useState<string[]>([]);
+  const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
+  const [showLearningObjects, setShowLearningObjects] = useState(true);
   const [editForm, setEditForm] = useState({
     hours: 0,
     totalElearning: 0,
@@ -101,6 +103,33 @@ export default function ContentManagement() {
 
   const { data: tutors = [] } = useQuery<Company[]>({
     queryKey: ['/api/companies/tutors'],
+  });
+
+  // Query per la struttura del corso (moduli, lezioni, learning objects)
+  const { data: courseStructure, isLoading: loadingStructure } = useQuery<{
+    modules: Array<{
+      id: number;
+      title: string;
+      description: string;
+      duration: number;
+      position: number;
+      lessons: Array<{
+        id: number;
+        title: string;
+        duration: number;
+        position: number;
+        learningObjects: Array<{
+          id: number;
+          title: string;
+          type: string;
+          duration: number;
+          position: number;
+        }>;
+      }>;
+    }>;
+  }>({
+    queryKey: ['/api/learning-projects', selectedCourseId, 'structure'],
+    enabled: !!selectedCourseId,
   });
 
   const reserveMutation = useMutation({
@@ -1045,6 +1074,122 @@ export default function ContentManagement() {
                           defaultContent="Concetti di rischio, danno, prevenzione, protezione, organizzazione della prevenzione aziendale, diritti, doveri e sanzioni per i vari soggetti aziendali, organi di vigilanza, controllo e assistenza."
                           onSave={(value) => updateFieldMutation.mutate({ courseProgram: value })}
                         />
+                      </div>
+
+                      {/* MODULI INSERITI */}
+                      <div className="mt-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-[#4a90a4] font-bold text-sm uppercase tracking-wide">Moduli Inseriti</h3>
+                          <button 
+                            className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 border border-gray-300 px-2 py-1 rounded"
+                            onClick={() => setShowLearningObjects(!showLearningObjects)}
+                          >
+                            {showLearningObjects ? <EyeOff size={12} /> : <Eye size={12} />}
+                            {showLearningObjects ? 'nascondi oggetti' : 'mostra oggetti'}
+                          </button>
+                        </div>
+
+                        {loadingStructure ? (
+                          <div className="text-center py-8 text-gray-400">Caricamento struttura...</div>
+                        ) : courseStructure?.modules && courseStructure.modules.length > 0 ? (
+                          <div className="space-y-3">
+                            {courseStructure.modules.map((module, moduleIndex) => {
+                              const isExpanded = expandedModules.has(module.id);
+                              const totalDuration = module.lessons.reduce((sum, l) => 
+                                sum + l.learningObjects.reduce((loSum, lo) => loSum + (lo.duration || 0), 0), 0);
+                              
+                              return (
+                                <div key={module.id} className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                                  {/* Header Modulo */}
+                                  <div 
+                                    className="bg-[#4a90a4] text-white px-4 py-2 cursor-pointer flex items-center justify-between"
+                                    onClick={() => {
+                                      const newExpanded = new Set(expandedModules);
+                                      if (isExpanded) newExpanded.delete(module.id);
+                                      else newExpanded.add(module.id);
+                                      setExpandedModules(newExpanded);
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                      <span className="font-bold text-[13px]">MODULO {moduleIndex + 1}: {module.title}</span>
+                                    </div>
+                                    <span className="text-[11px] opacity-80">{module.lessons.length} lezioni</span>
+                                  </div>
+
+                                  {/* Contenuto Modulo */}
+                                  {isExpanded && (
+                                    <div className="p-4">
+                                      <div className="flex gap-8 text-[12px] text-gray-600 mb-3">
+                                        <div><span className="font-semibold">Durata:</span> {totalDuration > 60 ? `${Math.floor(totalDuration/60)} ora ${totalDuration%60} min` : `${totalDuration} min`}</div>
+                                        <div><span className="font-semibold">Descrizione:</span> {module.description || '-'}</div>
+                                      </div>
+                                      <button className="text-[11px] border border-gray-300 px-3 py-1 rounded hover:bg-gray-100 mb-4">
+                                        Modifica modulo
+                                      </button>
+
+                                      {/* Lezioni */}
+                                      <div className="mt-2">
+                                        <h4 className="text-[#4a90a4] font-semibold text-[11px] uppercase tracking-wide mb-2 border-b border-[#4a90a4] pb-1">
+                                          Lezioni Inserite
+                                        </h4>
+                                        <div className="space-y-2">
+                                          {module.lessons.map((lesson, lessonIndex) => {
+                                            const lessonDuration = lesson.learningObjects.reduce((sum, lo) => sum + (lo.duration || 0), 0);
+                                            return (
+                                              <div key={lesson.id} className="pl-2">
+                                                <div className="flex items-center justify-between py-1">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-yellow-500">▲</span>
+                                                    <span className="text-[12px] text-gray-700">
+                                                      Lezione {lessonIndex + 1}: ID {lesson.id} - {lesson.title}
+                                                    </span>
+                                                  </div>
+                                                  <span className="text-[11px] text-gray-500 font-medium">
+                                                    durata calc.: {lessonDuration > 60 ? `${Math.floor(lessonDuration/60)} ora ${lessonDuration%60} min` : `${lessonDuration} min`}
+                                                  </span>
+                                                </div>
+
+                                                {/* Learning Objects */}
+                                                {showLearningObjects && lesson.learningObjects.length > 0 && (
+                                                  <div className="pl-6 space-y-1 mt-1">
+                                                    {lesson.learningObjects.map((lo) => {
+                                                      const getLoIcon = (type: string) => {
+                                                        switch(type?.toLowerCase()) {
+                                                          case 'video': return <Video size={14} className="text-blue-500" />;
+                                                          case 'slide': return <FileSliders size={14} className="text-orange-500" />;
+                                                          case 'document': return <FileText size={14} className="text-green-500" />;
+                                                          case 'test': return <FileQuestion size={14} className="text-purple-500" />;
+                                                          default: return <PlayCircle size={14} className="text-gray-400" />;
+                                                        }
+                                                      };
+                                                      return (
+                                                        <div key={lo.id} className="flex items-center gap-2 text-[11px] text-gray-600 py-0.5">
+                                                          {getLoIcon(lo.type)}
+                                                          <span className="text-gray-400">({lo.id})</span>
+                                                          <span className="text-[#4a90a4] hover:underline cursor-pointer">{lo.title}</span>
+                                                          <span className="text-gray-400 ml-auto">({lo.duration || 0} min)</span>
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-400 bg-gray-50 rounded border border-dashed border-gray-300">
+                            Nessun modulo inserito per questo corso
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
