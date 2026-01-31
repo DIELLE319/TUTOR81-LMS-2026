@@ -141,6 +141,33 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/companies/:id/users", isAuthenticated, async (req, res) => {
+    try {
+      const idParam = req.params.id as string;
+      const companyId = parseInt(idParam);
+      if (isNaN(companyId)) {
+        return res.status(400).json({ error: "Invalid company ID" });
+      }
+      
+      const companyUsers = await db.select({
+        id: schema.users.id,
+        firstName: schema.users.firstName,
+        lastName: schema.users.lastName,
+        fiscalCode: schema.users.fiscalCode,
+        email: schema.users.email,
+        role: schema.users.role,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.idcompany, companyId))
+      .orderBy(schema.users.lastName);
+      
+      res.json(companyUsers);
+    } catch (error) {
+      console.error("Error fetching company users:", error);
+      res.status(500).json({ error: "Failed to fetch company users" });
+    }
+  });
+
   app.post("/api/companies", isAuthenticated, async (req, res) => {
     try {
       const result = schema.insertCompanySchema.safeParse(req.body);
