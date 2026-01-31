@@ -270,13 +270,13 @@ export default function Catalog() {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col style={{ width: '9%' }} />
                 <col style={{ width: '6%' }} />
                 <col style={{ width: '5%' }} />
-                <col style={{ width: '28%' }} />
-                <col style={{ width: '8%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '34%' }} />
+                <col style={{ width: '7%' }} />
                 <col style={{ width: '4%' }} />
-                <col style={{ width: '11%' }} />
+                <col style={{ width: '10%' }} />
                 <col style={{ width: '8%' }} />
                 <col style={{ width: '8%' }} />
                 <col style={{ width: '10%' }} />
