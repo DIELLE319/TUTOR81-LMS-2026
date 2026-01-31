@@ -503,7 +503,11 @@ export default function ContentManagement() {
                   {selectedProject.isPublishedInEcommerce === 1 ? (
                     <ActionButton 
                       icon={<XCircle size={13} />}
-                      onClick={() => unpublishMutation.mutate(selectedProject.id)}
+                      onClick={() => {
+                        if (window.confirm(`Vuoi davvero rimuovere il corso "${formatCourseTitle(selectedProject.title)}" dal catalogo?`)) {
+                          unpublishMutation.mutate(selectedProject.id);
+                        }
+                      }}
                     >
                       {unpublishMutation.isPending ? 'Rimozione...' : 'Rimuovi dal catalogo'}
                     </ActionButton>
