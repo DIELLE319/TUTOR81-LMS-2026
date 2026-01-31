@@ -1432,6 +1432,38 @@ export async function registerRoutes(
     }
   });
 
+  // Update learning project - generic PATCH for multiple fields
+  app.patch("/api/learning-projects/:id", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id as string);
+      const { hours, totalElearning, maxExecutionTime, percentageToPass, externalIntegration } = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
+      }
+
+      const updateData: Record<string, unknown> = {};
+      if (hours !== undefined) updateData.hours = hours;
+      if (totalElearning !== undefined) updateData.totalElearning = totalElearning;
+      if (maxExecutionTime !== undefined) updateData.maxExecutionTime = maxExecutionTime;
+      if (percentageToPass !== undefined) updateData.percentageToPass = percentageToPass;
+      if (externalIntegration !== undefined) updateData.externalIntegration = externalIntegration;
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "Nessun campo da aggiornare" });
+      }
+
+      await db.update(schema.learningProjects)
+        .set(updateData)
+        .where(eq(schema.learningProjects.id, projectId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update learning project error:", error);
+      res.status(500).json({ error: "Failed to update learning project" });
+    }
+  });
+
   // Attestati endpoints
   app.get("/api/attestati", isAuthenticated, async (req, res) => {
     try {

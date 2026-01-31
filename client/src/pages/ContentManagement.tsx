@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle, Mail, Printer } from 'lucide-react';
+import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle, Mail, Printer, Save } from 'lucide-react';
 import type { LearningProject, Company, LearningObject } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 type Tab = 'catalogo' | 'lezioni' | 'learningObjects';
 type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati' | 'riservati' | 'test';
@@ -30,6 +34,13 @@ export default function ContentManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [selectedLOs, setSelectedLOs] = useState<Set<number>>(new Set());
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    hours: 0,
+    totalElearning: 0,
+    maxExecutionTime: 90,
+    percentageToPass: 80
+  });
   const [, navigate] = useLocation();
   const { user, logout } = useAuth();
   const { toast } = useToast();
@@ -161,6 +172,33 @@ export default function ContentManagement() {
       toast({ title: "Errore", description: "Impossibile aggiornare la modalità", variant: "destructive" });
     },
   });
+
+  const updateDurationsMutation = useMutation({
+    mutationFn: async (data: { hours: number; totalElearning: number; maxExecutionTime: number; percentageToPass: number }) => {
+      if (!selectedCourseId) throw new Error("Nessun corso selezionato");
+      return apiRequest('PATCH', `/api/learning-projects/${selectedCourseId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      setEditOpen(false);
+      toast({ title: "Corso aggiornato", description: "Le modifiche sono state salvate" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile salvare le modifiche", variant: "destructive" });
+    },
+  });
+
+  const openEditDialog = () => {
+    if (selectedProject) {
+      setEditForm({
+        hours: selectedProject.hours || 0,
+        totalElearning: selectedProject.totalElearning || 0,
+        maxExecutionTime: selectedProject.maxExecutionTime || 90,
+        percentageToPass: selectedProject.percentageToPass || 80
+      });
+      setEditOpen(true);
+    }
+  };
 
   const updateRiskLevelMutation = useMutation({
     mutationFn: async ({ projectId, riskLevel }: { projectId: number; riskLevel: string }) => {
@@ -555,7 +593,7 @@ export default function ContentManagement() {
               <div className="h-full flex flex-col">
                 <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-1 shadow-sm flex-wrap">
                   <ActionButton icon={<FileText size={13} />}>Dettaglio corso</ActionButton>
-                  <ActionButton icon={<Edit size={13} />}>Modifica</ActionButton>
+                  <ActionButton icon={<Edit size={13} />} onClick={openEditDialog}>Modifica</ActionButton>
                   <ActionButton icon={<List size={13} />}>Aggiungi modulo</ActionButton>
                   <ActionButton icon={<List size={13} />}>Visualizza domande</ActionButton>
                   <ActionButton icon={<Settings size={13} />}>Modifica listino prezzi</ActionButton>
@@ -1085,6 +1123,75 @@ export default function ContentManagement() {
           </div>
         </div>
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="bg-white border-gray-200">
+          <DialogHeader>
+            <DialogTitle className="text-gray-800">Modifica Parametri Corso</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hours">Durata totale (ore)</Label>
+                <Input
+                  id="hours"
+                  type="number"
+                  value={editForm.hours}
+                  onChange={(e) => setEditForm({...editForm, hours: Number(e.target.value)})}
+                  data-testid="input-hours"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="totalElearning">E-learning (ore)</Label>
+                <Input
+                  id="totalElearning"
+                  type="number"
+                  value={editForm.totalElearning}
+                  onChange={(e) => setEditForm({...editForm, totalElearning: Number(e.target.value)})}
+                  data-testid="input-elearning"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="maxExecutionTime">Tempo max conclusione (giorni)</Label>
+                <Input
+                  id="maxExecutionTime"
+                  type="number"
+                  value={editForm.maxExecutionTime}
+                  onChange={(e) => setEditForm({...editForm, maxExecutionTime: Number(e.target.value)})}
+                  data-testid="input-max-time"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="percentageToPass">Soglia superamento (%)</Label>
+                <Input
+                  id="percentageToPass"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={editForm.percentageToPass}
+                  onChange={(e) => setEditForm({...editForm, percentageToPass: Number(e.target.value)})}
+                  data-testid="input-percentage"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Annulla
+            </Button>
+            <Button 
+              onClick={() => updateDurationsMutation.mutate(editForm)}
+              disabled={updateDurationsMutation.isPending}
+              data-testid="button-save-course"
+            >
+              <Save className="h-4 w-4 mr-1" />
+              {updateDurationsMutation.isPending ? "Salvataggio..." : "Salva"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
