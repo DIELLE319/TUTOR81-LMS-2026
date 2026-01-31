@@ -921,13 +921,26 @@ export default function ContentManagement() {
                 <PlayCircle size={24} className="text-[#4a90a4]" />
                 Learning Objects ({learningObjects.length})
               </h2>
-              <div className="flex gap-2 text-xs">
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
-                  In uso: {learningObjects.filter(lo => lo.inUse).length}
-                </span>
-                <span className="px-2 py-1 bg-red-100 text-red-700 rounded">
-                  Non in uso: {learningObjects.filter(lo => !lo.inUse).length}
-                </span>
+              <div className="flex items-center gap-4">
+                <select 
+                  className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                  defaultValue=""
+                >
+                  <option value="">Tutte le categorie</option>
+                  <option value="sicurezza">SICUREZZA</option>
+                  <option value="informatica">INFORMATICA</option>
+                  <option value="haccp">HACCP</option>
+                  <option value="231">231</option>
+                  <option value="hr">HR</option>
+                </select>
+                <div className="flex gap-2 text-xs">
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                    In uso: {learningObjects.filter(lo => lo.inUse).length}
+                  </span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded">
+                    Non in uso: {learningObjects.filter(lo => !lo.inUse).length}
+                  </span>
+                </div>
               </div>
             </div>
             
