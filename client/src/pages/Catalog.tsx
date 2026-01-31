@@ -224,7 +224,7 @@ export default function Catalog() {
         </div>
       </div>
 
-      <div className="p-6 max-w-[1600px] mx-auto">
+      <div className="p-6">
         {isLoading ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
