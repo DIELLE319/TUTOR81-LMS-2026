@@ -177,14 +177,14 @@ export default function Catalog() {
 
   return (
     <div className="bg-gray-100 min-h-screen font-sans">
-      <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a87] border-b border-gray-700 px-6 py-4">
+      <div className="bg-gradient-to-r from-[#1a1a1a] to-[#2d2d2d] border-b border-gray-700 px-6 py-4">
         <div className="max-w-[1600px] mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-xl font-bold text-white" data-testid="text-catalog-title">
                 Catalogo Corsi E-Learning
               </h1>
-              <p className="text-blue-200 text-sm mt-1">Seleziona i corsi da vendere ai tuoi clienti</p>
+              <p className="text-yellow-400/80 text-sm mt-1">Seleziona i corsi da vendere ai tuoi clienti</p>
             </div>
             <div className="relative w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -193,7 +193,7 @@ export default function Catalog() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Cerca corso per nome..." 
-                className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent shadow-sm"
+                className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent shadow-sm"
                 data-testid="input-search-catalog"
               />
             </div>
@@ -238,7 +238,7 @@ export default function Catalog() {
         ) : (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <table className="w-full text-sm">
-              <thead className="bg-gray-800 text-white">
+              <thead className="bg-[#1a1a1a] text-white">
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Sottocategoria</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Tipo</th>
@@ -258,18 +258,18 @@ export default function Catalog() {
                 {groupedCourses.map(group => (
                   <tbody key={group.category}>
                     <tr 
-                      className="bg-[#1e3a5f] cursor-pointer hover:bg-[#2d5a87] transition-colors"
+                      className="bg-[#2d2d2d] cursor-pointer hover:bg-[#3d3d3d] transition-colors"
                       onClick={() => toggleCategory(group.category)}
                     >
                       <td colSpan={8} className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           {expandedCategories.has(group.category) ? (
-                            <ChevronUp size={18} className="text-white" />
+                            <ChevronUp size={18} className="text-yellow-400" />
                           ) : (
-                            <ChevronDown size={18} className="text-white" />
+                            <ChevronDown size={18} className="text-yellow-400" />
                           )}
-                          <span className="font-bold text-white text-sm uppercase tracking-wide">{group.category}</span>
-                          <span className="bg-white/20 text-white text-xs px-2.5 py-0.5 rounded-full font-medium">{group.courses.length} corsi</span>
+                          <span className="font-bold text-yellow-400 text-sm uppercase tracking-wide">{group.category}</span>
+                          <span className="bg-yellow-400/20 text-yellow-400 text-xs px-2.5 py-0.5 rounded-full font-medium">{group.courses.length} corsi</span>
                         </div>
                       </td>
                     </tr>
@@ -281,7 +281,7 @@ export default function Catalog() {
                       return (
                         <tr
                           key={course.id}
-                          className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                          className={`border-b border-gray-100 hover:bg-yellow-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                           data-testid={`row-course-${course.id}`}
                         >
                           <td className="px-3 py-2.5">
@@ -311,7 +311,7 @@ export default function Catalog() {
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <button 
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 mx-auto"
+                              className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1.5 mx-auto"
                               data-testid={`button-sell-${course.id}`}
                             >
                               <ShoppingCart size={14} />
