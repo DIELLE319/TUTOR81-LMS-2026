@@ -133,6 +133,7 @@ export default function Users() {
             <thead>
               <tr className="bg-gray-100 text-left text-xs text-gray-600 uppercase">
                 <th className="px-3 py-2 font-medium">ID</th>
+                <th className="px-3 py-2 font-medium">Codice Fiscale</th>
                 <th className="px-3 py-2 font-medium">Ente Formativo</th>
                 <th className="px-3 py-2 font-medium">Azienda</th>
                 <th className="px-3 py-2 font-medium">Email</th>
@@ -148,6 +149,9 @@ export default function Users() {
                 >
                   <td className="px-3 py-1.5 font-mono text-xs text-gray-500">
                     {user.id.substring(0, 8)}
+                  </td>
+                  <td className="px-3 py-1.5 font-mono text-xs text-gray-600">
+                    {user.fiscalCode || '-'}
                   </td>
                   <td className="px-3 py-1.5 text-xs">
                     {user.tutorName || '-'}
