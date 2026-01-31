@@ -132,6 +132,7 @@ export default function Users() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-100 text-left text-xs text-gray-600 uppercase">
+                <th className="px-2 py-2 w-8"></th>
                 <th className="px-3 py-2 font-medium">ID</th>
                 <th className="px-3 py-2 font-medium">Nome</th>
                 <th className="px-3 py-2 font-medium">Cognome</th>
@@ -149,6 +150,13 @@ export default function Users() {
                   onClick={() => openUserModal(user)}
                   data-testid={`row-user-${user.id}`}
                 >
+                  <td className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-gray-300"
+                      data-testid={`checkbox-user-${user.id}`}
+                    />
+                  </td>
                   <td className="px-3 py-1.5 font-mono text-xs text-gray-500">
                     {user.id.substring(0, 8)}
                   </td>
