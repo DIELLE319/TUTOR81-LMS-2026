@@ -16,6 +16,7 @@ import Certificates from "@/pages/Certificates";
 import CreateCompany from "@/pages/CreateCompany";
 import ActivatedCourses from "@/pages/ActivatedCourses";
 import Invoicing from "@/pages/Invoicing";
+import ContentManagement from "@/pages/ContentManagement";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -152,6 +153,10 @@ function Router() {
             <p className="text-gray-500 mt-2">Funzionalità in arrivo...</p>
           </div>
         </ProtectedRoute>
+      </Route>
+
+      <Route path="/content-management">
+        <ProtectedRoute><ContentManagement /></ProtectedRoute>
       </Route>
 
       <Route path="/">

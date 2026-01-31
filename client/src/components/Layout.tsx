@@ -151,6 +151,14 @@ export default function Layout({ children }: LayoutProps) {
                 <MenuItem to="/users/import" label="Importa Utenti" iconName="Upload" />
               </>
             )}
+
+            {/* CONTENT MANAGEMENT - Solo Super Admin */}
+            {isSuperAdmin && (
+              <>
+                <SectionHeader title="CONTENT MANAGEMENT" />
+                <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" color="text-cyan-400" />
+              </>
+            )}
             
             {/* Referente: gestisce utenti della sua azienda */}
             {isReferente && (
