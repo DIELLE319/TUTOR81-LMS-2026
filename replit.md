@@ -8,6 +8,18 @@ The platform supports multiple user roles including administrators, tutors, and 
 
 ## Recent Changes (January 31, 2026)
 
+- **Course Structure Imported**: Full hierarchical structure from legacy system
+  - **Junction Tables**: `course_modules` (644), `module_lessons` (2505), `lesson_learning_objects` (6769)
+  - **Data**: 649 modules, 1603 lessons imported with legacy_id mapping
+  - **Mapping**: legacy_course_id → learning_project_id (634/644 resolved via fuzzy title matching)
+  - **View Page**: `/course-structure/:id` - shows modules > lessons > learning objects tree
+  
+- **Legacy Course Structure Display** (from old system):
+  - MODULI INSERITI: Each module shows duration, description, "Modifica modulo" button
+  - LEZIONI INSERITE: Each lesson shows ID, title, calculated duration
+  - Learning Objects: Icon by type (video, slide, document), ID, title, duration in parentheses
+  - Durations shown as "durata calc.: X min" or "X ora Y min"
+  
 - **Database Restructure**: Merged `courses` table into `learning_projects`
   - Unified 293 records (1:1 relationship previously)
   - `modules` and `tests` now reference `learning_project_id` instead of `course_id`
