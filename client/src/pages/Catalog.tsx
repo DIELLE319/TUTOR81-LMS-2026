@@ -182,7 +182,7 @@ export default function Catalog() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-xl font-bold text-white" data-testid="text-catalog-title">
-                Catalogo Corsi E-Learning
+                Catalogo Corsi E-Learning e Videoconferenza
               </h1>
               <p className="text-yellow-400/80 text-sm mt-1">Seleziona i corsi da vendere ai tuoi clienti</p>
             </div>
