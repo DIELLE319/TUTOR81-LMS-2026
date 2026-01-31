@@ -368,32 +368,26 @@ export async function registerRoutes(
         WHERE tp.tutor_id = ${tutorId}
           AND tp.creation_date >= ${startDate}
           AND tp.creation_date <= ${endDate}
-        ORDER BY tp.creation_date
+        ORDER BY tp.id
       `);
       
-      // Group by course ID and calculate totals
-      const coursesSummary: Record<number, { courseId: number; qty: number; unitPrice: number; total: number }> = {};
+      // Build list of individual orders
+      const orders: Array<{ orderId: number; courseId: number; qty: number; price: number; total: number }> = [];
       let grandTotal = 0;
       
       for (const sale of sales.rows) {
+        const orderId = (sale.id as number) || 0;
         const courseId = (sale.course_id as number) || 0;
         const qty = (sale.qta as number) || 1;
         const price = parseFloat(String(sale.price || 0));
         const lineTotal = qty * price;
         
-        if (!coursesSummary[courseId]) {
-          coursesSummary[courseId] = { courseId, qty: 0, unitPrice: price, total: 0 };
-        }
-        coursesSummary[courseId].qty += qty;
-        coursesSummary[courseId].total += lineTotal;
+        orders.push({ orderId, courseId, qty, price, total: lineTotal });
         grandTotal += lineTotal;
       }
       
       const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 
                           'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
-      
-      // Sort courses by ID
-      const sortedCourses = Object.values(coursesSummary).sort((a, b) => a.courseId - b.courseId);
       
       res.json({
         tutor: {
@@ -410,7 +404,7 @@ export async function registerRoutes(
           monthName: monthNames[month - 1],
           label: `${monthNames[month - 1]} ${year}`
         },
-        courses: sortedCourses,
+        orders,
         totalSales: sales.rows.length,
         grandTotal,
         generatedAt: new Date().toISOString(),

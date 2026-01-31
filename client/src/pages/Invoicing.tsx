@@ -23,10 +23,11 @@ type InvoiceData = {
     monthName: string;
     label: string;
   };
-  courses: Array<{
+  orders: Array<{
+    orderId: number;
     courseId: number;
     qty: number;
-    unitPrice: number;
+    price: number;
     total: number;
   }>;
   totalSales: number;
@@ -201,7 +202,7 @@ export default function Invoicing() {
           <div ref={printRef} className="p-6">
             <div className="header">
               <h1>TUTOR81 LMS</h1>
-              <p style={{ margin: '10px 0 0 0', color: '#666' }}>Riepilogo Corsi Venduti</p>
+              <p style={{ margin: '10px 0 0 0', color: '#666' }}>Acquisti del mese {invoiceData.period.label}</p>
             </div>
 
             <div className="info-section" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
@@ -237,28 +238,30 @@ export default function Invoicing() {
               </div>
             </div>
 
-            {invoiceData.courses.length > 0 ? (
+            {invoiceData.orders.length > 0 ? (
               <>
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
                   <thead>
                     <tr>
+                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'left', border: '1px solid #444', width: '100px' }}>ID Ordine</th>
                       <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'left', border: '1px solid #444', width: '100px' }}>ID Corso</th>
-                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'center', border: '1px solid #444', width: '80px' }}>Qtà</th>
-                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'right', border: '1px solid #444', width: '120px' }}>Prezzo Unit.</th>
-                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'right', border: '1px solid #444', width: '120px' }}>Totale</th>
+                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'center', border: '1px solid #444', width: '60px' }}>Qtà</th>
+                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'right', border: '1px solid #444', width: '100px' }}>Prezzo</th>
+                      <th style={{ background: '#EAB308', color: 'black', padding: '12px', textAlign: 'right', border: '1px solid #444', width: '100px' }}>Totale</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {invoiceData.courses.map((course, idx) => (
+                    {invoiceData.orders.map((order, idx) => (
                       <tr key={idx} style={{ background: idx % 2 === 0 ? '#1e1e1e' : '#252525' }}>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', fontFamily: 'monospace' }}>#{course.courseId}</td>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'center' }}>{course.qty}</td>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'right' }}>{formatCurrency(course.unitPrice)}</td>
-                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'right' }}>{formatCurrency(course.total)}</td>
+                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', fontFamily: 'monospace' }}>#{order.orderId}</td>
+                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', fontFamily: 'monospace' }}>#{order.courseId}</td>
+                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'center' }}>{order.qty}</td>
+                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'right' }}>{formatCurrency(order.price)}</td>
+                        <td style={{ padding: '12px', border: '1px solid #444', color: 'white', textAlign: 'right' }}>{formatCurrency(order.total)}</td>
                       </tr>
                     ))}
                     <tr style={{ background: '#3d3400' }}>
-                      <td colSpan={3} style={{ padding: '12px', border: '1px solid #444', color: '#EAB308', fontWeight: 'bold', textAlign: 'right' }}>TOTALE</td>
+                      <td colSpan={4} style={{ padding: '12px', border: '1px solid #444', color: '#EAB308', fontWeight: 'bold', textAlign: 'right' }}>TOTALE</td>
                       <td style={{ padding: '12px', border: '1px solid #444', color: '#EAB308', fontWeight: 'bold', textAlign: 'right', fontSize: '18px' }}>{formatCurrency(invoiceData.grandTotal)}</td>
                     </tr>
                   </tbody>
