@@ -648,7 +648,7 @@ export default function ContentManagement() {
                           (ID:{selectedProject.id}) {formatCourseTitle(selectedProject.title).toUpperCase()}
                         </h2>
                       <div className="flex gap-2">
-                        <button className="bg-green-500 hover:bg-green-600 text-white text-[11px] px-4 py-1 rounded flex items-center gap-1 font-semibold">
+                        <button className="bg-yellow-500 hover:bg-yellow-600 text-white text-[11px] px-4 py-1 rounded flex items-center gap-1 font-semibold">
                           <Save size={12} /> Salva
                         </button>
                         <button className="bg-white/20 hover:bg-white/30 text-white text-[11px] px-3 py-1 rounded flex items-center gap-1">
