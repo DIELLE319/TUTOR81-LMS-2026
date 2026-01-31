@@ -83,6 +83,32 @@ export default function ContentManagement() {
     },
   });
 
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ projectId, category }: { projectId: number; category: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/category`, { category });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Categoria aggiornata" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare la categoria", variant: "destructive" });
+    },
+  });
+
+  const updateSubcategoryMutation = useMutation({
+    mutationFn: async ({ projectId, subcategory }: { projectId: number; subcategory: string }) => {
+      return apiRequest('PATCH', `/api/learning-projects/${projectId}/subcategory`, { subcategory });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Sottocategoria aggiornata" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile aggiornare la sottocategoria", variant: "destructive" });
+    },
+  });
+
   const getCourseCategory = (title: string) => {
     const t = title.toUpperCase();
     // Controlla prima i ruoli specifici (DIRIGENTE, PREPOSTO, RSPP) PRIMA di LAVORATORE
@@ -434,8 +460,59 @@ export default function ContentManagement() {
                           <DetailRow label="Data di creazione" value={selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'} />
                           <DetailRow label="Creato da" value="Superadmin Tutor81 (ID: 6)" />
                           <DetailRow label="Requisiti minimi per accedere al corso" value={selectedProject.prerequisites || "nessuno"} />
-                          <DetailRow label="Categoria" value={selectedProject.category || "sicurezza"} />
-                          <DetailRow label="Sottocategoria" value={selectedProject.subcategory || "lavoratore"} />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Categoria</td>
+                            <td className="py-2">
+                              <Select
+                                value={selectedProject.category || "SICUREZZA"}
+                                onValueChange={(value) => {
+                                  updateCategoryMutation.mutate({
+                                    projectId: selectedProject.id,
+                                    category: value
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="SICUREZZA">SICUREZZA</SelectItem>
+                                  <SelectItem value="HACCP">HACCP</SelectItem>
+                                  <SelectItem value="INFORMATICA">INFORMATICA</SelectItem>
+                                  <SelectItem value="HR">HR</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
+                          <tr className="border-b border-gray-100">
+                            <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Sottocategoria</td>
+                            <td className="py-2">
+                              <Select
+                                value={selectedProject.subcategory || "LAVORATORE"}
+                                onValueChange={(value) => {
+                                  updateSubcategoryMutation.mutate({
+                                    projectId: selectedProject.id,
+                                    subcategory: value
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[200px] h-8 text-[12px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="LAVORATORE">LAVORATORE</SelectItem>
+                                  <SelectItem value="PREPOSTO">PREPOSTO</SelectItem>
+                                  <SelectItem value="RSPP">RSPP</SelectItem>
+                                  <SelectItem value="ASPP">ASPP</SelectItem>
+                                  <SelectItem value="RLS">RLS</SelectItem>
+                                  <SelectItem value="DIRIGENTE">DIRIGENTE</SelectItem>
+                                  <SelectItem value="ANTINCENDIO">ANTINCENDIO</SelectItem>
+                                  <SelectItem value="PRIMO SOCCORSO">PRIMO SOCCORSO</SelectItem>
+                                  <SelectItem value="ALTRO">ALTRO</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
                           <DetailRow label="Tipo" value={selectedProject.courseType || getCourseType(selectedProject.title).label} />
                           <DetailRow label="Test in presenza" value="No" />
                           <DetailRow label="Rischio Azienda" value={selectedProject.riskLevel || "medio"} />

@@ -843,6 +843,46 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/learning-projects/:id/category", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id as string);
+      const { category } = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
+      }
+
+      await db.update(schema.learningProjects)
+        .set({ category: category })
+        .where(eq(schema.learningProjects.id, projectId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update category error:", error);
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+
+  app.patch("/api/learning-projects/:id/subcategory", isAuthenticated, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id as string);
+      const { subcategory } = req.body;
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID progetto non valido" });
+      }
+
+      await db.update(schema.learningProjects)
+        .set({ subcategory: subcategory })
+        .where(eq(schema.learningProjects.id, projectId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update subcategory error:", error);
+      res.status(500).json({ error: "Failed to update subcategory" });
+    }
+  });
+
   // Attestati endpoints
   app.get("/api/attestati", isAuthenticated, async (req, res) => {
     try {
