@@ -44,6 +44,13 @@ export default function Catalog() {
     return { label: 'Non Definito', color: 'bg-gray-400' };
   };
 
+  const getCourseDuration = (title: string, hours: number | null) => {
+    if (hours && hours > 0) return `${hours} ore`;
+    const match = title.match(/(\d+)\s*ore/i);
+    if (match) return `${match[1]} ore`;
+    return '-';
+  };
+
   const getCourseCategory = (title: string) => {
     const t = title.toUpperCase();
     if (t.includes('LAVORATORE') || t.includes('LAVORATORI')) return 'LAVORATORE';
@@ -142,8 +149,7 @@ export default function Catalog() {
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Rischio</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ID</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome Corso</th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Ore</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Corso Multimediale</th>
+                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Durata</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
                     <div>Listino</div>
                     <div className="text-[10px] font-normal text-gray-400">prezzo di vendita consigliato</div>
@@ -159,7 +165,7 @@ export default function Catalog() {
                       className="bg-blue-600 cursor-pointer hover:bg-blue-700"
                       onClick={() => toggleCategory(group.category)}
                     >
-                      <td colSpan={9} className="px-4 py-3">
+                      <td colSpan={8} className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {expandedCategories.has(group.category) ? (
                             <ChevronUp size={18} className="text-white" />
@@ -193,7 +199,7 @@ export default function Catalog() {
                           </td>
                           <td className="px-3 py-2 text-gray-500">{course.id}</td>
                           <td className="px-3 py-2 text-gray-800 font-medium">{course.title}</td>
-                          <td className="px-3 py-2 text-center text-gray-600">{course.hours || '-'}</td>
+                          <td className="px-3 py-2 text-center text-gray-600">{getCourseDuration(course.title, course.hours)}</td>
                           <td className="px-3 py-2 text-right text-gray-700">{formatPrice(course.listPrice)}</td>
                           <td className="px-3 py-2 text-right text-green-600 font-medium">
                             {formatPrice(calculateTutorCost(course.listPrice))}
