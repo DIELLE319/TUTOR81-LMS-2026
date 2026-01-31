@@ -196,7 +196,7 @@ export default function ContentManagement() {
 
       {activeTab === 'catalogo' && (
         <div className="flex h-[calc(100vh-52px)]">
-          <aside className="w-[380px] bg-white border-r border-gray-300 flex flex-col shadow-sm">
+          <aside className="w-[480px] bg-white border-r border-gray-300 flex flex-col shadow-sm">
             <div className="p-3 border-b border-gray-200 bg-gray-50">
               <div className="flex gap-1.5 mb-3">
                 <StatusButton 
