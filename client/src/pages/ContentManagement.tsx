@@ -21,7 +21,6 @@ export default function ContentManagement() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('attivi');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
-  const [typeFilter, setTypeFilter] = useState<'generico' | 'specifico' | 'demo' | 'test' | null>(null);
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
@@ -122,11 +121,9 @@ export default function ContentManagement() {
       } else if (statusFilter === 'sospesi') {
         matchesStatus = p.isPublishedInEcommerce === 2;
       }
-      const category = getCourseCategory(p.title);
-      const matchesCategory = !typeFilter || category === typeFilter;
-      return matchesSearch && matchesStatus && matchesCategory;
+      return matchesSearch && matchesStatus;
     });
-  }, [projects, searchTerm, statusFilter, typeFilter]);
+  }, [projects, searchTerm, statusFilter]);
 
   const groupedProjects = useMemo(() => {
     const groups: { [key: string]: typeof filteredProjects } = {};
