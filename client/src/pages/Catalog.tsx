@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
 import type { LearningProject } from '@shared/schema';
+import SellCourseModal from '@/components/SellCourseModal';
 
 // Keywords per identificare corsi di test/demo
 const TEST_KEYWORDS = ['komplett', 'trops', 'innovyn', 'inovyn', 'prova', 'test', 'italpress'];
@@ -54,6 +55,13 @@ export default function Catalog() {
   const [selectedCategory, setSelectedCategory] = useState('TUTTI');
   const [selectedType, setSelectedType] = useState('TUTTI');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['LAVORATORE']));
+  const [sellModalOpen, setSellModalOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<LearningProject | null>(null);
+
+  const handleSellClick = (course: LearningProject) => {
+    setSelectedCourse(course);
+    setSellModalOpen(true);
+  };
 
   const { data: projects = [], isLoading } = useQuery<LearningProject[]>({
     queryKey: ['/api/learning-projects'],
@@ -366,6 +374,7 @@ export default function Catalog() {
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <button 
+                              onClick={() => handleSellClick(course)}
                               className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1.5 mx-auto"
                               data-testid={`button-sell-${course.id}`}
                             >
@@ -397,6 +406,12 @@ export default function Catalog() {
           </div>
         </div>
       </div>
+
+      <SellCourseModal
+        isOpen={sellModalOpen}
+        onClose={() => setSellModalOpen(false)}
+        course={selectedCourse}
+      />
     </div>
   );
 }
