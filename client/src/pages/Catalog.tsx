@@ -10,8 +10,48 @@ const isTestCourse = (title: string) => {
   return TEST_KEYWORDS.some(keyword => lowerTitle.includes(keyword));
 };
 
+const CATEGORIES = [
+  { key: 'TUTTI', label: 'Tutti' },
+  { key: 'LAVORATORE', label: 'Lavoratore' },
+  { key: 'PREPOSTO', label: 'Preposto' },
+  { key: 'DIRIGENTE', label: 'Dirigente' },
+  { key: 'RSPP/ASPP', label: 'RSPP/ASPP' },
+  { key: 'RLS', label: 'RLS' },
+  { key: 'CARRELLO ELEVATORE', label: 'Carrello' },
+  { key: 'ANTINCENDIO', label: 'Antincendio' },
+  { key: 'PRIMO SOCCORSO', label: 'Primo Soccorso' },
+  { key: 'HACCP', label: 'HACCP' },
+  { key: 'PRIVACY/GDPR', label: 'Privacy' },
+  { key: 'D.LGS 231', label: '231' },
+];
+
+const getCourseCategory = (title: string) => {
+  const t = title.toUpperCase();
+  if (t.includes('DIRIGENTE') || t.includes('EL03')) return 'DIRIGENTE';
+  if (t.includes('PREPOSTO') || t.includes('EL02')) return 'PREPOSTO';
+  if (t.includes('RSPP') || t.includes('ASPP') || t.includes('DATORE DI LAVORO') || t.includes('EL04') || t.includes('EL05')) return 'RSPP/ASPP';
+  if (t.includes('RLS') || t.includes('EL07')) return 'RLS';
+  if (t.includes('CARRELLO') || t.includes('MULETTO') || t.includes('ELEVATORE')) return 'CARRELLO ELEVATORE';
+  if (t.includes('PLE') || t.includes('PIATTAFORM')) return 'PLE';
+  if (t.includes('GRU') || t.includes('SOLLEVAMENTO')) return 'APPARECCHI SOLLEVAMENTO';
+  if (t.includes('PONTEGGI') || t.includes('LAVORI IN QUOTA')) return 'LAVORI IN QUOTA';
+  if (t.includes('ANTINCENDIO') || t.includes('EL08')) return 'ANTINCENDIO';
+  if (t.includes('PRIMO SOCCORSO') || t.includes('SOCCORSO') || t.includes('EL09')) return 'PRIMO SOCCORSO';
+  if (t.includes('HACCP') || t.includes('ALIMENTAR')) return 'HACCP';
+  if (t.includes('PRIVACY') || t.includes('GDPR')) return 'PRIVACY/GDPR';
+  if (t.includes('231') || t.includes('ORGANIZZATIVO') || t.includes('MOG')) return 'D.LGS 231';
+  if (t.includes('STRESS') || t.includes('MOBBING')) return 'RISCHI PSICOSOCIALI';
+  if (t.includes('AMIANTO')) return 'AMIANTO';
+  if (t.includes('ELETTRIC')) return 'RISCHIO ELETTRICO';
+  if (t.includes('SPAZI CONFINATI')) return 'SPAZI CONFINATI';
+  if (t.includes('PARITA') || t.includes('GENERE')) return 'PARITÀ DI GENERE';
+  if (t.includes('LAVORATORE') || t.includes('LAVORATORI') || t.includes('EL01')) return 'LAVORATORE';
+  return 'ALTRI CORSI';
+};
+
 export default function Catalog() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('TUTTI');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['LAVORATORE']));
 
   const { data: projects = [], isLoading } = useQuery<LearningProject[]>({
@@ -31,9 +71,10 @@ export default function Catalog() {
     return publishedCourses.filter(c => {
       const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             c.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch;
+      const matchesCategory = selectedCategory === 'TUTTI' || getCourseCategory(c.title) === selectedCategory;
+      return matchesSearch && matchesCategory;
     });
-  }, [publishedCourses, searchTerm]);
+  }, [publishedCourses, searchTerm, selectedCategory]);
 
   const formatCourseTitle = (title: string) => {
     const dashIndex = title.indexOf(' - ');
@@ -88,30 +129,6 @@ export default function Catalog() {
     return '-';
   };
 
-  const getCourseCategory = (title: string) => {
-    const t = title.toUpperCase();
-    if (t.includes('DIRIGENTE') || t.includes('EL03')) return 'DIRIGENTE';
-    if (t.includes('PREPOSTO') || t.includes('EL02')) return 'PREPOSTO';
-    if (t.includes('RSPP') || t.includes('ASPP') || t.includes('DATORE DI LAVORO') || t.includes('EL04') || t.includes('EL05')) return 'RSPP/ASPP';
-    if (t.includes('RLS') || t.includes('EL07')) return 'RLS';
-    if (t.includes('CARRELLO') || t.includes('MULETTO') || t.includes('ELEVATORE')) return 'CARRELLO ELEVATORE';
-    if (t.includes('PLE') || t.includes('PIATTAFORM')) return 'PLE';
-    if (t.includes('GRU') || t.includes('SOLLEVAMENTO')) return 'APPARECCHI SOLLEVAMENTO';
-    if (t.includes('PONTEGGI') || t.includes('LAVORI IN QUOTA')) return 'LAVORI IN QUOTA';
-    if (t.includes('ANTINCENDIO') || t.includes('EL08')) return 'ANTINCENDIO';
-    if (t.includes('PRIMO SOCCORSO') || t.includes('SOCCORSO') || t.includes('EL09')) return 'PRIMO SOCCORSO';
-    if (t.includes('HACCP') || t.includes('ALIMENTAR')) return 'HACCP';
-    if (t.includes('PRIVACY') || t.includes('GDPR')) return 'PRIVACY/GDPR';
-    if (t.includes('231') || t.includes('ORGANIZZATIVO') || t.includes('MOG')) return 'D.LGS 231';
-    if (t.includes('STRESS') || t.includes('MOBBING')) return 'RISCHI PSICOSOCIALI';
-    if (t.includes('AMIANTO')) return 'AMIANTO';
-    if (t.includes('ELETTRIC')) return 'RISCHIO ELETTRICO';
-    if (t.includes('SPAZI CONFINATI')) return 'SPAZI CONFINATI';
-    if (t.includes('PARITA') || t.includes('GENERE')) return 'PARITÀ DI GENERE';
-    if (t.includes('LAVORATORE') || t.includes('LAVORATORI') || t.includes('EL01')) return 'LAVORATORE';
-    return 'ALTRI CORSI';
-  };
-
   const groupedCourses = useMemo(() => {
     const groups: { [key: string]: LearningProject[] } = {};
     
@@ -161,23 +178,48 @@ export default function Catalog() {
   return (
     <div className="bg-gray-100 min-h-screen font-sans">
       <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a87] border-b border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between max-w-[1600px] mx-auto">
-          <div>
-            <h1 className="text-xl font-bold text-white" data-testid="text-catalog-title">
-              Catalogo Corsi E-Learning
-            </h1>
-            <p className="text-blue-200 text-sm mt-1">Seleziona i corsi da vendere ai tuoi clienti</p>
+        <div className="max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-xl font-bold text-white" data-testid="text-catalog-title">
+                Catalogo Corsi E-Learning
+              </h1>
+              <p className="text-blue-200 text-sm mt-1">Seleziona i corsi da vendere ai tuoi clienti</p>
+            </div>
+            <div className="relative w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Cerca corso per nome..." 
+                className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent shadow-sm"
+                data-testid="input-search-catalog"
+              />
+            </div>
           </div>
-          <div className="relative w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cerca corso per nome..." 
-              className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent shadow-sm"
-              data-testid="input-search-catalog"
-            />
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-white/70 text-xs font-medium uppercase mr-2">Categoria:</span>
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat.key}
+                onClick={() => {
+                  setSelectedCategory(cat.key);
+                  if (cat.key !== 'TUTTI') {
+                    setExpandedCategories(new Set([cat.key]));
+                  }
+                }}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                  selectedCategory === cat.key
+                    ? 'bg-yellow-500 text-gray-900'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                data-testid={`btn-category-${cat.key}`}
+              >
+                {cat.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
