@@ -78,7 +78,8 @@ export default function Invoicing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
-      toast({ title: "Fattura salvata", description: "La fattura è stata archiviata con successo" });
+      setSelectedTutor(null);
+      toast({ title: "Fattura archiviata", description: "La fattura è stata chiusa e archiviata con successo" });
     },
     onError: (error: any) => {
       toast({ title: "Errore", description: error.message || "Fattura già salvata per questo periodo", variant: "destructive" });
