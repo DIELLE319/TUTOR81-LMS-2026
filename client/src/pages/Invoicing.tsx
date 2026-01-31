@@ -242,9 +242,12 @@ export default function Invoicing() {
               <tbody>
                 <tr>
                   <td style={{ padding: '20px 15px', borderBottom: '1px solid #eee', fontSize: '14px', color: '#333' }}>
-                    Acquisti e-learning mese di {invoiceData.period.label.toLowerCase()} piattaforma LMS TUTOR81
+                    <p style={{ margin: '0 0 10px 0' }}>Acquisti e-learning mese di {invoiceData.period.label.toLowerCase()} piattaforma LMS TUTOR81</p>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
+                      Ordini: {invoiceData.orders.map(o => `#${o.orderId}`).join(', ')}
+                    </p>
                   </td>
-                  <td style={{ padding: '20px 15px', borderBottom: '1px solid #eee', textAlign: 'right', fontSize: '14px', color: '#333' }}>
+                  <td style={{ padding: '20px 15px', borderBottom: '1px solid #eee', textAlign: 'right', fontSize: '14px', color: '#333', verticalAlign: 'top' }}>
                     {formatCurrency(invoiceData.grandTotal)}
                   </td>
                 </tr>
