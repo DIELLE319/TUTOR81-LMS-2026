@@ -56,9 +56,13 @@ export async function registerRoutes(
           firstName: schema.users.firstName,
           lastName: schema.users.lastName,
           email: schema.users.email,
+          role: schema.users.role,
         })
           .from(schema.users)
-          .where(eq(schema.users.idcompany, tutor.id));
+          .where(and(
+            eq(schema.users.idcompany, tutor.id),
+            sql`${schema.users.role} > 0`
+          ));
         
         return { ...tutor, admins };
       }));
