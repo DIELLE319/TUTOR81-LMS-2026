@@ -808,6 +808,7 @@ export default function ContentManagement() {
                                     <SelectItem value="UFFICI">UFFICI</SelectItem>
                                   </SelectContent>
                                 </Select>
+                                <button className="text-[11px] text-[#4a90a4] hover:text-[#3a7084] font-medium">+ settore</button>
                               </div>
                             </td>
                           </tr>
