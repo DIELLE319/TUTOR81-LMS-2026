@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle, Mail, Printer, Save, ChevronDown, ChevronRight, Video, FileSliders, FileQuestion, Eye, EyeOff } from 'lucide-react';
+import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle, Mail, Printer, Save, ChevronDown, ChevronRight, Video, FileSliders, FileQuestion, Eye, EyeOff, ClipboardCheck } from 'lucide-react';
 import type { LearningProject, Company, LearningObject } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -1184,11 +1184,11 @@ export default function ContentManagement() {
                                                     {lesson.learningObjects.map((lo) => {
                                                       const getLoIcon = (type: string) => {
                                                         switch(type?.toLowerCase()) {
-                                                          case 'video': return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-blue-500 text-white text-[9px] font-bold rounded">VIDEO</span>;
-                                                          case 'slide': return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-orange-400 text-white text-[9px] font-bold rounded">SLIDE</span>;
-                                                          case 'document': return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-green-500 text-white text-[9px] font-bold rounded">DOC</span>;
-                                                          case 'test': return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-purple-500 text-white text-[9px] font-bold rounded">TEST</span>;
-                                                          default: return <span className="inline-flex items-center justify-center w-[50px] h-[18px] bg-gray-400 text-white text-[9px] font-bold rounded">LO</span>;
+                                                          case 'video': return <PlayCircle className="w-6 h-6 text-blue-500 flex-shrink-0" />;
+                                                          case 'slide': return <FileSliders className="w-6 h-6 text-orange-400 flex-shrink-0" />;
+                                                          case 'document': return <FileText className="w-6 h-6 text-green-500 flex-shrink-0" />;
+                                                          case 'test': return <FileQuestion className="w-6 h-6 text-purple-500 flex-shrink-0" />;
+                                                          default: return <Film className="w-6 h-6 text-gray-400 flex-shrink-0" />;
                                                         }
                                                       };
                                                       return (
