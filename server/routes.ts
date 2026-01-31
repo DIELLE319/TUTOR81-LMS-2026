@@ -944,6 +944,15 @@ export async function registerRoutes(
                     Per qualsiasi necessità contattaci a info@tutor81.com
                   </p>
                 </div>
+                <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
+                  <p style="color: #888; font-size: 11px; margin: 0 0 10px 0;">
+                    Tutor81 S.r.l. - Via Example 123, 00100 Roma<br>
+                    P.IVA: 12345678901 - Tel: +39 02 1234567
+                  </p>
+                  <p style="color: #666; font-size: 10px; margin: 0;">
+                    Questa email è stata inviata automaticamente. Per info: corsi@tutor81.it
+                  </p>
+                </div>
                 <img src="${trackingPixelUrl}" width="1" height="1" style="display:none;" alt="" />
               </div>
             `,
