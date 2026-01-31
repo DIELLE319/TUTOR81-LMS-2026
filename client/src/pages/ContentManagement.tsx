@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, HelpCircle, LogOut } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle } from 'lucide-react';
 import type { Course, LearningProject } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 type Tab = 'catalogo' | 'lezioni' | 'learningObjects';
 type StatusFilter = 'attivi' | 'sospesi' | 'nonPubblicati';
@@ -16,9 +18,38 @@ export default function ContentManagement() {
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [typeFilter, setTypeFilter] = useState<'generico' | 'specifico' | 'demo' | 'test' | null>(null);
   const { user, logout } = useAuth();
+  const { toast } = useToast();
 
   const { data: courses = [], isLoading: loadingCourses } = useQuery<Course[]>({
     queryKey: ['/api/courses'],
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: async (courseId: number) => {
+      return apiRequest('POST', `/api/courses/${courseId}/publish`);
+    },
+    onSuccess: (_, courseId) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Corso pubblicato!", description: "Il corso è ora disponibile nel catalogo" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile pubblicare il corso", variant: "destructive" });
+    },
+  });
+
+  const unpublishMutation = useMutation({
+    mutationFn: async (courseId: number) => {
+      return apiRequest('POST', `/api/courses/${courseId}/unpublish`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/learning-projects'] });
+      toast({ title: "Corso rimosso", description: "Il corso è tornato in bozza" });
+    },
+    onError: () => {
+      toast({ title: "Errore", description: "Impossibile rimuovere dalla pubblicazione", variant: "destructive" });
+    },
   });
 
   const { data: projects = [] } = useQuery<LearningProject[]>({
@@ -282,12 +313,36 @@ export default function ContentManagement() {
           <main className="flex-1 overflow-y-auto bg-[#f5f5f5]">
             {selectedCourse ? (
               <div className="h-full flex flex-col">
-                <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 shadow-sm">
+                <div className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2 shadow-sm flex-wrap">
                   <ActionButton icon={<FileText size={13} />}>Dettaglio corso</ActionButton>
                   <ActionButton icon={<Edit size={13} />}>Modifica</ActionButton>
                   <ActionButton icon={<PlayCircle size={13} />} primary>CORSO</ActionButton>
                   <ActionButton icon={<List size={13} />}>Visualizza domande</ActionButton>
                   <ActionButton icon={<Settings size={13} />}>Modifica listino prezzi</ActionButton>
+                  
+                  <div className="flex-1" />
+                  
+                  {selectedCourse.isPublished ? (
+                    <button
+                      onClick={() => unpublishMutation.mutate(selectedCourse.id)}
+                      disabled={unpublishMutation.isPending}
+                      className="px-4 py-1.5 text-[11px] font-medium rounded flex items-center gap-1.5 bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 shadow-sm transition-all"
+                      data-testid="btn-unpublish"
+                    >
+                      <XCircle size={13} />
+                      {unpublishMutation.isPending ? 'Rimozione...' : 'Rimuovi pubblicazione'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => publishMutation.mutate(selectedCourse.id)}
+                      disabled={publishMutation.isPending}
+                      className="px-4 py-1.5 text-[11px] font-medium rounded flex items-center gap-1.5 bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 shadow-sm transition-all"
+                      data-testid="btn-publish"
+                    >
+                      <Upload size={13} />
+                      {publishMutation.isPending ? 'Pubblicazione...' : 'Pubblica nel Catalogo'}
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4">
