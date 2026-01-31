@@ -95,12 +95,22 @@ export default function ContentManagement() {
     return 'ALTRI CORSI';
   };
 
-  const getCourseType = (title: string) => {
-    const t = title.toLowerCase();
-    if (t.includes('aggiornamento') || t.includes('agg.') || t.includes('agg ')) {
-      return 'Agg';
-    }
-    return 'Base';
+  const getCourseType = (title: string): { label: string; color: string } => {
+    const t = title.toUpperCase();
+    if (t.includes('LAVORATORE') || t.includes('LAVORATORI')) return { label: 'LAV', color: 'bg-blue-600' };
+    if (t.includes('PREPOSTO')) return { label: 'PRE', color: 'bg-purple-600' };
+    if (t.includes('DIRIGENTE')) return { label: 'DIR', color: 'bg-indigo-600' };
+    if (t.includes('RSPP') || t.includes('ASPP')) return { label: 'RSPP', color: 'bg-red-600' };
+    if (t.includes('RLS')) return { label: 'RLS', color: 'bg-orange-600' };
+    if (t.includes('CARRELLO') || t.includes('MULETTO')) return { label: 'CAR', color: 'bg-amber-600' };
+    if (t.includes('PLE')) return { label: 'PLE', color: 'bg-yellow-600' };
+    if (t.includes('ANTINCENDIO')) return { label: 'ANT', color: 'bg-red-500' };
+    if (t.includes('PRIMO SOCCORSO') || t.includes('PS')) return { label: 'PS', color: 'bg-green-600' };
+    if (t.includes('HACCP')) return { label: 'HAC', color: 'bg-teal-600' };
+    if (t.includes('PRIVACY') || t.includes('GDPR')) return { label: 'PRV', color: 'bg-gray-600' };
+    if (t.includes('231')) return { label: '231', color: 'bg-slate-600' };
+    if (t.includes('PARITA') || t.includes('GENERE')) return { label: 'PAR', color: 'bg-pink-600' };
+    return { label: 'GEN', color: 'bg-gray-500' };
   };
 
   const formatCourseTitle = (title: string) => {
@@ -282,10 +292,8 @@ export default function ContentManagement() {
                             data-testid={`row-cms-course-${project.id}`}
                           >
                             <td className="px-2 py-1">
-                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${
-                                type === 'Base' ? 'bg-[#3498db]' : 'bg-[#e67e22]'
-                              }`}>
-                                {type}
+                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold text-white ${type.color}`}>
+                                {type.label}
                               </span>
                             </td>
                             <td className={`px-2 py-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
