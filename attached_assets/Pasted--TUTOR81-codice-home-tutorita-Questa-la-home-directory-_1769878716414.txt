@@ -1,0 +1,138 @@
+  TUTOR81 codice
+
+
+
+ /home/tutorita/ - Questa è la home directory dell’utente. Questa directory contiene tutti i tipi di file. I file contenuti in questa directory non saranno visibili su Internet. Quando si visualizzano i file con FTP, Web Disk o File Manager, si inizierà in questa directory.
+
+
+/home/tutorita/public_ftp/ - Questa è la directory utilizzata per l’accesso FTP anonimo. Tutti gli utenti possono scaricare i file in questa directory se l’accesso FTP è attivato.
+
+￼
+/home/tutorita/public_html/ - La directory public_html contiene i file per il sito. I file in public_html e nelle sottodirectory di public_html potranno essere visualizzati da tutti gli utenti su Internet. “/home/tutorita/www/” è la stessa directory di “/home/tutorita/public_html/”.
+
+Quando i visitatori accedono a una sottodirectory della directory public_html, visualizzeranno la pagina di indice per tale sottodirectory. Quando si crea la pagina di indice, utilizzare uno dei nomi seguenti. Se il visitatore non specifica una pagina nell’URL, verrà visualizzata la prima pagina trovata che utilizza uno di questi nomi: 
+index.html.var
+index.htm
+index.html
+index.shtml
+index.xhtml
+index.wml
+index.perl
+index.pl
+index.plx
+index.ppl
+index.cgi
+index.jsp
+index.js
+index.jp
+index.php4
+index.php3
+index.php
+index.phtml
+default.htm
+default.html
+home.htm
+index.php5
+Default.html
+Default.htm
+home.html
+
+Le cartelle con i file dei siti si trovano sotto la directory
+
+/var/www/vhost/tutor81.com/
+
+sotto di essa ci sono le seguenti cartelle utili:
+
+hub         ---> il sito di amministrazione, quello di cui parlavamo ieri
+hubmedia    ---> il sito di creazione dei corsi
+hubplayer   ---> il sito di visualizzazione dei corsi
+media       ---> contiene file dei corsi e altro dati condivisi con tutti i siti.
+
+in particolare a voi ora interessa la cartella hub che contiene:
+
+- api               //embrione di un API da utilizzare con l'ecommerce
+- ckeditor          //un plugin text editor online
+- css               //i fogli di stile
+- download          //contiene file scaricabili
+- fonts             //contiene le glyphicons
+- graphs            //file php, un per ogni grafico, usano il plugin amcharts
+- images            //le glyphicons come sprites
+- js                //file e plugin javascript
+- lib               //classi per l'interrogazione del database e alcuni file specifici
+- manage            //file che gestiscono le chiamate ajax(POST) a cui restituiscono i dati richiesti
+- media             //vedi il commento a parte!! 
+- modals            //struttura e, a volte, contenuto di modals bootstrap
+- pages             //pagine principali
+    - sections      //pannelli e menu contenuti in genere nelle pages
+- report            //alcune pagine di report
+
+La cartella media merita un commento a parte: è condivisa, come directory montata con l'opzione bind, fra i vari siti perché contiene i corsi (video, pdf, immagini e oggetti web), gli attestati, alcune immagini comuni. Modifiche in questa cartella si ripercuotono su tutti i siti.
+
+Il file .htaccess rimanda tutti gli indirizzi non diretti a file esistenti al file index.php, La prima riga include il file lib/check_session.php che verifica la sessione e se l'utente è loggato. Se non lo è rimanda al file logout.php che poi rimanda al file login.php. Qui un form di login invia i dati al file lib/autenticate.php che rimanda infine al file index.php. Qui viene analizzato l'URL che dovrebbe essere del tipo:
+
+http://hub.tutor81.com/area/page/section
+
+il parametro area può assumere i valori:
+* user
+* company
+* tutor
+* member
+* admin
+e in base a questo viene incluso il file content-area.php corrispondente.
+Se non è definito area o non è corretto si utilizza il ruolo dell'utente in base alla seguente corrispondenza:
+
+
+
+
+	qwert567890
+àòk jhgfß 
+ùàòàLKHGF’ì0987w
+$area = array(0 => 'user',
+              1 => 'tutor',
+              2 => 'company',
+              8 => 'user',
+             16 => 'user',
+             32 => 'member',
+           1000 => 'admin')
+
+In base ai parametri page e section, nel file content-area.php viene incluso il file relativo. Può essere il file home-area.php corrispondente al parametro area, oppure un file contenuto nella directory pages. Con le modifiche effettuate nel tempo, alcuni di questi indirizzi sono inutilizzati, validi comunque, ma non utilizzati. Ovvero, molti dei contenuti presenti nella home-area.php sono un insieme delle sections o delle pages che comunque possono essere richiamate ancora separatamente.
+
+Un discorso a parte riguarda la directory manage. Qui sono contenuti dei file a cui ci si può riferire inviando parametri POST, che restituiscono i dati estrapolati. Ad esempio tramite una chiamata jQuery al file manage/license.php (che si riferisce alle licenze dei corsi e non alle licenze dell'azienda) si può richiedere l'invio di una mail di notifica all'utente a cui è stato assegnato un corso, in questo modo:
+
+$.post("manage/license.php", 
+       {
+            op_type: "notify_course_assignment",
+            license_id: license_id
+       }, 
+       function (data) {
+            $.isLoading("hide");
+            if (data > 0)
+                alert("Notifica inviata con successo.");
+            else
+                alert("La notifica non è stato inviata");
+        }
+);
+
+Il file manage/license.php gestirà questa chiamata restituendo, in questo caso, tramite la funzione echo un 1 o uno 0 in caso o meno di successo.
+
+
+
+
+ambiente di preproduzione
+accesso al codice database …
+
+Composizione database
+Database: Diagramma Entity Relationship
+sequence diagram  quali sono i passaggi che il software fa durante l’esecuzione
+class diagram descrizione classi composiizone software
+
+linguaggio UML 2.0
+software usare visual paragdim
+
+
+MACRO PROGETTI
+schema utente
+corso
+tabelle 
+relazioni
+
