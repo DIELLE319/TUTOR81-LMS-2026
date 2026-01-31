@@ -1168,7 +1168,7 @@ export default function ContentManagement() {
                     {loDetails.interruptionPoints.map((ip: any, idx: number) => (
                       <div key={ip.id} className="border border-gray-200 rounded p-3 bg-gray-50">
                         <div className="text-xs text-gray-500 mb-2">
-                          Interruzione #{idx + 1} a {Math.floor(ip.time / 60000)}:{String(Math.floor((ip.time % 60000) / 1000)).padStart(2, '0')}
+                          Interruzione #{idx + 1} a <span className="font-mono font-medium text-[#4a90a4]">{Math.floor(ip.time / 1000)} secondi</span>
                         </div>
                         {ip.questions?.filter((q: any) => q.id).map((q: any) => (
                           <div key={q.id} className="mb-3 last:mb-0">
