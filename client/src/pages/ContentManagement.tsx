@@ -288,16 +288,19 @@ export default function ContentManagement() {
     return projects.filter(p => {
       const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
       let matchesStatus = true;
+      const isReserved = !!(p.reservedTo && p.reservedTo > 0);
+      const isTest = isTestCourse(p.title);
+      
       if (statusFilter === 'attivi') {
-        matchesStatus = p.isPublishedInEcommerce === 1 && !isTestCourse(p.title);
+        matchesStatus = p.isPublishedInEcommerce === 1 && !isTest && !isReserved;
       } else if (statusFilter === 'nonPubblicati') {
-        matchesStatus = p.isPublishedInEcommerce === 0 && !isTestCourse(p.title);
+        matchesStatus = p.isPublishedInEcommerce === 0 && !isTest && !isReserved;
       } else if (statusFilter === 'sospesi') {
-        matchesStatus = p.isPublishedInEcommerce === 2 && !isTestCourse(p.title);
+        matchesStatus = p.isPublishedInEcommerce === 2 && !isTest && !isReserved;
       } else if (statusFilter === 'riservati') {
-        matchesStatus = !!(p.reservedTo && p.reservedTo > 0) && !isTestCourse(p.title);
+        matchesStatus = isReserved && !isTest;
       } else if (statusFilter === 'test') {
-        matchesStatus = isTestCourse(p.title);
+        matchesStatus = isTest;
       }
       return matchesSearch && matchesStatus;
     });
@@ -343,10 +346,10 @@ export default function ContentManagement() {
 
   const activeCounts = useMemo(() => {
     const test = projects.filter(p => isTestCourse(p.title)).length;
-    const attivi = projects.filter(p => p.isPublishedInEcommerce === 1 && !isTestCourse(p.title)).length;
-    const nonPubblicati = projects.filter(p => p.isPublishedInEcommerce === 0 && !isTestCourse(p.title)).length;
-    const sospesi = projects.filter(p => p.isPublishedInEcommerce === 2 && !isTestCourse(p.title)).length;
     const riservati = projects.filter(p => p.reservedTo && p.reservedTo > 0 && !isTestCourse(p.title)).length;
+    const attivi = projects.filter(p => p.isPublishedInEcommerce === 1 && !isTestCourse(p.title) && !(p.reservedTo && p.reservedTo > 0)).length;
+    const nonPubblicati = projects.filter(p => p.isPublishedInEcommerce === 0 && !isTestCourse(p.title) && !(p.reservedTo && p.reservedTo > 0)).length;
+    const sospesi = projects.filter(p => p.isPublishedInEcommerce === 2 && !isTestCourse(p.title) && !(p.reservedTo && p.reservedTo > 0)).length;
     return { attivi, sospesi, nonPubblicati, riservati, test };
   }, [projects]);
 
