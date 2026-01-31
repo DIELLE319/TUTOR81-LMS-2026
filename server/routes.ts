@@ -131,6 +131,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/companies", isAuthenticated, async (req, res) => {
+    try {
+      const allCompanies = await db.select().from(schema.companies);
+      res.json(allCompanies);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
   app.post("/api/companies", isAuthenticated, async (req, res) => {
     try {
       const result = schema.insertCompanySchema.safeParse(req.body);
