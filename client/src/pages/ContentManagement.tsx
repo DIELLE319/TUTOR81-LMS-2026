@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle } from 'lucide-react';
+import { Search, Book, Film, PlayCircle, FileText, Settings, List, Edit, LogOut, Upload, XCircle, CheckCircle, Mail, Printer } from 'lucide-react';
 import type { LearningProject, Company } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -517,10 +517,18 @@ export default function ContentManagement() {
 
                 <div className="flex-1 overflow-y-auto p-4">
                   <div className="bg-white rounded shadow-sm border border-gray-200">
-                    <div className="bg-gradient-to-r from-[#4a90a4] to-[#5ba3b8] px-4 py-2 rounded-t">
+                    <div className="bg-gradient-to-r from-[#4a90a4] to-[#5ba3b8] px-4 py-2 rounded-t flex items-center justify-between">
                       <h2 className="text-base font-bold text-white">
                         (ID:{selectedProject.id}) {formatCourseTitle(selectedProject.title).toUpperCase()}
                       </h2>
+                      <div className="flex gap-2">
+                        <button className="bg-white/20 hover:bg-white/30 text-white text-[11px] px-3 py-1 rounded flex items-center gap-1">
+                          <Mail size={12} /> Invia Email
+                        </button>
+                        <button className="bg-white/20 hover:bg-white/30 text-white text-[11px] px-3 py-1 rounded flex items-center gap-1">
+                          <Printer size={12} /> Stampa
+                        </button>
+                      </div>
                     </div>
 
                     <div className="p-4">
