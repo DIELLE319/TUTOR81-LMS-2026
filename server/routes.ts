@@ -728,6 +728,7 @@ export async function registerRoutes(
       const companyFilter = req.query.companyId as string | undefined;
       const search = req.query.search as string | undefined;
 
+      // Filter enrollments for Tutor81 companies (parent_company_id = 2)
       const enrollments = await db.select({
         id: schema.enrollments.id,
         userId: schema.enrollments.userId,
@@ -742,6 +743,8 @@ export async function registerRoutes(
         emailOpenedAt: schema.enrollments.emailOpenedAt,
       })
         .from(schema.enrollments)
+        .innerJoin(schema.companies, eq(schema.enrollments.companyId, schema.companies.id))
+        .where(eq(schema.companies.parentCompanyId, 2))
         .orderBy(desc(schema.enrollments.createdAt))
         .limit(500);
 
@@ -872,12 +875,16 @@ export async function registerRoutes(
 
   app.get("/api/companies-list", isAuthenticated, async (req, res) => {
     try {
+      // Filter companies under Tutor81 (parent_company_id = 2)
       const companies = await db.select({ 
         id: schema.companies.id, 
         businessName: schema.companies.businessName 
       })
         .from(schema.companies)
-        .where(eq(schema.companies.isTutor, false))
+        .where(and(
+          eq(schema.companies.isTutor, false),
+          eq(schema.companies.parentCompanyId, 2)
+        ))
         .orderBy(schema.companies.businessName);
       res.json(companies);
     } catch (error) {
