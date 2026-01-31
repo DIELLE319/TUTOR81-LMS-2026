@@ -1157,15 +1157,20 @@ export default function ContentManagement() {
                       {loDetails?.interruptionPoints?.length > 0 && (
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                           <div className="flex gap-2 overflow-x-auto">
-                            {loDetails.interruptionPoints.map((ip: any, idx: number) => (
-                              <div 
-                                key={ip.id}
-                                className="flex-shrink-0 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded cursor-pointer hover:bg-yellow-400"
-                                title={ip.questions?.filter((q: any) => q.id).map((q: any) => q.text).join('\n')}
-                              >
-                                {Math.floor(ip.time / 1000)}s
-                              </div>
-                            ))}
+                            {loDetails.interruptionPoints.map((ip: any, idx: number) => {
+                              const totalSeconds = Math.floor(ip.time / 1000);
+                              const minutes = Math.floor(totalSeconds / 60);
+                              const seconds = totalSeconds % 60;
+                              return (
+                                <div 
+                                  key={ip.id}
+                                  className="flex-shrink-0 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded cursor-pointer hover:bg-yellow-400"
+                                  title={ip.questions?.filter((q: any) => q.id).map((q: any) => q.text).join('\n')}
+                                >
+                                  {minutes}:{String(seconds).padStart(2, '0')}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -1189,10 +1194,19 @@ export default function ContentManagement() {
                           Interruzione #{idx + 1} a 
                           <input 
                             type="number" 
-                            defaultValue={Math.floor(ip.time / 1000)} 
-                            className="w-20 px-2 py-0.5 border border-gray-300 rounded text-[#4a90a4] font-mono font-medium text-center"
-                          /> 
-                          secondi
+                            defaultValue={Math.floor(Math.floor(ip.time / 1000) / 60)} 
+                            className="w-12 px-2 py-0.5 border border-gray-300 rounded text-[#4a90a4] font-mono font-medium text-center"
+                            min="0"
+                          />
+                          <span>:</span>
+                          <input 
+                            type="number" 
+                            defaultValue={Math.floor(ip.time / 1000) % 60} 
+                            className="w-12 px-2 py-0.5 border border-gray-300 rounded text-[#4a90a4] font-mono font-medium text-center"
+                            min="0"
+                            max="59"
+                          />
+                          <span className="text-gray-400">(mm:ss)</span>
                           <label className="flex items-center gap-1 ml-4 cursor-pointer">
                             <input type="checkbox" className="w-4 h-4 accent-[#4a90a4]" />
                             <span className="text-gray-600">Domanda a fine lezione</span>
