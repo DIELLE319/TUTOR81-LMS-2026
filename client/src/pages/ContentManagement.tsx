@@ -526,8 +526,12 @@ export default function ContentManagement() {
                     <div className="p-4">
                       <table className="w-full text-[12px]">
                         <tbody>
-                          <DetailRow label="Data di creazione" value={selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'} />
-                          <DetailRow label="Creato da" value="Superadmin Tutor81 (ID: 6)" />
+                          <tr className="border-b border-gray-100">
+                            <td className="py-1.5 pr-4 font-semibold text-gray-600 align-top w-[220px]">Data di creazione</td>
+                            <td className="py-1.5 text-gray-800 w-[200px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
+                            <td className="py-1.5 pr-4 font-semibold text-gray-600 align-top w-[100px]">Creato da</td>
+                            <td className="py-1.5 text-gray-800">Superadmin Tutor81 (ID: 6)</td>
+                          </tr>
                           <DetailRow label="Requisiti minimi per accedere al corso" value={selectedProject.prerequisites || "nessuno"} />
                           <tr className="border-b border-gray-100">
                             <td className="py-2 pr-4 text-gray-600 font-medium w-[200px] align-top">Categoria</td>
