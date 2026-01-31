@@ -122,8 +122,9 @@ export default function ContentManagement() {
       } else if (statusFilter === 'sospesi') {
         matchesStatus = p.isPublishedInEcommerce === 2;
       }
-      const matchesType = !typeFilter || p.courseType === typeFilter;
-      return matchesSearch && matchesStatus && matchesType;
+      const category = getCourseCategory(p.title);
+      const matchesCategory = !typeFilter || category === typeFilter;
+      return matchesSearch && matchesStatus && matchesCategory;
     });
   }, [projects, searchTerm, statusFilter, typeFilter]);
 
@@ -222,20 +223,26 @@ export default function ContentManagement() {
               </div>
 
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-[11px] font-semibold text-gray-700 uppercase whitespace-nowrap">Tipo</span>
+                <span className="text-[11px] font-semibold text-gray-700 uppercase whitespace-nowrap">Destinatario</span>
                 <Select
                   value={typeFilter || "all"}
-                  onValueChange={(value) => setTypeFilter(value === "all" ? null : value as 'generico' | 'specifico' | 'demo' | 'test')}
+                  onValueChange={(value) => setTypeFilter(value === "all" ? null : value as any)}
                 >
                   <SelectTrigger className="h-7 text-xs flex-1" data-testid="select-course-type">
-                    <SelectValue placeholder="Tutti i tipi" />
+                    <SelectValue placeholder="Tutti" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tutti i tipi</SelectItem>
-                    <SelectItem value="generico">Generico</SelectItem>
-                    <SelectItem value="specifico">Specifico</SelectItem>
-                    <SelectItem value="demo">Demo</SelectItem>
-                    <SelectItem value="test">Test</SelectItem>
+                    <SelectItem value="all">Tutti</SelectItem>
+                    <SelectItem value="LAVORATORE">Lavoratore</SelectItem>
+                    <SelectItem value="PREPOSTO">Preposto</SelectItem>
+                    <SelectItem value="DIRIGENTE">Dirigente</SelectItem>
+                    <SelectItem value="RSPP/ASPP">RSPP/ASPP</SelectItem>
+                    <SelectItem value="RLS">RLS</SelectItem>
+                    <SelectItem value="CARRELLO ELEVATORE">Carrello Elevatore</SelectItem>
+                    <SelectItem value="PLE">PLE</SelectItem>
+                    <SelectItem value="ANTINCENDIO">Antincendio</SelectItem>
+                    <SelectItem value="PRIMO SOCCORSO">Primo Soccorso</SelectItem>
+                    <SelectItem value="HACCP">HACCP</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
