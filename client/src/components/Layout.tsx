@@ -69,17 +69,17 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className='flex h-screen bg-black font-sans text-gray-300'>
       
-      <div className={`w-64 bg-yellow-500 border-r border-yellow-600 flex flex-col flex-shrink-0 overflow-hidden`}> 
+      <div className={`w-64 bg-black border-r border-gray-800 flex flex-col flex-shrink-0 overflow-hidden`}> 
         
-        <div className="p-5 border-b border-yellow-600">
-          <h1 className="font-bold text-lg text-black uppercase tracking-wide">TUTOR 81 LMS</h1>
-          <div className="text-sm text-black mt-2 font-bold uppercase truncate">
+        <div className="p-5 border-b border-gray-800">
+          <h1 className="font-bold text-lg text-yellow-500 uppercase tracking-wide">TUTOR 81 LMS</h1>
+          <div className="text-sm text-gray-400 mt-2 font-bold uppercase truncate">
             {user?.firstName} {user?.lastName}
           </div>
         </div>
 
-        <div className="p-5 flex items-center gap-3 border-b border-yellow-600">
-          <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-yellow-500 font-bold overflow-hidden">
+        <div className="p-5 flex items-center gap-3 border-b border-gray-800">
+          <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-black font-bold overflow-hidden">
             {user?.profileImageUrl ? (
               <img src={user.profileImageUrl} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -87,14 +87,14 @@ export default function Layout({ children }: LayoutProps) {
             )}
           </div>
           <div className="overflow-hidden">
-            <div className="text-[10px] uppercase font-bold tracking-wider text-black">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-yellow-500">
               {getRoleName(userRole)}
             </div>
-            <div className="text-xs truncate text-black/70">{user?.email || 'assistenza@tutor81.it'}</div>
+            <div className="text-xs truncate text-gray-400">{user?.email || 'assistenza@tutor81.it'}</div>
             <div className="flex gap-2 mt-1">
               <Icons.LogOut 
                 size={12} 
-                className="cursor-pointer text-black hover:text-black/70" 
+                className="cursor-pointer text-gray-400 hover:text-yellow-500" 
                 onClick={() => logout()}
                 data-testid="button-logout"
               />
