@@ -662,8 +662,9 @@ export default function ContentManagement() {
                         <tbody>
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-black align-top w-[140px]">Data creazione</td>
-                            <td className="py-0.5 text-black w-[200px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
-                            <td className="py-0.5 pl-8">
+                            <td className="py-0.5 text-black">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
+                            <td className="py-0.5 px-4 font-semibold text-black">Modalità</td>
+                            <td className="py-0.5">
                               <Select
                                 value={selectedProject.modality || "E-LEARNING"}
                                 onValueChange={(value) => {
@@ -683,6 +684,7 @@ export default function ContentManagement() {
                                 </SelectContent>
                               </Select>
                             </td>
+                            <td></td>
                           </tr>
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Requisiti</td>
