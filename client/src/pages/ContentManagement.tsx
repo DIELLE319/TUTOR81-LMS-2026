@@ -472,7 +472,10 @@ export default function ContentManagement() {
                               {project.id}
                             </td>
                             <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-gray-800'}`}>
-                              {formatCourseTitle(project.title)}
+                              <div className="flex items-center gap-1.5">
+                                <span className={`inline-block w-2 h-2 rounded-full ${project.isPublishedInEcommerce === 1 ? 'bg-green-500' : 'bg-orange-400'}`} title={project.isPublishedInEcommerce === 1 ? 'Pubblicato' : 'Bozza'}></span>
+                                {formatCourseTitle(project.title)}
+                              </div>
                             </td>
                             <td className="px-2 py-1 text-center text-red-600 font-bold">
                               {getCourseDuration(project.title, project.hours)}
