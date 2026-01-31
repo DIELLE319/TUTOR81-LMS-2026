@@ -648,6 +648,9 @@ export default function ContentManagement() {
                           (ID:{selectedProject.id}) {formatCourseTitle(selectedProject.title).toUpperCase()}
                         </h2>
                       <div className="flex gap-2">
+                        <button className="bg-green-500 hover:bg-green-600 text-white text-[11px] px-4 py-1 rounded flex items-center gap-1 font-semibold">
+                          <Save size={12} /> Salva
+                        </button>
                         <button className="bg-white/20 hover:bg-white/30 text-white text-[11px] px-3 py-1 rounded flex items-center gap-1">
                           <Mail size={12} /> Invia Email
                         </button>
@@ -662,8 +665,8 @@ export default function ContentManagement() {
                         <tbody>
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-black align-top w-[140px]">Data creazione</td>
-                            <td className="py-0.5 text-black">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
-                            <td className="py-0.5 px-4 font-semibold text-black">Modalità</td>
+                            <td className="py-0.5 text-black w-[180px]">{selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleString('it-IT') : '-'}</td>
+                            <td className="py-0.5 pr-4 font-semibold text-black w-[80px]">Modalità</td>
                             <td className="py-0.5">
                               <Select
                                 value={selectedProject.modality || "E-LEARNING"}
@@ -674,7 +677,7 @@ export default function ContentManagement() {
                                   });
                                 }}
                               >
-                                <SelectTrigger className="w-[220px] h-8 text-[13px] text-gray-700 font-semibold">
+                                <SelectTrigger className="w-[200px] h-8 text-[13px] text-gray-700 font-semibold">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -684,7 +687,6 @@ export default function ContentManagement() {
                                 </SelectContent>
                               </Select>
                             </td>
-                            <td></td>
                           </tr>
                           <tr className="border-b border-gray-100">
                             <td className="py-0.5 pr-4 font-semibold text-black align-top w-[220px]">Requisiti</td>
