@@ -133,7 +133,13 @@ export async function registerRoutes(
 
   app.get("/api/companies", isAuthenticated, async (req, res) => {
     try {
-      const allCompanies = await db.select().from(schema.companies);
+      // Filter companies under Tutor81 (parent_company_id = 2) and exclude tutors
+      const allCompanies = await db.select().from(schema.companies)
+        .where(and(
+          eq(schema.companies.parentCompanyId, 2),
+          eq(schema.companies.isTutor, false)
+        ))
+        .orderBy(schema.companies.businessName);
       res.json(allCompanies);
     } catch (error) {
       console.error("Error fetching companies:", error);
