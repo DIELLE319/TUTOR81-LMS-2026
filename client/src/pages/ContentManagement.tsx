@@ -128,6 +128,13 @@ export default function ContentManagement() {
       .trim();
   };
 
+  const getCourseDuration = (title: string, hours: number | null) => {
+    if (hours && hours > 0) return `${hours}`;
+    const match = title.match(/(\d+)\s*ore/i);
+    if (match) return match[1];
+    return '-';
+  };
+
   const filteredProjects = useMemo(() => {
     return projects.filter(p => {
       const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -256,12 +263,13 @@ export default function ContentManagement() {
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700 w-12">Tipo</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700 w-10">ID</th>
                     <th className="px-2 py-1.5 text-left font-semibold text-gray-700">Nome Corso</th>
+                    <th className="px-2 py-1.5 text-center font-semibold text-gray-700 w-14">Ore</th>
                   </tr>
                 </thead>
                 {loadingProjects ? (
                   <tbody>
                     <tr>
-                      <td colSpan={3} className="text-center py-12 text-gray-400">
+                      <td colSpan={4} className="text-center py-12 text-gray-400">
                         <div className="animate-spin w-6 h-6 border-2 border-[#4a90a4] border-t-transparent rounded-full mx-auto mb-2"></div>
                         Caricamento...
                       </td>
@@ -270,7 +278,7 @@ export default function ContentManagement() {
                 ) : groupedProjects.length === 0 ? (
                   <tbody>
                     <tr>
-                      <td colSpan={3} className="text-center py-12 text-gray-400">
+                      <td colSpan={4} className="text-center py-12 text-gray-400">
                         Nessun corso trovato
                       </td>
                     </tr>
@@ -279,7 +287,7 @@ export default function ContentManagement() {
                   groupedProjects.map(group => (
                     <tbody key={group.category}>
                       <tr className="bg-[#d0d0d0]">
-                        <td colSpan={3} className="px-2 py-1.5 font-bold text-gray-800 text-[11px] uppercase tracking-wide">
+                        <td colSpan={4} className="px-2 py-1.5 font-bold text-gray-800 text-[11px] uppercase tracking-wide">
                           {group.category}
                         </td>
                       </tr>
@@ -309,6 +317,9 @@ export default function ContentManagement() {
                             </td>
                             <td className={`px-2 py-1 ${isSelected ? 'text-white font-medium' : 'text-gray-800'}`}>
                               {formatCourseTitle(project.title)}
+                            </td>
+                            <td className="px-2 py-1 text-center text-red-600 font-bold">
+                              {getCourseDuration(project.title, project.hours)}
                             </td>
                           </tr>
                         );
