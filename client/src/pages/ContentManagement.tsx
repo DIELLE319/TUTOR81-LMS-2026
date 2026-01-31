@@ -1070,11 +1070,31 @@ export default function ContentManagement() {
                         />
                         <div className="border-l-4 border-[#4a90a4] pl-3">
                           <h3 className="font-bold text-black text-[12px] mb-2">Programma del corso</h3>
-                          <div className="bg-gray-50 p-3 rounded text-[11px] text-gray-700 leading-relaxed">
+                          <div className="bg-gray-50 p-3 rounded text-[11px] text-gray-700 leading-relaxed max-h-[400px] overflow-y-auto">
                             {courseStructure?.modules && courseStructure.modules.length > 0 ? (
-                              <div className="space-y-0.5">
+                              <div className="space-y-2">
                                 {courseStructure.modules.flatMap(m => m.lessons).map((lesson, idx) => (
-                                  <div key={lesson.id}>Lezione {idx + 1}: {lesson.title}</div>
+                                  <div key={lesson.id}>
+                                    <div className="font-medium">Lezione {idx + 1}: {lesson.title}</div>
+                                    {lesson.learningObjects && lesson.learningObjects.length > 0 && (
+                                      <div className="pl-4 mt-1 space-y-0.5 text-[10px] text-gray-500">
+                                        {lesson.learningObjects.map(lo => (
+                                          <div key={lo.id} className="flex items-center gap-2">
+                                            <span className={`inline-block w-[40px] text-center text-[8px] font-bold text-white rounded px-1 ${
+                                              lo.type?.toLowerCase() === 'video' ? 'bg-blue-500' :
+                                              lo.type?.toLowerCase() === 'slide' ? 'bg-orange-400' :
+                                              lo.type?.toLowerCase() === 'document' ? 'bg-green-500' :
+                                              lo.type?.toLowerCase() === 'test' ? 'bg-purple-500' : 'bg-gray-400'
+                                            }`}>
+                                              {lo.type?.toUpperCase() || 'LO'}
+                                            </span>
+                                            <span>{lo.title}</span>
+                                            <span className="text-gray-400">({lo.duration || 0} min)</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 ))}
                               </div>
                             ) : (
