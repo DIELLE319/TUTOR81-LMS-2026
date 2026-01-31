@@ -834,6 +834,86 @@ export async function registerRoutes(
     }
   });
 
+  // Activate course - create enrollments and send emails
+  app.post("/api/enrollments/activate", isAuthenticated, async (req, res) => {
+    try {
+      const { courseId, companyId, corsisti } = req.body as {
+        courseId: number;
+        companyId: number;
+        corsisti: Array<{
+          email: string;
+          startDate: string;
+          endDate: string;
+          daysToAlert: number;
+          lastName: string;
+          firstName: string;
+          fiscalCode: string;
+          userType: string;
+        }>;
+      };
+
+      if (!courseId || !companyId || !corsisti || corsisti.length === 0) {
+        return res.status(400).json({ message: "Dati mancanti" });
+      }
+
+      const now = new Date();
+      let createdCount = 0;
+
+      for (const corsista of corsisti) {
+        // Check if user exists or create new one
+        let [existingUser] = await db.select()
+          .from(schema.users)
+          .where(eq(schema.users.email, corsista.email.toLowerCase()));
+
+        let usrId: string;
+
+        if (existingUser) {
+          usrId = existingUser.id;
+        } else {
+          // Create new user
+          const [newUser] = await db.insert(schema.users)
+            .values({
+              email: corsista.email.toLowerCase(),
+              firstName: corsista.firstName,
+              lastName: corsista.lastName,
+              fiscalCode: corsista.fiscalCode.toUpperCase(),
+              idcompany: companyId,
+              role: 0, // Lavoratore
+            })
+            .returning();
+          usrId = newUser.id;
+        }
+
+        // Create enrollment
+        const trackingId = `track_${usrId}_${courseId}_${Date.now()}`;
+        await db.insert(schema.enrollments)
+          .values({
+            userId: usrId,
+            companyId: companyId,
+            learningProjectId: courseId,
+            startDate: new Date(corsista.startDate),
+            endDate: new Date(corsista.endDate),
+            daysToAlert: corsista.daysToAlert,
+            status: 'active',
+            emailSentAt: now,
+            emailTrackingId: trackingId,
+          });
+
+        createdCount++;
+        console.log(`Enrollment created for ${corsista.email} - course ${courseId}`);
+      }
+
+      res.json({
+        success: true,
+        created: createdCount,
+        message: `${createdCount} iscrizioni create con successo`
+      });
+    } catch (error) {
+      console.error("Activate enrollment error:", error);
+      res.status(500).json({ message: "Errore nella creazione delle iscrizioni" });
+    }
+  });
+
   // Send activation emails to selected enrollments
   app.post("/api/enrollments/send-emails", isAuthenticated, async (req, res) => {
     try {

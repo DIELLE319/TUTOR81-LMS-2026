@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { UserPlus, Users, Plus, Minus, Send, Search, Check, ChevronsUpDown } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { UserPlus, Users, Plus, Minus, Send, Search, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface Company {
   id: number;
@@ -83,6 +85,7 @@ const createEmptyRow = (): CorsistaRow => {
 };
 
 export default function SellCourseModal({ isOpen, onClose, course }: SellCourseModalProps) {
+  const { toast } = useToast();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
   const [userMode, setUserMode] = useState<'new' | 'existing'>('new');
@@ -90,6 +93,28 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const [selectedExistingUsers, setSelectedExistingUsers] = useState<Set<string>>(new Set());
   const [existingUserSearch, setExistingUserSearch] = useState('');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+
+  const enrollMutation = useMutation({
+    mutationFn: async (data: { courseId: number; companyId: number; corsisti: CorsistaRow[] }) => {
+      const response = await apiRequest('POST', '/api/enrollments/activate', data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Codici inviati!",
+        description: `${data.created || 0} iscrizioni create con successo. Le email sono state inviate.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/enrollments'] });
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Errore",
+        description: error.message || "Si è verificato un errore nell'invio dei codici",
+        variant: "destructive",
+      });
+    },
+  });
 
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ['/api/companies'],
@@ -192,21 +217,35 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const handleSubmit = () => {
     if (!validateForm()) return;
     
+    if (!course) return;
+    
     if (userMode === 'new') {
-      console.log('Submitting new users:', {
-        courseId: course?.id,
-        companyId: selectedCompanyId,
+      enrollMutation.mutate({
+        courseId: course.id,
+        companyId: parseInt(selectedCompanyId),
         corsisti: rows
       });
     } else {
-      console.log('Submitting existing users:', {
-        courseId: course?.id,
-        companyId: selectedCompanyId,
-        userIds: Array.from(selectedExistingUsers)
+      // Per utenti esistenti, prepara i dati in formato corsista
+      const existingUserData = companyUsers
+        .filter(u => selectedExistingUsers.has(u.id))
+        .map(u => ({
+          email: u.email || '',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          daysToAlert: 15,
+          lastName: u.lastName || '',
+          firstName: u.firstName || '',
+          fiscalCode: u.fiscalCode || '',
+          userType: 'lavoratore',
+        }));
+      
+      enrollMutation.mutate({
+        courseId: course.id,
+        companyId: parseInt(selectedCompanyId),
+        corsisti: existingUserData
       });
     }
-    
-    onClose();
   };
 
   const formatCourseTitle = (title: string) => {
@@ -221,7 +260,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl bg-white border-yellow-500 border-2 text-black p-0 overflow-hidden max-h-[90vh]">
+      <DialogContent className="max-w-[95vw] w-[1400px] bg-white border-yellow-500 border-2 text-black p-0 overflow-hidden max-h-[95vh]">
         <DialogHeader className="bg-yellow-500 px-6 py-4">
           <DialogTitle className="text-black text-lg font-bold flex items-center gap-2">
             <Send size={20} />
@@ -230,7 +269,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
           <p className="text-black font-semibold mt-1">{formatCourseTitle(course.title)}</p>
         </DialogHeader>
 
-        <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-180px)]">
+        <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(95vh-180px)]">
           <div className={`border rounded-lg ${errors.company ? 'border-red-500' : 'border-gray-300'}`}>
             <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
               <PopoverTrigger asChild>
@@ -352,7 +391,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                     <th className="px-2 py-2 text-left text-xs font-medium text-black">Cognome *</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-black">Nome *</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-black w-[140px]">Codice Fiscale *</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-black w-[130px]">Tipo Utente *</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-black w-[160px]">Tipo Utente *</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -440,17 +479,17 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                       <td className="px-2 py-2">
                         <Select value={row.userType} onValueChange={(val) => updateRow(idx, 'userType', val)}>
                           <SelectTrigger 
-                            className={`h-8 text-xs bg-white border-gray-300 text-black ${errors[`userType_${idx}`] ? 'border-red-500' : ''}`}
+                            className={`h-9 text-sm bg-white border-gray-300 text-black ${errors[`userType_${idx}`] ? 'border-red-500' : ''}`}
                             data-testid={`select-type-${idx}`}
                           >
-                            <SelectValue placeholder="Tipo" />
+                            <SelectValue placeholder="Seleziona tipo..." />
                           </SelectTrigger>
                           <SelectContent className="bg-white border-gray-300">
                             {USER_TYPES.map(type => (
                               <SelectItem 
                                 key={type.value} 
                                 value={type.value}
-                                className="text-white hover:bg-slate-700 text-xs"
+                                className="text-black hover:bg-yellow-100 text-sm"
                               >
                                 {type.label}
                               </SelectItem>
