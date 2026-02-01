@@ -7,9 +7,18 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { User as UserType } from '@shared/schema';
 
-interface UserWithCompany extends UserType {
-  companyName?: string | null;
-  tutorName?: string | null;
+interface StudentRow {
+  id: number;
+  companyId: number;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  fiscalCode: string | null;
+  phone: string | null;
+  isActive: boolean;
+  companyName: string | null;
+  tutorId: number | null;
+  tutorName: string | null;
 }
 
 interface Company {
@@ -31,14 +40,14 @@ interface Enrollment {
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<UserWithCompany | null>(null);
-  const [editData, setEditData] = useState<Partial<UserWithCompany>>({});
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedUser, setSelectedUser] = useState<StudentRow | null>(null);
+  const [editData, setEditData] = useState<Partial<StudentRow>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const { toast } = useToast();
   const searchString = useSearch();
 
-  const { data: users = [], isLoading } = useQuery<UserWithCompany[]>({
-    queryKey: ['/api/platform-users'],
+  const { data: users = [], isLoading } = useQuery<StudentRow[]>({
+    queryKey: ['/api/students'],
   });
 
   useEffect(() => {
@@ -46,7 +55,7 @@ export default function Users() {
       const params = new URLSearchParams(searchString);
       const userId = params.get('userId');
       if (userId) {
-        const user = users.find(u => u.id === userId);
+        const user = users.find(u => u.id === parseInt(userId));
         if (user && !selectedUser) {
           setSelectedUser(user);
           setEditData({
@@ -55,8 +64,7 @@ export default function Users() {
             email: user.email,
             fiscalCode: user.fiscalCode,
             phone: user.phone,
-            role: user.role,
-            idcompany: user.idcompany,
+            companyId: user.companyId,
           });
         }
       }
@@ -74,11 +82,11 @@ export default function Users() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async (data: { id: string; updates: Partial<UserWithCompany> }) => {
-      return apiRequest('PATCH', `/api/users/${data.id}`, data.updates);
+    mutationFn: async (data: { id: number; updates: Partial<StudentRow> }) => {
+      return apiRequest('PATCH', `/api/students/${data.id}`, data.updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/platform-users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
       toast({ title: "Utente aggiornato", description: "I dati sono stati salvati" });
       setSelectedUser(null);
     },
@@ -92,11 +100,12 @@ export default function Users() {
     u.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.fiscalCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.tutorName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const openUserModal = (user: UserWithCompany) => {
+  const openUserModal = (user: StudentRow) => {
     setSelectedUser(user);
     setEditData({
       firstName: user.firstName,
@@ -104,8 +113,7 @@ export default function Users() {
       email: user.email,
       fiscalCode: user.fiscalCode,
       phone: user.phone,
-      role: user.role,
-      idcompany: user.idcompany,
+      companyId: user.companyId,
     });
   };
 
@@ -195,7 +203,7 @@ export default function Users() {
                     checked={filteredUsers.length > 0 && selectedIds.size === filteredUsers.length}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedIds(new Set(filteredUsers.map(u => u.id)));
+                        setSelectedIds(new Set(filteredUsers.map(u => u.id as number)));
                       } else {
                         setSelectedIds(new Set());
                       }
@@ -224,13 +232,13 @@ export default function Users() {
                     <input 
                       type="checkbox" 
                       className="w-4 h-4 rounded border-gray-300"
-                      checked={selectedIds.has(user.id)}
+                      checked={selectedIds.has(user.id as number)}
                       onChange={(e) => {
                         const newSet = new Set(selectedIds);
                         if (e.target.checked) {
-                          newSet.add(user.id);
+                          newSet.add(user.id as number);
                         } else {
-                          newSet.delete(user.id);
+                          newSet.delete(user.id as number);
                         }
                         setSelectedIds(newSet);
                       }}
@@ -238,7 +246,7 @@ export default function Users() {
                     />
                   </td>
                   <td className="px-3 py-1.5 font-mono text-xs text-gray-500">
-                    {user.id.substring(0, 8)}
+                    {user.id}
                   </td>
                   <td className="px-3 py-1.5 text-xs">
                     {user.firstName || '-'}
@@ -344,8 +352,8 @@ export default function Users() {
                     <div>
                       <label className="text-sm text-blue-600 mb-1 block">cambia azienda</label>
                       <select
-                        value={editData.idcompany || ''}
-                        onChange={(e) => setEditData({ ...editData, idcompany: parseInt(e.target.value) || null })}
+                        value={editData.companyId || ''}
+                        onChange={(e) => setEditData({ ...editData, companyId: parseInt(e.target.value) || undefined })}
                         className="w-full border border-gray-300 rounded px-3 py-2 text-gray-800"
                         data-testid="select-user-company"
                       >
@@ -358,28 +366,7 @@ export default function Users() {
                   </div>
 
                   <div className="bg-white rounded-lg p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 mb-2">Quale ruolo ha questo utente in piattaforma?</p>
-                    <div className="space-y-2">
-                      {[
-                        { value: 0, label: 'Corsista' },
-                        { value: 2, label: 'Referente Aziendale' },
-                        { value: 1, label: 'Amministratore Ente Formativo' },
-                        { value: 1000, label: 'Superadmin' },
-                      ].map((r) => (
-                        <label key={r.value} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="role"
-                            checked={editData.role === r.value}
-                            onChange={() => setEditData({ ...editData, role: r.value })}
-                            className="text-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">{r.label}</span>
-                        </label>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2 pt-4">
+                    <div className="flex gap-2">
                       <Button 
                         variant="destructive" 
                         size="sm"

@@ -348,6 +348,7 @@ export async function registerRoutes(
   app.get("/api/students", isAuthenticated, async (req, res) => {
     try {
       const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
 
       const students = await db.select({
         id: schema.students.id,
@@ -356,12 +357,17 @@ export async function registerRoutes(
         firstName: schema.students.firstName,
         lastName: schema.students.lastName,
         fiscalCode: schema.students.fiscalCode,
+        phone: schema.students.phone,
         isActive: schema.students.isActive,
         companyName: schema.companies.businessName,
+        tutorId: schema.companies.tutorId,
+        tutorName: schema.tutors.businessName,
       })
         .from(schema.students)
         .leftJoin(schema.companies, eq(schema.students.companyId, schema.companies.id))
-        .orderBy(schema.students.lastName);
+        .leftJoin(schema.tutors, eq(schema.companies.tutorId, schema.tutors.id))
+        .orderBy(schema.students.lastName)
+        .limit(limit);
 
       let filtered = students;
       if (companyId) {
