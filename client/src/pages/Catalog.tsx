@@ -319,7 +319,23 @@ export default function Catalog() {
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Tipo</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Rischio</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome Corso</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                    <div className="flex items-center gap-3">
+                      <span>Nome Corso</span>
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                          placeholder="Cerca..." 
+                          className="w-40 h-6 bg-white border border-gray-300 rounded py-1 pl-2 pr-7 text-xs text-black focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                          data-testid="input-search-course-header"
+                        />
+                        <Search className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" size={12} />
+                      </div>
+                    </div>
+                  </th>
                   <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">Settore</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">Ore</th>
                   <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">Modalità</th>
