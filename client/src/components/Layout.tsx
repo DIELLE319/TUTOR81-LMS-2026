@@ -237,7 +237,7 @@ export default function Layout({ children }: LayoutProps) {
                   searchResults.slice(0, 10).map((u) => (
                     <div
                       key={u.id}
-                      onClick={() => handleUserClick(u.id)}
+                      onClick={() => handleUserClick(String(u.id))}
                       className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                     >
                       <div className="font-medium text-black text-sm">

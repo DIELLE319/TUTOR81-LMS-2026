@@ -264,7 +264,7 @@ export default function Users() {
 
       {selectedUser && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-100 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-100 rounded-lg max-w-4xl w-full max-h-[95vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 border-b border-gray-300">
               <h2 className="text-xl font-semibold text-gray-800">
                 <User className="inline mr-2" size={20} />
