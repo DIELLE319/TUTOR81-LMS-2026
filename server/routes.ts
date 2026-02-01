@@ -699,7 +699,7 @@ export async function registerRoutes(
   // ============================================================
   // EXPORT CSV DOWNLOAD
   // ============================================================
-  app.get("/api/exports/:filename", isAuthenticated, async (req, res) => {
+  app.get("/api/exports/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
       const fs = await import("fs");
