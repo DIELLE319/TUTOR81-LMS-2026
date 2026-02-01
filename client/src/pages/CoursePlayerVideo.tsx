@@ -448,7 +448,7 @@ export default function CoursePlayerVideo() {
                           onValueChange={setSelectedAnswer}
                           className="space-y-4"
                         >
-                          {currentQuestion.options.map((option, idx) => (
+                          {(currentQuestion.options || []).map((option, idx) => (
                             <div key={idx} className="flex items-center space-x-3">
                               <RadioGroupItem 
                                 value={idx.toString()} 
