@@ -1,15 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { Writable } from "stream";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
+import { eq, and, desc, sql, ilike, or } from "drizzle-orm";
 import { z } from "zod";
-import * as ftp from "basic-ftp";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function registerRoutes(
   httpServer: Server,
@@ -18,190 +13,169 @@ export async function registerRoutes(
   await setupAuth(app);
   registerAuthRoutes(app);
 
+  // ============================================================
+  // STATS
+  // ============================================================
   app.get("/api/stats", isAuthenticated, async (req, res) => {
     try {
-      const [tutorsResult] = await db.select({ count: sql<number>`count(*)` })
-        .from(schema.companies)
-        .where(eq(schema.companies.isTutor, true));
-      
-      const [clientsResult] = await db.select({ count: sql<number>`count(*)` })
-        .from(schema.companies)
-        .where(eq(schema.companies.isTutor, false));
-      
-      const [salesResult] = await db.select({ count: sql<number>`count(*)` })
-        .from(schema.tutorsPurchases);
-      
-      const [usersResult] = await db.select({ count: sql<number>`count(*)` })
-        .from(schema.users);
+      const [tutorsResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.tutors);
+      const [companiesResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.companies);
+      const [studentsResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.students);
+      const [enrollmentsResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.enrollments);
+      const [coursesResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.courses);
 
       res.json({
         tutors: Number(tutorsResult?.count ?? 0),
-        clients: Number(clientsResult?.count ?? 0),
-        sales: Number(salesResult?.count ?? 0),
-        users: Number(usersResult?.count ?? 0),
+        companies: Number(companiesResult?.count ?? 0),
+        students: Number(studentsResult?.count ?? 0),
+        enrollments: Number(enrollmentsResult?.count ?? 0),
+        courses: Number(coursesResult?.count ?? 0),
       });
     } catch (error) {
       console.error("Stats error:", error);
-      res.json({ tutors: 0, clients: 0, sales: 0, users: 0 });
+      res.json({ tutors: 0, companies: 0, students: 0, enrollments: 0, courses: 0 });
     }
   });
 
+  // ============================================================
+  // TUTORS (Enti Formativi)
+  // ============================================================
   app.get("/api/tutors", isAuthenticated, async (req, res) => {
     try {
-      const tutors = await db.select()
-        .from(schema.companies)
-        .where(eq(schema.companies.isTutor, true))
-        .orderBy(schema.companies.businessName);
-      
-      const tutorsWithAdmins = await Promise.all(tutors.map(async (tutor) => {
-        const admins = await db.select({
-          id: schema.users.id,
-          firstName: schema.users.firstName,
-          lastName: schema.users.lastName,
-          email: schema.users.email,
-          role: schema.users.role,
-        })
-          .from(schema.users)
-          .where(and(
-            eq(schema.users.idcompany, tutor.id),
-            sql`${schema.users.role} > 0`
-          ));
-        
-        return { ...tutor, admins };
-      }));
-      
-      res.json(tutorsWithAdmins);
+      const tutors = await db.select().from(schema.tutors).orderBy(schema.tutors.businessName);
+      res.json(tutors);
     } catch (error) {
       console.error("Tutors error:", error);
       res.status(500).json({ error: "Failed to fetch tutors" });
     }
   });
 
-  app.get("/api/clients", isAuthenticated, async (req, res) => {
+  app.get("/api/tutors/:id", isAuthenticated, async (req, res) => {
     try {
-      // Get all clients with their tutor relationship from tutors_purchases
-      const clientsWithTutors = await db.execute(sql`
-        SELECT 
-          c.id, c.business_name, c.city, c.email, c.phone, c.address, c.vat_number,
-          t.id as tutor_id, t.business_name as tutor_name
-        FROM companies c
-        LEFT JOIN tutors_purchases tp ON tp.customer_company_id = c.id
-        LEFT JOIN companies t ON t.id = tp.tutor_id
-        WHERE c.is_tutor = false
-        ORDER BY t.business_name NULLS LAST, c.business_name
-      `);
-      
-      // Group by tutor
-      const grouped: Record<string, { tutorId: number | null; tutorName: string; clients: any[] }> = {};
-      
-      for (const row of clientsWithTutors.rows) {
-        const tutorKey = row.tutor_id ? String(row.tutor_id) : 'none';
-        const tutorName = row.tutor_name as string || 'Senza Ente Formativo';
-        
-        if (!grouped[tutorKey]) {
-          grouped[tutorKey] = {
-            tutorId: row.tutor_id as number | null,
-            tutorName,
-            clients: []
-          };
-        }
-        
-        // Avoid duplicates
-        if (!grouped[tutorKey].clients.find((c: any) => c.id === row.id)) {
-          grouped[tutorKey].clients.push({
-            id: row.id,
-            businessName: row.business_name,
-            city: row.city,
-            email: row.email,
-            phone: row.phone,
-            address: row.address,
-            vatNumber: row.vat_number
-          });
-        }
-      }
-      
-      // Convert to array and sort by tutor name
-      const result = Object.values(grouped).sort((a, b) => {
-        if (a.tutorId === null) return 1;
-        if (b.tutorId === null) return -1;
-        return a.tutorName.localeCompare(b.tutorName);
-      });
-      
-      res.json(result);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid tutor ID" });
+
+      const [tutor] = await db.select().from(schema.tutors).where(eq(schema.tutors.id, id));
+      if (!tutor) return res.status(404).json({ error: "Tutor not found" });
+
+      res.json(tutor);
     } catch (error) {
-      console.error("Clients error:", error);
-      res.status(500).json({ error: "Failed to fetch clients" });
+      console.error("Tutor error:", error);
+      res.status(500).json({ error: "Failed to fetch tutor" });
     }
   });
 
+  app.post("/api/tutors", isAuthenticated, async (req, res) => {
+    try {
+      const result = schema.insertTutorSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.errors[0].message });
+      }
+
+      const [newTutor] = await db.insert(schema.tutors).values(result.data).returning();
+      res.status(201).json(newTutor);
+    } catch (error) {
+      console.error("Create tutor error:", error);
+      res.status(500).json({ error: "Failed to create tutor" });
+    }
+  });
+
+  app.put("/api/tutors/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid tutor ID" });
+
+      const [updated] = await db.update(schema.tutors)
+        .set(req.body)
+        .where(eq(schema.tutors.id, id))
+        .returning();
+
+      if (!updated) return res.status(404).json({ error: "Tutor not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Update tutor error:", error);
+      res.status(500).json({ error: "Failed to update tutor" });
+    }
+  });
+
+  app.delete("/api/tutors/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid tutor ID" });
+
+      // Check if tutor has companies
+      const [hasCompanies] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.companies)
+        .where(eq(schema.companies.tutorId, id));
+
+      if (Number(hasCompanies.count) > 0) {
+        return res.status(400).json({ error: "Cannot delete tutor with associated companies" });
+      }
+
+      await db.delete(schema.tutors).where(eq(schema.tutors.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete tutor error:", error);
+      res.status(500).json({ error: "Failed to delete tutor" });
+    }
+  });
+
+  // ============================================================
+  // COMPANIES (Aziende Clienti)
+  // ============================================================
   app.get("/api/companies", isAuthenticated, async (req, res) => {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
+      const tutorId = req.query.tutorId ? parseInt(req.query.tutorId as string) : null;
       const search = (req.query.search as string) || "";
-      const offset = (page - 1) * limit;
-      
-      // Filter companies under Tutor81 (parent_company_id = 2) and exclude tutors
-      let query = db.select().from(schema.companies)
-        .where(and(
-          eq(schema.companies.parentCompanyId, 2),
-          eq(schema.companies.isTutor, false),
-          search ? ilike(schema.companies.businessName, `%${search}%`) : undefined
-        ))
-        .orderBy(schema.companies.businessName)
-        .limit(limit)
-        .offset(offset);
-      
-      const allCompanies = await query;
-      
-      // Get total count for pagination
-      const [countResult] = await db.select({ count: sql<number>`count(*)` })
+
+      let query = db.select({
+        id: schema.companies.id,
+        tutorId: schema.companies.tutorId,
+        businessName: schema.companies.businessName,
+        vatNumber: schema.companies.vatNumber,
+        address: schema.companies.address,
+        city: schema.companies.city,
+        email: schema.companies.email,
+        phone: schema.companies.phone,
+        isActive: schema.companies.isActive,
+        createdAt: schema.companies.createdAt,
+        tutorName: schema.tutors.businessName,
+      })
         .from(schema.companies)
-        .where(and(
-          eq(schema.companies.parentCompanyId, 2),
-          eq(schema.companies.isTutor, false),
-          search ? ilike(schema.companies.businessName, `%${search}%`) : undefined
-        ));
-      
-      res.json({
-        data: allCompanies,
-        pagination: {
-          page,
-          limit,
-          total: Number(countResult.count),
-          totalPages: Math.ceil(Number(countResult.count) / limit)
-        }
-      });
+        .leftJoin(schema.tutors, eq(schema.companies.tutorId, schema.tutors.id))
+        .orderBy(schema.companies.businessName);
+
+      const companies = await query;
+
+      // Filter in memory for simplicity
+      let filtered = companies;
+      if (tutorId) {
+        filtered = filtered.filter(c => c.tutorId === tutorId);
+      }
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filtered = filtered.filter(c => c.businessName.toLowerCase().includes(searchLower));
+      }
+
+      res.json(filtered);
     } catch (error) {
-      console.error("Error fetching companies:", error);
+      console.error("Companies error:", error);
       res.status(500).json({ error: "Failed to fetch companies" });
     }
   });
 
-  app.get("/api/companies/:id/users", isAuthenticated, async (req, res) => {
+  app.get("/api/companies/:id", isAuthenticated, async (req, res) => {
     try {
-      const idParam = req.params.id as string;
-      const companyId = parseInt(idParam);
-      if (isNaN(companyId)) {
-        return res.status(400).json({ error: "Invalid company ID" });
-      }
-      
-      const companyUsers = await db.select({
-        id: schema.users.id,
-        firstName: schema.users.firstName,
-        lastName: schema.users.lastName,
-        fiscalCode: schema.users.fiscalCode,
-        email: schema.users.email,
-        role: schema.users.role,
-      })
-      .from(schema.users)
-      .where(eq(schema.users.idcompany, companyId))
-      .orderBy(schema.users.lastName);
-      
-      res.json(companyUsers);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid company ID" });
+
+      const [company] = await db.select().from(schema.companies).where(eq(schema.companies.id, id));
+      if (!company) return res.status(404).json({ error: "Company not found" });
+
+      res.json(company);
     } catch (error) {
-      console.error("Error fetching company users:", error);
-      res.status(500).json({ error: "Failed to fetch company users" });
+      console.error("Company error:", error);
+      res.status(500).json({ error: "Failed to fetch company" });
     }
   });
 
@@ -211,27 +185,8 @@ export async function registerRoutes(
       if (!result.success) {
         return res.status(400).json({ error: result.error.errors[0].message });
       }
-      const companyData = result.data;
-      
-      const [newCompany] = await db.insert(schema.companies).values({
-        businessName: companyData.businessName,
-        address: companyData.address || null,
-        city: companyData.city || null,
-        cap: companyData.cap || null,
-        province: companyData.province || null,
-        vatNumber: companyData.vatNumber || null,
-        fiscalCode: companyData.fiscalCode || null,
-        phone: companyData.phone || null,
-        email: companyData.email || null,
-        pec: companyData.pec || null,
-        website: companyData.website || null,
-        regionalAuthorization: companyData.regionalAuthorization || null,
-        licenseType: companyData.licenseType || null,
-        isTutor: companyData.isTutor || false,
-        contactPerson: companyData.contactPerson || null,
-        notes: companyData.notes || null,
-      }).returning();
 
+      const [newCompany] = await db.insert(schema.companies).values(result.data).returning();
       res.status(201).json(newCompany);
     } catch (error) {
       console.error("Create company error:", error);
@@ -239,38 +194,39 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/companies/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid company ID" });
+
+      const [updated] = await db.update(schema.companies)
+        .set(req.body)
+        .where(eq(schema.companies.id, id))
+        .returning();
+
+      if (!updated) return res.status(404).json({ error: "Company not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Update company error:", error);
+      res.status(500).json({ error: "Failed to update company" });
+    }
+  });
+
   app.delete("/api/companies/:id", isAuthenticated, async (req, res) => {
     try {
-      const id = parseInt(req.params.id as string);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid company ID" });
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid company ID" });
+
+      // Check if company has students
+      const [hasStudents] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.students)
+        .where(eq(schema.students.companyId, id));
+
+      if (Number(hasStudents.count) > 0) {
+        return res.status(400).json({ error: "Cannot delete company with associated students" });
       }
-      
-      // Get all users belonging to this company
-      const companyUsersList = await db.select({ id: schema.users.id })
-        .from(schema.users)
-        .where(eq(schema.users.idcompany, id));
-      const userIds = companyUsersList.map(u => u.id);
-      
-      // Delete related records first (cascade manually)
-      await db.delete(schema.enrollments).where(eq(schema.enrollments.companyId, id));
-      await db.delete(schema.tutorsPurchases).where(eq(schema.tutorsPurchases.tutorId, id));
-      await db.delete(schema.tutorsPurchases).where(eq(schema.tutorsPurchases.customerCompanyId, id));
-      
-      // Delete company_users and certificates for each user
-      if (userIds.length > 0) {
-        for (const userId of userIds) {
-          await db.delete(schema.companyUsers).where(eq(schema.companyUsers.userId, userId));
-          await db.delete(schema.certificates).where(eq(schema.certificates.userId, userId));
-        }
-      }
-      
-      // Also delete company_users by companyId
-      await db.delete(schema.companyUsers).where(eq(schema.companyUsers.companyId, id));
-      
-      await db.delete(schema.users).where(eq(schema.users.idcompany, id));
+
       await db.delete(schema.companies).where(eq(schema.companies.id, id));
-      
       res.json({ success: true });
     } catch (error) {
       console.error("Delete company error:", error);
@@ -278,234 +234,105 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/learning-projects", isAuthenticated, async (req, res) => {
+  // ============================================================
+  // STUDENTS (Studenti/Dipendenti)
+  // ============================================================
+  app.get("/api/students", isAuthenticated, async (req, res) => {
     try {
-      const projects = await db.select().from(schema.learningProjects);
-      res.json(projects);
-    } catch (error) {
-      console.error("Learning projects error:", error);
-      res.status(500).json({ error: "Failed to fetch learning projects" });
-    }
-  });
+      const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
 
-  // Struttura gerarchica di un corso (moduli > lezioni > learning objects)
-  app.get("/api/learning-projects/:id/structure", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID corso non valido" });
+      const students = await db.select({
+        id: schema.students.id,
+        companyId: schema.students.companyId,
+        email: schema.students.email,
+        firstName: schema.students.firstName,
+        lastName: schema.students.lastName,
+        fiscalCode: schema.students.fiscalCode,
+        isActive: schema.students.isActive,
+        companyName: schema.companies.businessName,
+      })
+        .from(schema.students)
+        .leftJoin(schema.companies, eq(schema.students.companyId, schema.companies.id))
+        .orderBy(schema.students.lastName);
+
+      let filtered = students;
+      if (companyId) {
+        filtered = filtered.filter(s => s.companyId === companyId);
       }
 
-      // Ottieni info del learning project
-      const [project] = await db.select().from(schema.learningProjects).where(eq(schema.learningProjects.id, projectId));
-      
-      // Cerca per legacy_course_id (che corrisponde a sortOrder) o learning_project_id
-      const legacyCourseId = project?.sortOrder || projectId;
-
-      // Query per ottenere la struttura completa
-      const structure = await db.execute(sql`
-        SELECT 
-          cm.id as course_module_id,
-          cm.position as module_position,
-          cm.legacy_course_id,
-          cm.learning_project_id,
-          m.id as module_id,
-          m.title as module_title,
-          m.description as module_description,
-          m.duration as module_duration,
-          ml.id as module_lesson_id,
-          ml.position as lesson_position,
-          l.id as lesson_id,
-          l.title as lesson_title,
-          l.duration as lesson_duration,
-          llo.id as lesson_lo_id,
-          llo.position as lo_position,
-          lo.id as lo_id,
-          lo.title as lo_title,
-          lo.object_type as lo_type,
-          lo.duration as lo_duration
-        FROM course_modules cm
-        JOIN modules m ON m.id = cm.module_id
-        LEFT JOIN module_lessons ml ON ml.module_id = m.id
-        LEFT JOIN lessons l ON l.id = ml.lesson_id
-        LEFT JOIN lesson_learning_objects llo ON llo.lesson_id = l.id
-        LEFT JOIN learning_objects lo ON lo.id = llo.learning_object_id
-        WHERE cm.legacy_course_id = ${legacyCourseId} OR cm.learning_project_id = ${projectId}
-        ORDER BY cm.position, ml.position, llo.position
-      `);
-
-      // Trasforma in struttura gerarchica
-      const modulesMap = new Map<number, any>();
-      
-      for (const row of structure.rows) {
-        const moduleId = row.module_id as number;
-        
-        if (!modulesMap.has(moduleId)) {
-          modulesMap.set(moduleId, {
-            id: moduleId,
-            title: row.module_title,
-            description: row.module_description,
-            duration: row.module_duration,
-            position: row.module_position,
-            lessons: new Map()
-          });
-        }
-        
-        const module = modulesMap.get(moduleId);
-        const lessonId = row.lesson_id as number;
-        
-        if (lessonId && !module.lessons.has(lessonId)) {
-          module.lessons.set(lessonId, {
-            id: lessonId,
-            title: row.lesson_title,
-            duration: row.lesson_duration,
-            position: row.lesson_position,
-            learningObjects: []
-          });
-        }
-        
-        if (lessonId && row.lo_id) {
-          const lesson = module.lessons.get(lessonId);
-          const loExists = lesson.learningObjects.some((lo: any) => lo.id === row.lo_id);
-          if (!loExists) {
-            // Mappa object_type numerico a tipo testuale
-            const objectTypeMap: Record<number, string> = {
-              1: 'video',
-              2: 'slide',
-              3: 'document',
-              4: 'test'
-            };
-            lesson.learningObjects.push({
-              id: row.lo_id,
-              title: row.lo_title,
-              type: objectTypeMap[row.lo_type as number] || 'video',
-              duration: row.lo_duration,
-              position: row.lo_position
-            });
-          }
-        }
-      }
-      
-      // Converti in array
-      const result = Array.from(modulesMap.values()).map(module => ({
-        ...module,
-        lessons: Array.from(module.lessons.values())
-      }));
-
-      res.json({
-        projectId,
-        project: project || null,
-        modules: result,
-        stats: {
-          totalModules: result.length,
-          totalLessons: result.reduce((sum, m) => sum + m.lessons.length, 0),
-          totalLearningObjects: result.reduce((sum, m) => 
-            sum + m.lessons.reduce((lsum: number, l: any) => lsum + l.learningObjects.length, 0), 0)
-        }
-      });
+      res.json(filtered);
     } catch (error) {
-      console.error("Course structure error:", error);
-      res.status(500).json({ error: "Errore nel recupero della struttura" });
+      console.error("Students error:", error);
+      res.status(500).json({ error: "Failed to fetch students" });
     }
   });
 
-  // Pubblica un learning project (stato 1 = attivo)
-  app.post("/api/learning-projects/:id/publish", isAuthenticated, async (req, res) => {
+  app.post("/api/students", isAuthenticated, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id as string);
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ isPublishedInEcommerce: 1, isPublished: true })
-        .where(eq(schema.learningProjects.id, projectId));
-
-      res.json({ success: true, message: "Corso pubblicato" });
-    } catch (error) {
-      console.error("Publish project error:", error);
-      res.status(500).json({ error: "Errore durante la pubblicazione" });
-    }
-  });
-
-  // Rimuovi dalla pubblicazione (stato 0 = non pubblicato)
-  app.post("/api/learning-projects/:id/unpublish", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ isPublishedInEcommerce: 0, isPublished: false })
-        .where(eq(schema.learningProjects.id, projectId));
-
-      res.json({ success: true, message: "Corso rimosso dalla pubblicazione" });
-    } catch (error) {
-      console.error("Unpublish project error:", error);
-      res.status(500).json({ error: "Errore durante la rimozione dalla pubblicazione" });
-    }
-  });
-
-  // Sospendi un corso (stato 2 = sospeso)
-  app.post("/api/learning-projects/:id/suspend", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ isPublishedInEcommerce: 2 })
-        .where(eq(schema.learningProjects.id, projectId));
-
-      res.json({ success: true, message: "Corso sospeso" });
-    } catch (error) {
-      console.error("Suspend project error:", error);
-      res.status(500).json({ error: "Errore durante la sospensione" });
-    }
-  });
-
-  app.get("/api/catalog", isAuthenticated, async (req, res) => {
-    try {
-      const courses = await db.select()
-        .from(schema.learningProjects)
-        .where(eq(schema.learningProjects.isPublishedInEcommerce, 1)) // 1 = attivo
-        .orderBy(schema.learningProjects.title);
-      
-      res.json(courses);
-    } catch (error) {
-      console.error("Catalog error:", error);
-      res.json([]);
-    }
-  });
-
-  app.post("/api/catalog", isAuthenticated, async (req, res) => {
-    try {
-      const result = schema.insertLearningProjectSchema.safeParse(req.body);
+      const result = schema.insertStudentSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ error: result.error.errors[0].message });
       }
-      const courseData = result.data;
-      
-      const [newCourse] = await db.insert(schema.learningProjects).values({
-        title: courseData.title,
-        description: courseData.description || null,
-        category: courseData.category || null,
-        riskLevel: courseData.riskLevel || null,
-        sector: courseData.sector || null,
-        language: courseData.language || 'IT',
-        hours: courseData.hours || 0,
-        modality: courseData.modality || 'Online',
-        listPrice: courseData.listPrice || '0',
-        tutorCost: courseData.tutorCost || '0',
-        isPublished: courseData.isPublished ?? true,
-      }).returning();
 
+      const [newStudent] = await db.insert(schema.students).values(result.data).returning();
+      res.status(201).json(newStudent);
+    } catch (error) {
+      console.error("Create student error:", error);
+      res.status(500).json({ error: "Failed to create student" });
+    }
+  });
+
+  app.delete("/api/students/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid student ID" });
+
+      // Delete enrollments first
+      await db.delete(schema.enrollments).where(eq(schema.enrollments.studentId, id));
+      await db.delete(schema.students).where(eq(schema.students.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete student error:", error);
+      res.status(500).json({ error: "Failed to delete student" });
+    }
+  });
+
+  // ============================================================
+  // COURSES (Corsi)
+  // ============================================================
+  app.get("/api/courses", isAuthenticated, async (req, res) => {
+    try {
+      const courses = await db.select().from(schema.courses).orderBy(schema.courses.title);
+      res.json(courses);
+    } catch (error) {
+      console.error("Courses error:", error);
+      res.status(500).json({ error: "Failed to fetch courses" });
+    }
+  });
+
+  app.get("/api/courses/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid course ID" });
+
+      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, id));
+      if (!course) return res.status(404).json({ error: "Course not found" });
+
+      res.json(course);
+    } catch (error) {
+      console.error("Course error:", error);
+      res.status(500).json({ error: "Failed to fetch course" });
+    }
+  });
+
+  app.post("/api/courses", isAuthenticated, async (req, res) => {
+    try {
+      const result = schema.insertCourseSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.errors[0].message });
+      }
+
+      const [newCourse] = await db.insert(schema.courses).values(result.data).returning();
       res.status(201).json(newCourse);
     } catch (error) {
       console.error("Create course error:", error);
@@ -513,1766 +340,184 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/sales", isAuthenticated, async (req, res) => {
-    try {
-      const tutorIdParam = req.query.tutorId as string | undefined;
-      
-      let query = db.select({
-        id: schema.tutorsPurchases.id,
-        date: schema.tutorsPurchases.createdAt,
-        qty: schema.tutorsPurchases.qta,
-        listPrice: schema.tutorsPurchases.price,
-        status: schema.tutorsPurchases.status,
-        clientId: schema.tutorsPurchases.customerCompanyId,
-        courseId: schema.tutorsPurchases.learningProjectId,
-        tutorId: schema.tutorsPurchases.tutorId,
-        userCompanyRef: schema.tutorsPurchases.userCompanyRef,
-      })
-        .from(schema.tutorsPurchases);
-      
-      let sales;
-      if (tutorIdParam) {
-        sales = await query
-          .where(eq(schema.tutorsPurchases.tutorId, parseInt(tutorIdParam)))
-          .orderBy(desc(schema.tutorsPurchases.createdAt))
-          .limit(2000);
-      } else {
-        sales = await query
-          .orderBy(desc(schema.tutorsPurchases.createdAt))
-          .limit(2000);
-      }
-      
-      const enrichedSales = await Promise.all(sales.map(async (sale) => {
-        let client = 'N/A';
-        let course = 'N/A';
-        let tutorName = 'N/A';
-        let user = 'N/A';
-        
-        if (sale.clientId) {
-          const [clientData] = await db.select({ name: schema.companies.businessName })
-            .from(schema.companies)
-            .where(eq(schema.companies.id, sale.clientId));
-          client = clientData?.name || 'N/A';
-        }
-        
-        if (sale.courseId) {
-          const [courseData] = await db.select({ title: schema.learningProjects.title })
-            .from(schema.learningProjects)
-            .where(eq(schema.learningProjects.id, sale.courseId));
-          course = courseData?.title || 'N/A';
-        }
-        
-        if (sale.tutorId) {
-          const [tutorData] = await db.select({ name: schema.companies.businessName })
-            .from(schema.companies)
-            .where(eq(schema.companies.id, sale.tutorId));
-          tutorName = tutorData?.name || 'N/A';
-        }
-        
-        if (sale.userCompanyRef) {
-          const [userData] = await db.select({ 
-            firstName: schema.users.firstName,
-            lastName: schema.users.lastName,
-          })
-            .from(schema.users)
-            .where(eq(schema.users.id, sale.userCompanyRef));
-          if (userData) {
-            user = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'N/A';
-          }
-        }
-        
-        return {
-          id: sale.id,
-          user,
-          client,
-          date: sale.date,
-          course,
-          qty: sale.qty,
-          listPrice: parseFloat(String(sale.listPrice || 0)),
-          tutorId: sale.tutorId,
-          tutorName,
-        };
-      }));
-
-      res.json(enrichedSales);
-    } catch (error) {
-      console.error("Sales error:", error);
-      res.json([]);
-    }
-  });
-
-  // Invoice API - get sales summary for a tutor in a specific month
-  app.get("/api/invoice", isAuthenticated, async (req, res) => {
-    try {
-      const tutorId = parseInt(req.query.tutorId as string);
-      const month = parseInt(req.query.month as string); // 1-12
-      const year = parseInt(req.query.year as string);
-      
-      if (isNaN(tutorId) || isNaN(month) || isNaN(year)) {
-        return res.status(400).json({ error: "tutorId, month and year are required" });
-      }
-      
-      // Get tutor info
-      const [tutor] = await db.select()
-        .from(schema.companies)
-        .where(eq(schema.companies.id, tutorId));
-      
-      if (!tutor) {
-        return res.status(404).json({ error: "Tutor not found" });
-      }
-      
-      // Calculate date range for the month
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
-      
-      // Get all sales for this tutor in the specified month
-      const sales = await db.execute(sql`
-        SELECT 
-          tp.id,
-          tp.creation_date,
-          tp.qta,
-          tp.price,
-          tp.learning_project_id as course_id,
-          c.business_name as client_name,
-          c.id as client_id
-        FROM tutors_purchases tp
-        LEFT JOIN companies c ON c.id = tp.customer_company_id
-        WHERE tp.tutor_id = ${tutorId}
-          AND tp.creation_date >= ${startDate}
-          AND tp.creation_date <= ${endDate}
-        ORDER BY tp.id
-      `);
-      
-      // Build list of individual orders
-      const orders: Array<{ orderId: number; courseId: number; qty: number; price: number; total: number }> = [];
-      let grandTotal = 0;
-      
-      for (const sale of sales.rows) {
-        const orderId = (sale.id as number) || 0;
-        const courseId = (sale.course_id as number) || 0;
-        const qty = (sale.qta as number) || 1;
-        const price = parseFloat(String(sale.price || 0));
-        const lineTotal = qty * price;
-        
-        orders.push({ orderId, courseId, qty, price, total: lineTotal });
-        grandTotal += lineTotal;
-      }
-      
-      const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 
-                          'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
-      
-      res.json({
-        tutor: {
-          id: tutor.id,
-          businessName: tutor.businessName,
-          address: tutor.address,
-          city: tutor.city,
-          vatNumber: tutor.vatNumber,
-          email: tutor.email,
-        },
-        period: {
-          month,
-          year,
-          monthName: monthNames[month - 1],
-          label: `${monthNames[month - 1]} ${year}`
-        },
-        orders,
-        totalSales: sales.rows.length,
-        grandTotal,
-        generatedAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error("Invoice error:", error);
-      res.status(500).json({ error: "Failed to generate invoice" });
-    }
-  });
-
-  // Save invoice to archive
-  app.post("/api/invoices", isAuthenticated, async (req, res) => {
-    try {
-      const { tutorId, tutorName, month, year, orderIds, totalAmount } = req.body;
-      
-      // Check if invoice already exists for this tutor/month/year
-      const existing = await db.select()
-        .from(schema.invoices)
-        .where(and(
-          eq(schema.invoices.tutorId, tutorId),
-          eq(schema.invoices.month, month),
-          eq(schema.invoices.year, year)
-        ));
-      
-      if (existing.length > 0) {
-        return res.status(400).json({ error: "Fattura già salvata per questo periodo" });
-      }
-      
-      // Get count of invoices for this year to generate progressive number
-      const yearInvoices = await db.select()
-        .from(schema.invoices)
-        .where(eq(schema.invoices.year, year));
-      
-      const nextNumber = yearInvoices.length + 1;
-      const invoiceNumber = `FAT-${year}-${String(nextNumber).padStart(2, '0')}`;
-      
-      const [invoice] = await db.insert(schema.invoices).values({
-        tutorId,
-        tutorName,
-        month,
-        year,
-        orderIds,
-        totalAmount: totalAmount.toString(),
-        invoiceNumber,
-      }).returning();
-      
-      res.json(invoice);
-    } catch (error) {
-      console.error("Save invoice error:", error);
-      res.status(500).json({ error: "Errore nel salvataggio della fattura" });
-    }
-  });
-
-  // Get saved invoices
-  app.get("/api/invoices", isAuthenticated, async (req, res) => {
-    try {
-      const { tutorId } = req.query;
-      
-      let query = db.select().from(schema.invoices).$dynamic();
-      
-      if (tutorId) {
-        query = query.where(eq(schema.invoices.tutorId, parseInt(tutorId as string)));
-      }
-      
-      const invoices = await query.orderBy(desc(schema.invoices.createdAt)).limit(100);
-      res.json(invoices);
-    } catch (error) {
-      console.error("Get invoices error:", error);
-      res.json([]);
-    }
-  });
-
-  // Delete invoice
-  app.delete("/api/invoices/:id", isAuthenticated, async (req, res) => {
-    try {
-      const idStr = req.params.id as string;
-      const id = parseInt(idStr);
-      await db.delete(schema.invoices).where(eq(schema.invoices.id, id));
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Delete invoice error:", error);
-      res.status(500).json({ error: "Errore nella cancellazione" });
-    }
-  });
-
-  app.get("/api/platform-users", isAuthenticated, async (req, res) => {
-    try {
-      const users = await db.select({
-        id: schema.users.id,
-        email: schema.users.email,
-        firstName: schema.users.firstName,
-        lastName: schema.users.lastName,
-        profileImageUrl: schema.users.profileImageUrl,
-        role: schema.users.role,
-        idcompany: schema.users.idcompany,
-        fiscalCode: schema.users.fiscalCode,
-        phone: schema.users.phone,
-        createdAt: schema.users.createdAt,
-      })
-        .from(schema.users)
-        .orderBy(desc(schema.users.createdAt))
-        .limit(2000);
-      
-      // Get companies to map
-      const companies = await db.select().from(schema.companies);
-      const companyMap = new Map(companies.map(c => [c.id, c]));
-      
-      // Enrich with company data
-      const enrichedUsers = users.map(u => {
-        const company = u.idcompany ? companyMap.get(u.idcompany) : null;
-        const tutorCompany = company?.parentCompanyId ? companyMap.get(company.parentCompanyId) : null;
-        return {
-          ...u,
-          companyName: company?.businessName || null,
-          tutorName: tutorCompany?.businessName || (company?.isTutor ? company.businessName : null),
-        };
-      });
-      
-      res.json(enrichedUsers);
-    } catch (error) {
-      console.error("Users error:", error);
-      res.json([]);
-    }
-  });
-
-  // Search users - cerca direttamente nel database
-  app.get("/api/users/search", isAuthenticated, async (req, res) => {
-    try {
-      const q = (req.query.q as string || '').trim();
-      if (q.length < 2) return res.json([]);
-      
-      const searchPattern = `%${q}%`;
-      
-      // Cerca direttamente nel database con ILIKE
-      const matchedUsers = await db.select({
-        id: schema.users.id,
-        firstName: schema.users.firstName,
-        lastName: schema.users.lastName,
-        email: schema.users.email,
-        fiscalCode: schema.users.fiscalCode,
-        idcompany: schema.users.idcompany,
-      })
-      .from(schema.users)
-      .where(
-        or(
-          ilike(schema.users.firstName, searchPattern),
-          ilike(schema.users.lastName, searchPattern),
-          ilike(schema.users.email, searchPattern),
-          ilike(schema.users.fiscalCode, searchPattern)
-        )
-      )
-      .limit(30);
-      
-      // Carica le aziende per il lookup
-      const companies = await db.select({
-        id: schema.companies.id,
-        businessName: schema.companies.businessName,
-      }).from(schema.companies);
-      
-      const companyMap = new Map(companies.map(c => [String(c.id), c.businessName]));
-      
-      const usersWithCompany = matchedUsers.map(u => ({
-        ...u,
-        companyName: u.idcompany ? companyMap.get(String(u.idcompany)) || null : null
-      }));
-      
-      res.json(usersWithCompany);
-    } catch (error) {
-      console.error("Search users error:", error);
-      res.json([]);
-    }
-  });
-
-  // Update user
-  app.patch("/api/users/:id", isAuthenticated, async (req, res) => {
-    try {
-      const idStr = req.params.id as string;
-      const { firstName, lastName, email, fiscalCode, phone, role, idcompany } = req.body;
-      
-      await db.update(schema.users)
-        .set({
-          firstName,
-          lastName,
-          email,
-          fiscalCode,
-          phone,
-          role,
-          idcompany,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.users.id, idStr));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update user error:", error);
-      res.status(500).json({ error: "Errore aggiornamento utente" });
-    }
-  });
-
-  // Get user enrollments (from tutors_purchases linked to user's company)
-  app.get("/api/user-enrollments", isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.query.userId as string;
-      if (!userId) return res.json([]);
-      
-      // Cerca gli enrollments dell'utente dalla tabella enrollments
-      // Un corso è completato se ha un legacy_id (significa che c'è un attestato)
-      const userEnrollments = await db.select({
-        id: schema.enrollments.id,
-        learningProjectId: schema.enrollments.learningProjectId,
-        courseTitle: schema.learningProjects.title,
-        startDate: schema.enrollments.startDate,
-        endDate: schema.enrollments.endDate,
-        status: schema.enrollments.status,
-        progress: schema.enrollments.progress,
-        legacyId: schema.enrollments.legacyId,
-        lastAccessAt: schema.enrollments.lastAccessAt,
-      })
-        .from(schema.enrollments)
-        .leftJoin(schema.learningProjects, eq(schema.enrollments.learningProjectId, schema.learningProjects.id))
-        .where(eq(schema.enrollments.userId, userId))
-        .orderBy(desc(schema.enrollments.startDate))
-        .limit(50);
-      
-      const enrollments = userEnrollments.map(e => {
-        // Un corso è completato se ha un legacy_id (attestato generato)
-        const isCompleted = !!e.legacyId;
-        // "In attività" significa che l'utente ha iniziato il corso (lastAccessAt != null)
-        const isInProgress = !!e.lastAccessAt && !isCompleted;
-        
-        return {
-          id: e.id,
-          learningProjectId: e.learningProjectId,
-          courseTitle: e.courseTitle || 'Corso senza titolo',
-          startDate: e.startDate,      // Data programmazione
-          activeDate: e.lastAccessAt,  // Data inizio attività
-          completedAt: isCompleted ? e.endDate : null,  // Data completamento
-          status: isCompleted ? 'completed' : (isInProgress ? 'active' : 'scheduled'),
-          progress: e.progress || 0,
-        };
-      });
-      
-      res.json(enrollments);
-    } catch (error) {
-      console.error("User enrollments error:", error);
-      res.json([]);
-    }
-  });
-
-  app.get("/api/certificates", isAuthenticated, async (req, res) => {
-    try {
-      const certificates = await db.select()
-        .from(schema.certificates)
-        .orderBy(desc(schema.certificates.completedAt))
-        .limit(500);
-      
-      res.json(certificates);
-    } catch (error) {
-      console.error("Certificates error:", error);
-      res.json([]);
-    }
-  });
-
+  // ============================================================
+  // ENROLLMENTS (Iscrizioni)
+  // ============================================================
   app.get("/api/enrollments", isAuthenticated, async (req, res) => {
     try {
-      const statusFilter = req.query.status as string | undefined;
-      const companyFilter = req.query.companyId as string | undefined;
-      const search = req.query.search as string | undefined;
+      const tutorId = req.query.tutorId ? parseInt(req.query.tutorId as string) : null;
+      const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
 
-      // Get all enrollments ordered by most recent
       const enrollments = await db.select({
         id: schema.enrollments.id,
-        userId: schema.enrollments.userId,
-        companyId: schema.enrollments.companyId,
-        learningProjectId: schema.enrollments.learningProjectId,
+        studentId: schema.enrollments.studentId,
+        courseId: schema.enrollments.courseId,
+        licenseCode: schema.enrollments.licenseCode,
         startDate: schema.enrollments.startDate,
         endDate: schema.enrollments.endDate,
-        lastAccessAt: schema.enrollments.lastAccessAt,
         progress: schema.enrollments.progress,
         status: schema.enrollments.status,
-        emailSentAt: schema.enrollments.emailSentAt,
-        emailOpenedAt: schema.enrollments.emailOpenedAt,
-        licenseCode: schema.enrollments.licenseCode,
+        createdAt: schema.enrollments.createdAt,
+        studentEmail: schema.students.email,
+        studentFirstName: schema.students.firstName,
+        studentLastName: schema.students.lastName,
+        companyId: schema.students.companyId,
+        companyName: schema.companies.businessName,
+        tutorId: schema.companies.tutorId,
+        courseTitle: schema.courses.title,
       })
         .from(schema.enrollments)
-        .orderBy(desc(schema.enrollments.id))
-        .limit(500);
+        .leftJoin(schema.students, eq(schema.enrollments.studentId, schema.students.id))
+        .leftJoin(schema.companies, eq(schema.students.companyId, schema.companies.id))
+        .leftJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+        .orderBy(desc(schema.enrollments.createdAt));
 
-      const enrichedEnrollments = await Promise.all(enrollments.map(async (e) => {
-        let companyName = '';
-        let userName = '';
-        let userEmail = '';
-        let courseName = '';
-
-        if (e.companyId) {
-          const [company] = await db.select({ name: schema.companies.businessName })
-            .from(schema.companies)
-            .where(eq(schema.companies.id, e.companyId));
-          companyName = company?.name || '';
-        }
-
-        if (e.userId) {
-          const [user] = await db.select({ 
-            firstName: schema.users.firstName,
-            lastName: schema.users.lastName,
-            email: schema.users.email,
-          })
-            .from(schema.users)
-            .where(eq(schema.users.id, e.userId));
-          if (user) {
-            userName = `${user.lastName || ''} ${user.firstName || ''}`.trim();
-            userEmail = user.email || '';
-          }
-        }
-
-        if (e.learningProjectId) {
-          const [course] = await db.select({ title: schema.learningProjects.title })
-            .from(schema.learningProjects)
-            .where(eq(schema.learningProjects.id, e.learningProjectId));
-          courseName = course?.title || '';
-        }
-
-        return {
-          id: e.id,
-          companyName,
-          userName,
-          userEmail,
-          courseName,
-          startDate: e.startDate,
-          endDate: e.endDate,
-          lastAccessAt: e.lastAccessAt,
-          progress: e.progress || 0,
-          status: e.status || 'not_started',
-          emailSentAt: e.emailSentAt,
-          emailOpenedAt: e.emailOpenedAt,
-          licenseCode: e.licenseCode,
-        };
-      }));
-
-      let filtered = enrichedEnrollments;
-      
-      if (statusFilter === 'active') {
-        filtered = filtered.filter(e => e.progress > 0 && e.progress < 100);
-      } else if (statusFilter === 'not_started') {
-        filtered = filtered.filter(e => e.progress === 0);
+      let filtered = enrollments;
+      if (tutorId) {
+        filtered = filtered.filter(e => e.tutorId === tutorId);
       }
-      
-      if (companyFilter) {
-        const companyId = parseInt(companyFilter);
-        filtered = filtered.filter(e => e.companyName.toLowerCase().includes(companyFilter.toLowerCase()));
-      }
-      
-      if (search) {
-        const s = search.toLowerCase();
-        filtered = filtered.filter(e => 
-          e.userName.toLowerCase().includes(s) ||
-          e.userEmail.toLowerCase().includes(s) ||
-          e.companyName.toLowerCase().includes(s) ||
-          e.courseName.toLowerCase().includes(s)
-        );
+      if (companyId) {
+        filtered = filtered.filter(e => e.companyId === companyId);
       }
 
       res.json(filtered);
     } catch (error) {
       console.error("Enrollments error:", error);
-      res.json([]);
+      res.status(500).json({ error: "Failed to fetch enrollments" });
     }
   });
 
-  // Activate course - create enrollments and send emails
-  app.post("/api/enrollments/activate", isAuthenticated, async (req, res) => {
+  app.post("/api/enrollments", isAuthenticated, async (req, res) => {
     try {
-      const { courseId, companyId, corsisti } = req.body as {
-        courseId: number;
-        companyId: number;
-        corsisti: Array<{
-          email: string;
-          startDate: string;
-          endDate: string;
-          daysToAlert: number;
-          lastName: string;
-          firstName: string;
-          fiscalCode: string;
-          userType: string;
-        }>;
-      };
-
-      if (!courseId || !companyId || !corsisti || corsisti.length === 0) {
-        return res.status(400).json({ message: "Dati mancanti" });
+      const result = schema.insertEnrollmentSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.errors[0].message });
       }
 
-      const now = new Date();
-      let createdCount = 0;
-
-      for (const corsista of corsisti) {
-        // Check if user exists or create new one
-        let [existingUser] = await db.select()
-          .from(schema.users)
-          .where(eq(schema.users.email, corsista.email.toLowerCase()));
-
-        let usrId: string;
-
-        if (existingUser) {
-          usrId = existingUser.id;
-        } else {
-          // Create new user
-          const [newUser] = await db.insert(schema.users)
-            .values({
-              email: corsista.email.toLowerCase(),
-              firstName: corsista.firstName,
-              lastName: corsista.lastName,
-              fiscalCode: corsista.fiscalCode.toUpperCase(),
-              idcompany: companyId,
-              role: 0, // Lavoratore
-            })
-            .returning();
-          usrId = newUser.id;
-        }
-
-        // Get course info for email
-        const [course] = await db.select()
-          .from(schema.learningProjects)
-          .where(eq(schema.learningProjects.id, courseId));
-
-        // Create enrollment
-        const trackingId = `track_${usrId}_${courseId}_${Date.now()}`;
-        const [enrollment] = await db.insert(schema.enrollments)
-          .values({
-            userId: usrId,
-            companyId: companyId,
-            learningProjectId: courseId,
-            startDate: new Date(corsista.startDate),
-            endDate: new Date(corsista.endDate),
-            daysToAlert: corsista.daysToAlert,
-            status: 'active',
-            emailTrackingId: trackingId,
-          })
-          .returning();
-
-        // Send email with Resend
-        try {
-          const appUrl = process.env.REPLIT_DEV_DOMAIN 
-            ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-            : 'https://tutor81.replit.app';
-          
-          const trackingPixelUrl = `${appUrl}/api/email-track/${trackingId}`;
-          const courseTitle = course?.title || 'Corso';
-          
-          await resend.emails.send({
-            from: 'Tutor81 <corsi@tutor81.it>',
-            to: corsista.email,
-            subject: `Accesso al corso: ${courseTitle}`,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5;">
-                
-                <!-- Header -->
-                <div style="background-color: #1a365d; padding: 25px; text-align: center;">
-                  <h1 style="color: #EAB308; margin: 0; font-size: 28px;">TUTOR81</h1>
-                  <p style="color: #a0c4e8; margin: 15px 0 0 0; font-size: 16px;">Devi svolgere un corso obbligatorio</p>
-                </div>
-                
-                <!-- Titolo corso -->
-                <div style="padding: 25px; text-align: center;">
-                  <p style="color: #1a365d; margin: 0; font-size: 14px;">Licenza per il corso:</p>
-                  <h2 style="color: #0ea5e9; margin: 10px 0 0 0; font-size: 20px; font-weight: bold;">${courseTitle}</h2>
-                </div>
-                
-                <!-- Box informazioni -->
-                <div style="background-color: #ffffff; margin: 0 25px; padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                  <p style="color: #333; font-size: 16px; margin: 0 0 35px 0;">
-                    Buongiorno <span style="color: #0ea5e9; font-weight: bold;">${corsista.lastName} ${corsista.firstName}</span>,
-                  </p>
-                  
-                  <p style="color: #333; font-size: 15px; margin: 0 0 30px 0; line-height: 2.2;">
-                    Sei stato iscritto al seguente corso: <span style="color: #0ea5e9; font-weight: bold;">${courseTitle}</span>
-                  </p>
-                  
-                  <p style="color: #333; font-size: 15px; margin: 0 0 25px 0; line-height: 2.2;">
-                    Potrai iniziare a partire dal giorno: <span style="color: #ef4444; font-weight: bold;">${new Date(corsista.startDate).toLocaleDateString('it-IT')}</span>
-                  </p>
-                  
-                  <p style="color: #333; font-size: 15px; margin: 0 0 25px 0; line-height: 2.2;">
-                    E terminare entro il giorno: <span style="color: #ef4444; font-weight: bold;">${new Date(corsista.endDate).toLocaleDateString('it-IT')}</span>
-                  </p>
-                  
-                  <p style="color: #333; font-size: 15px; margin: 0; line-height: 2.2;">
-                    Il tuo referente per questo corso è: <span style="color: #0ea5e9; font-weight: bold;">Tutor81 - corsi@tutor81.it</span>
-                  </p>
-                </div>
-                
-                <!-- Box accesso -->
-                <div style="background-color: #e8f4fc; margin: 25px; padding: 50px 30px; border-radius: 8px; text-align: center;">
-                  <p style="color: #0ea5e9; font-size: 18px; margin: 0 0 40px 0; line-height: 1.8;">
-                    Per accedere al corso clicca su avvia corso e<br>inserisci il tuo nome utente in questo modo:
-                  </p>
-                  <p style="color: #1a365d; font-size: 32px; font-weight: bold; margin: 0 0 50px 0;">
-                    ${corsista.email.split('@')[0]}
-                  </p>
-                  <p style="color: #333; font-size: 14px; margin: 0 0 25px 0;">Se vuoi avviare il corso clicca qui</p>
-                  <a href="https://avviacorso.tutor81.com" style="background-color: #22d3ee; color: #fff; padding: 18px 50px; text-decoration: none; border-radius: 0; font-weight: bold; display: inline-block; font-size: 20px;">
-                    AVVIA CORSO
-                  </a>
-                </div>
-                
-                <!-- Link istruzioni -->
-                <div style="padding: 20px; text-align: center; border-bottom: 1px solid #ddd;">
-                  <a href="${appUrl}/istruzioni" style="color: #0ea5e9; font-size: 18px; font-weight: bold; text-decoration: underline;">
-                    ISTRUZIONI PER IL CORSO
-                  </a>
-                </div>
-                
-                <!-- Box istruzioni dettagliate -->
-                <div style="background-color: #f0f4f8; margin: 0; padding: 35px 40px;">
-                  <p style="color: #333; font-size: 13px; margin: 0 0 25px 0; line-height: 1.8;">
-                    Il tuo referente per questo corso può essere contattato per E-Mail scrivendo a <strong>TUTOR81</strong><br>
-                    E-Mail: <a href="mailto:corsi@tutor81.it" style="color: #0ea5e9;">corsi@tutor81.it</a>
-                  </p>
-                  
-                  <p style="color: #333; font-size: 13px; margin: 0 0 25px 0; line-height: 1.8;">
-                    Al termine del corso potrai scaricare il tracciato di avvenuta formazione
-                  </p>
-                  
-                  <p style="color: #333; font-size: 13px; margin: 0 0 25px 0; line-height: 1.8;">
-                    <strong>IL CORSO PUÒ ESSERE INTERROTTO</strong> con il pulsante ESCI in alto a sinistra. Riaccendeno al corso questo ripartirà dall'ultimo punto utile.
-                  </p>
-                  
-                  <p style="color: #333; font-size: 13px; margin: 0 0 25px 0; line-height: 1.8;">
-                    <strong>PAUSA:</strong> puoi fermare temporaneamente il corso con il pulsante Ferma, ma solo per 30 secondi, terminati i quali il corso viene interrotto.
-                  </p>
-                  
-                  <p style="color: #333; font-size: 13px; margin: 0; line-height: 1.8;">
-                    <strong>ASSISTENZA TECNICA:</strong> In ogni momento è possibile inviare una segnalazione anche tramite mail dal pulsante Richiedi Assistenza oppure scrivete a <a href="mailto:corsi@tutor81.it" style="color: #0ea5e9;">corsi@tutor81.it</a>
-                  </p>
-                </div>
-                
-                <!-- Footer -->
-                <div style="background-color: #1a365d; padding: 20px; text-align: center;">
-                  <p style="color: #EAB308; font-size: 12px; font-weight: bold; margin: 0;">
-                    TUTOR81 - corsi@tutor81.it
-                  </p>
-                </div>
-                
-                <img src="${trackingPixelUrl}" width="1" height="1" style="display:none;" alt="" />
-              </div>
-            `,
-          });
-
-          // Update email sent timestamp
-          await db.update(schema.enrollments)
-            .set({ emailSentAt: now })
-            .where(eq(schema.enrollments.id, enrollment.id));
-
-          console.log(`Email sent to ${corsista.email} for course ${courseId}`);
-        } catch (emailError) {
-          console.error(`Failed to send email to ${corsista.email}:`, emailError);
-        }
-
-        createdCount++;
-        console.log(`Enrollment created for ${corsista.email} - course ${courseId}`);
-      }
-
-      res.json({
-        success: true,
-        created: createdCount,
-        message: `${createdCount} iscrizioni create con successo`
-      });
+      const [newEnrollment] = await db.insert(schema.enrollments).values(result.data).returning();
+      res.status(201).json(newEnrollment);
     } catch (error) {
-      console.error("Activate enrollment error:", error);
-      res.status(500).json({ message: "Errore nella creazione delle iscrizioni" });
+      console.error("Create enrollment error:", error);
+      res.status(500).json({ error: "Failed to create enrollment" });
     }
   });
 
-  // Send activation emails to selected enrollments
-  app.post("/api/enrollments/send-emails", isAuthenticated, async (req, res) => {
+  // ============================================================
+  // MODULES, LESSONS, LEARNING OBJECTS
+  // ============================================================
+  app.get("/api/modules", isAuthenticated, async (req, res) => {
     try {
-      const { enrollmentIds } = req.body as { enrollmentIds: number[] };
-      
-      if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
-        return res.status(400).json({ message: "Nessun iscritto selezionato" });
-      }
-
-      const now = new Date();
-      let sentCount = 0;
-
-      for (const enrollmentId of enrollmentIds) {
-        // Get enrollment details
-        const [enrollment] = await db.select()
-          .from(schema.enrollments)
-          .where(eq(schema.enrollments.id, enrollmentId));
-
-        if (!enrollment) continue;
-
-        // Update email_sent_at timestamp
-        await db.update(schema.enrollments)
-          .set({ 
-            emailSentAt: now,
-            emailTrackingId: `track_${enrollmentId}_${Date.now()}`
-          })
-          .where(eq(schema.enrollments.id, enrollmentId));
-
-        sentCount++;
-        
-        // TODO: Actual email sending will be implemented when email service is configured
-        console.log(`Email marked as sent for enrollment ${enrollmentId}`);
-      }
-
-      res.json({ 
-        success: true, 
-        message: `${sentCount} email segnate come inviate`,
-        sentCount 
-      });
+      const modules = await db.select().from(schema.modules).orderBy(schema.modules.sortOrder);
+      res.json(modules);
     } catch (error) {
-      console.error("Send emails error:", error);
-      res.status(500).json({ message: "Errore nell'invio delle email" });
+      res.status(500).json({ error: "Failed to fetch modules" });
     }
   });
 
-  // Update end date for multiple enrollments
-  app.post("/api/enrollments/update-end-date", isAuthenticated, async (req, res) => {
+  app.get("/api/lessons", isAuthenticated, async (req, res) => {
     try {
-      const { enrollmentIds, endDate } = req.body as { enrollmentIds: number[]; endDate: string };
-      
-      if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
-        return res.status(400).json({ message: "Nessun iscritto selezionato" });
-      }
-
-      if (!endDate) {
-        return res.status(400).json({ message: "Data di scadenza non specificata" });
-      }
-
-      const newEndDate = new Date(endDate);
-      let updatedCount = 0;
-
-      for (const enrollmentId of enrollmentIds) {
-        await db.update(schema.enrollments)
-          .set({ endDate: newEndDate })
-          .where(eq(schema.enrollments.id, enrollmentId));
-        updatedCount++;
-      }
-
-      res.json({ 
-        success: true, 
-        message: `${updatedCount} scadenze aggiornate`,
-        updatedCount 
-      });
+      const lessons = await db.select().from(schema.lessons).orderBy(schema.lessons.sortOrder);
+      res.json(lessons);
     } catch (error) {
-      console.error("Update end date error:", error);
-      res.status(500).json({ message: "Errore nell'aggiornamento delle scadenze" });
+      res.status(500).json({ error: "Failed to fetch lessons" });
     }
   });
 
-  // Delete multiple enrollments
-  app.post("/api/enrollments/delete", isAuthenticated, async (req, res) => {
-    try {
-      const { enrollmentIds } = req.body as { enrollmentIds: number[] };
-      
-      if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
-        return res.status(400).json({ message: "Nessun iscritto selezionato" });
-      }
-
-      let deletedCount = 0;
-
-      for (const enrollmentId of enrollmentIds) {
-        await db.delete(schema.enrollments)
-          .where(eq(schema.enrollments.id, enrollmentId));
-        deletedCount++;
-      }
-
-      res.json({ 
-        success: true, 
-        message: `${deletedCount} licenze rimosse`,
-        deletedCount 
-      });
-    } catch (error) {
-      console.error("Delete enrollments error:", error);
-      res.status(500).json({ message: "Errore nella rimozione delle licenze" });
-    }
-  });
-
-  // Send reminder emails
-  app.post("/api/enrollments/send-reminder", isAuthenticated, async (req, res) => {
-    try {
-      const { enrollmentIds } = req.body as { enrollmentIds: number[] };
-      
-      if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
-        return res.status(400).json({ message: "Nessun iscritto selezionato" });
-      }
-
-      let sentCount = 0;
-
-      for (const enrollmentId of enrollmentIds) {
-        // TODO: Actual reminder email sending will be implemented when email service is configured
-        console.log(`Reminder marked as sent for enrollment ${enrollmentId}`);
-        sentCount++;
-      }
-
-      res.json({ 
-        success: true, 
-        message: `${sentCount} solleciti inviati`,
-        sentCount 
-      });
-    } catch (error) {
-      console.error("Send reminder error:", error);
-      res.status(500).json({ message: "Errore nell'invio dei solleciti" });
-    }
-  });
-
-  app.get("/api/companies-list", isAuthenticated, async (req, res) => {
-    try {
-      // Filter companies under Tutor81 (parent_company_id = 2)
-      const companies = await db.select({ 
-        id: schema.companies.id, 
-        businessName: schema.companies.businessName 
-      })
-        .from(schema.companies)
-        .where(and(
-          eq(schema.companies.isTutor, false),
-          eq(schema.companies.parentCompanyId, 2)
-        ))
-        .orderBy(schema.companies.businessName);
-      res.json(companies);
-    } catch (error) {
-      console.error("Companies list error:", error);
-      res.json([]);
-    }
-  });
-
-  app.get("/api/companies/tutors", isAuthenticated, async (req, res) => {
-    try {
-      const tutors = await db.select()
-        .from(schema.companies)
-        .where(eq(schema.companies.isTutor, true))
-        .orderBy(schema.companies.businessName);
-      res.json(tutors);
-    } catch (error) {
-      console.error("Tutors list error:", error);
-      res.json([]);
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/reserve", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { reservedTo } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ reservedTo: reservedTo })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Reserve project error:", error);
-      res.status(500).json({ error: "Failed to reserve project" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/category", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { category } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ category: category })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update category error:", error);
-      res.status(500).json({ error: "Failed to update category" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/subcategory", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { subcategory } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ subcategory: subcategory })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update subcategory error:", error);
-      res.status(500).json({ error: "Failed to update subcategory" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/sector", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { sector } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ sector: sector })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update sector error:", error);
-      res.status(500).json({ error: "Failed to update sector" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/course-type", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { courseType } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ courseType: courseType })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update courseType error:", error);
-      res.status(500).json({ error: "Failed to update courseType" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/modality", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { modality } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ modality: modality })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update modality error:", error);
-      res.status(500).json({ error: "Failed to update modality" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/risk-level", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { riskLevel } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ riskLevel: riskLevel })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update risk level error:", error);
-      res.status(500).json({ error: "Failed to update risk level" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/validity", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { validity } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ courseValidity: validity })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update validity error:", error);
-      res.status(500).json({ error: "Failed to update validity" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/integration", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { integration } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ externalIntegration: integration })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update integration error:", error);
-      res.status(500).json({ error: "Failed to update integration" });
-    }
-  });
-
-  app.patch("/api/learning-projects/:id/destination", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { destination } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set({ destination: destination })
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update destination error:", error);
-      res.status(500).json({ error: "Failed to update destination" });
-    }
-  });
-
-  // Update learning project - generic PATCH for multiple fields
-  app.patch("/api/learning-projects/:id", isAuthenticated, async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      const { hours, totalElearning, vdHours, maxExecutionTime, percentageToPass, externalIntegration, prerequisites, objectives, targetAudience, lawReference, listPrice, courseType } = req.body;
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID progetto non valido" });
-      }
-
-      const updateData: Record<string, unknown> = {};
-      if (hours !== undefined) updateData.hours = hours;
-      if (totalElearning !== undefined) updateData.totalElearning = totalElearning;
-      if (vdHours !== undefined) updateData.vdHours = vdHours;
-      if (maxExecutionTime !== undefined) updateData.maxExecutionTime = maxExecutionTime;
-      if (percentageToPass !== undefined) updateData.percentageToPass = percentageToPass;
-      if (externalIntegration !== undefined) updateData.externalIntegration = externalIntegration;
-      if (prerequisites !== undefined) updateData.prerequisites = prerequisites;
-      if (objectives !== undefined) updateData.objectives = objectives;
-      if (targetAudience !== undefined) updateData.targetAudience = targetAudience;
-      if (lawReference !== undefined) updateData.lawReference = lawReference;
-      if (listPrice !== undefined) updateData.listPrice = listPrice;
-      if (courseType !== undefined) updateData.courseType = courseType;
-
-      if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ error: "Nessun campo da aggiornare" });
-      }
-
-      await db.update(schema.learningProjects)
-        .set(updateData)
-        .where(eq(schema.learningProjects.id, projectId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Update learning project error:", error);
-      res.status(500).json({ error: "Failed to update learning project" });
-    }
-  });
-
-  // Attestati endpoints
-  app.get("/api/attestati", isAuthenticated, async (req, res) => {
-    try {
-      // Get enrollments that have a legacy_id (meaning they have a certificate file)
-      const attestati = await db.execute(sql`
-        SELECT 
-          e.id,
-          e.legacy_id,
-          e.legacy_user_id,
-          e.start_date,
-          e.end_date,
-          e.accreditation_code,
-          e.progress,
-          u.first_name as user_first_name,
-          u.last_name as user_last_name,
-          u.email as user_email,
-          u.fiscal_code as user_fiscal_code,
-          lp.title as course_title,
-          lp.hours as course_hours,
-          c.business_name as company_name,
-          tutor.business_name as tutor_name
-        FROM enrollments e
-        LEFT JOIN users u ON e.legacy_user_id::text = u.id
-        LEFT JOIN learning_projects lp ON e.learning_project_id = lp.id
-        LEFT JOIN companies c ON e.company_id = c.id
-        LEFT JOIN tutors_purchases tp ON e.purchase_id = tp.id
-        LEFT JOIN companies tutor ON tp.tutor_id = tutor.id
-        WHERE e.legacy_id IS NOT NULL
-        ORDER BY e.end_date DESC NULLS LAST
-        LIMIT 1000
-      `);
-      
-      res.json(attestati.rows);
-    } catch (error) {
-      console.error("Attestati error:", error);
-      res.status(500).json({ error: "Failed to fetch attestati" });
-    }
-  });
-
-  app.get("/api/attestato/:legacyId/download", isAuthenticated, async (req, res) => {
-    const { legacyId } = req.params;
-    
-    if (!legacyId || isNaN(Number(legacyId))) {
-      return res.status(400).json({ error: "Invalid legacy ID" });
-    }
-    
-    const client = new ftp.Client();
-    
-    try {
-      await client.access({
-        host: process.env.FTP_HOST || "135.125.205.19",
-        user: process.env.FTP_USERNAME!,
-        password: process.env.FTP_PASSWORD!,
-        secure: false,
-      });
-      
-      const remotePath = `${process.env.FTP_ATTESTATI_PATH || "/media/media/attestati"}/attestato_licenza_${legacyId}.pdf`;
-      
-      // Create a temporary buffer to store the file
-      const chunks: Buffer[] = [];
-      const writable = new Writable({
-        write(chunk: Buffer, encoding: string, callback: () => void) {
-          chunks.push(chunk);
-          callback();
-        }
-      });
-      
-      await client.downloadTo(writable, remotePath);
-      
-      const fileBuffer = Buffer.concat(chunks);
-      
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="attestato_${legacyId}.pdf"`);
-      res.send(fileBuffer);
-      
-    } catch (error: any) {
-      console.error("FTP download error:", error.message);
-      res.status(404).json({ error: "Attestato non trovato" });
-    } finally {
-      client.close();
-    }
-  });
-
-  app.get("/api/attestato/:legacyId/check", isAuthenticated, async (req, res) => {
-    const { legacyId } = req.params;
-    
-    if (!legacyId || isNaN(Number(legacyId))) {
-      return res.status(400).json({ exists: false });
-    }
-    
-    const client = new ftp.Client();
-    
-    try {
-      await client.access({
-        host: process.env.FTP_HOST || "135.125.205.19",
-        user: process.env.FTP_USERNAME!,
-        password: process.env.FTP_PASSWORD!,
-        secure: false,
-      });
-      
-      const remotePath = `${process.env.FTP_ATTESTATI_PATH || "/media/media/attestati"}/attestato_licenza_${legacyId}.pdf`;
-      const size = await client.size(remotePath);
-      
-      res.json({ exists: true, size });
-    } catch (error) {
-      res.json({ exists: false });
-    } finally {
-      client.close();
-    }
-  });
-
-  async function seedSampleData() {
-    const existingCourses = await db.select().from(schema.learningProjects).limit(1);
-    
-    if (existingCourses.length === 0) {
-      console.log("Seeding sample courses...");
-      
-      await db.insert(schema.learningProjects).values([
-        {
-          title: "Sicurezza sul lavoro - Formazione Generale",
-          description: "Corso base sulla sicurezza nei luoghi di lavoro",
-          category: "SICUREZZA",
-          riskLevel: "basso",
-          sector: "Tutti",
-          hours: 4,
-          modality: "Online",
-          listPrice: "50.00",
-          tutorCost: "25.00",
-        },
-        {
-          title: "HACCP - Alimentaristi",
-          description: "Corso di formazione per operatori alimentari",
-          category: "HACCP",
-          riskLevel: "medio",
-          sector: "Alimentare",
-          hours: 8,
-          modality: "Online",
-          listPrice: "80.00",
-          tutorCost: "40.00",
-        },
-        {
-          title: "Primo Soccorso - Gruppo B/C",
-          description: "Formazione addetti primo soccorso",
-          category: "SICUREZZA",
-          riskLevel: "alto",
-          sector: "Tutti",
-          hours: 12,
-          modality: "Aula",
-          listPrice: "150.00",
-          tutorCost: "75.00",
-        },
-        {
-          title: "Antincendio - Rischio Basso",
-          description: "Corso per addetti antincendio",
-          category: "SICUREZZA",
-          riskLevel: "basso",
-          sector: "Uffici",
-          hours: 4,
-          modality: "Online",
-          listPrice: "60.00",
-          tutorCost: "30.00",
-        },
-        {
-          title: "Privacy GDPR",
-          description: "Formazione sulla protezione dei dati personali",
-          category: "INFORMATICA",
-          riskLevel: "basso",
-          sector: "Tutti",
-          hours: 2,
-          modality: "Online",
-          listPrice: "40.00",
-          tutorCost: "20.00",
-        },
-      ]);
-      
-      console.log("Sample courses seeded!");
-    }
-  }
-
-  seedSampleData().catch(console.error);
-
-  // Learning Objects API with pagination
   app.get("/api/learning-objects", isAuthenticated, async (req, res) => {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
-      const search = (req.query.search as string) || "";
-      const offset = (page - 1) * limit;
-      
-      const objects = await db.select()
-        .from(schema.learningObjects)
-        .where(search ? ilike(schema.learningObjects.title, `%${search}%`) : undefined)
-        .orderBy(desc(schema.learningObjects.id))
-        .limit(limit)
-        .offset(offset);
-      
-      const [countResult] = await db.select({ count: sql<number>`count(*)` })
-        .from(schema.learningObjects)
-        .where(search ? ilike(schema.learningObjects.title, `%${search}%`) : undefined);
-      
-      res.json({
-        data: objects,
-        pagination: {
-          page,
-          limit,
-          total: Number(countResult.count),
-          totalPages: Math.ceil(Number(countResult.count) / limit)
-        }
-      });
+      const objects = await db.select().from(schema.learningObjects).orderBy(schema.learningObjects.sortOrder);
+      res.json(objects);
     } catch (error) {
-      console.error("Learning objects error:", error);
       res.status(500).json({ error: "Failed to fetch learning objects" });
     }
   });
 
-  // Get learning object details with questions
-  app.get("/api/learning-objects/:id/details", isAuthenticated, async (req, res) => {
+  // Course structure (modules > lessons > learning objects)
+  app.get("/api/courses/:id/structure", isAuthenticated, async (req, res) => {
     try {
-      const loId = parseInt(req.params.id as string);
-      
-      // Get the learning object
-      const [lo] = await db.select()
-        .from(schema.learningObjects)
-        .where(eq(schema.learningObjects.id, loId));
-      
-      if (!lo) {
-        return res.status(404).json({ error: "Learning object not found" });
-      }
-      
-      // Get interruption points for this learning object
-      const interruptionPoints = await db.execute(sql`
-        SELECT 
-          ip.id, ip.legacy_id, ip.time,
-          json_agg(json_build_object(
-            'id', qs.id,
-            'text', qs.text,
-            'answers', (
-              SELECT json_agg(json_build_object('id', qa.id, 'text', qa.text, 'isCorrect', qa.is_correct))
-              FROM question_answers qa WHERE qa.question_sentence_id = qs.id
-            )
-          )) as questions
-        FROM video_test_interruption_points ip
-        LEFT JOIN interruption_questions iq ON iq.interruption_point_id = ip.id
-        LEFT JOIN question_sentences qs ON qs.id = iq.question_sentence_id
-        WHERE ip.learning_object_id = ${loId}
-        GROUP BY ip.id, ip.legacy_id, ip.time
-        ORDER BY ip.time
-      `);
-      
-      res.json({
-        learningObject: lo,
-        interruptionPoints: interruptionPoints.rows
-      });
-    } catch (error) {
-      console.error("Learning object details error:", error);
-      res.status(500).json({ error: "Failed to fetch learning object details" });
-    }
-  });
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) return res.status(400).json({ error: "Invalid course ID" });
 
-  app.patch("/api/learning-objects/:id/suspend", isAuthenticated, async (req, res) => {
-    try {
-      const loId = parseInt(req.params.id as string);
-      const { suspended } = req.body;
-      
-      await db.update(schema.learningObjects)
-        .set({ suspended: suspended })
-        .where(eq(schema.learningObjects.id, loId));
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Suspend learning object error:", error);
-      res.status(500).json({ error: "Failed to update learning object" });
-    }
-  });
+      // Get course
+      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, courseId));
+      if (!course) return res.status(404).json({ error: "Course not found" });
 
-  // Public endpoint for player - get course structure
-  app.get("/api/player/course/:id/structure", async (req, res) => {
-    try {
-      const projectId = parseInt(req.params.id as string);
-      
-      if (isNaN(projectId)) {
-        return res.status(400).json({ error: "ID corso non valido" });
-      }
+      // Get modules for this course
+      const courseModules = await db.select({
+        id: schema.modules.id,
+        title: schema.modules.title,
+        description: schema.modules.description,
+        duration: schema.modules.duration,
+        position: schema.courseModules.position,
+      })
+        .from(schema.courseModules)
+        .innerJoin(schema.modules, eq(schema.courseModules.moduleId, schema.modules.id))
+        .where(eq(schema.courseModules.courseId, courseId))
+        .orderBy(schema.courseModules.position);
 
-      // Get learning project info
-      const [project] = await db.select().from(schema.learningProjects).where(eq(schema.learningProjects.id, projectId));
-      
-      const legacyCourseId = project?.sortOrder || projectId;
+      // Get lessons for each module
+      const modulesWithLessons = await Promise.all(courseModules.map(async (module) => {
+        const moduleLessons = await db.select({
+          id: schema.lessons.id,
+          title: schema.lessons.title,
+          description: schema.lessons.description,
+          duration: schema.lessons.duration,
+          position: schema.moduleLessons.position,
+        })
+          .from(schema.moduleLessons)
+          .innerJoin(schema.lessons, eq(schema.moduleLessons.lessonId, schema.lessons.id))
+          .where(eq(schema.moduleLessons.moduleId, module.id))
+          .orderBy(schema.moduleLessons.position);
 
-      // Query for complete structure
-      const structure = await db.execute(sql`
-        SELECT 
-          cm.id as course_module_id,
-          cm.position as module_position,
-          m.id as module_id,
-          m.title as module_title,
-          m.duration as module_duration,
-          ml.position as lesson_position,
-          l.id as lesson_id,
-          l.title as lesson_title,
-          l.duration as lesson_duration,
-          llo.position as lo_position,
-          lo.id as lo_id,
-          lo.title as lo_title,
-          lo.object_type as lo_type,
-          lo.duration as lo_duration,
-          lo.jwplayer_code as jwplayer_code
-        FROM course_modules cm
-        JOIN modules m ON m.id = cm.module_id
-        LEFT JOIN module_lessons ml ON ml.module_id = m.id
-        LEFT JOIN lessons l ON l.id = ml.lesson_id
-        LEFT JOIN lesson_learning_objects llo ON llo.lesson_id = l.id
-        LEFT JOIN learning_objects lo ON lo.id = llo.learning_object_id
-        WHERE cm.legacy_course_id = ${legacyCourseId} OR cm.learning_project_id = ${projectId}
-        ORDER BY cm.position, ml.position, llo.position
-      `);
+        // Get learning objects for each lesson
+        const lessonsWithObjects = await Promise.all(moduleLessons.map(async (lesson) => {
+          const lessonObjects = await db.select({
+            id: schema.learningObjects.id,
+            title: schema.learningObjects.title,
+            objectType: schema.learningObjects.objectType,
+            duration: schema.learningObjects.duration,
+            jwplayerCode: schema.learningObjects.jwplayerCode,
+            position: schema.lessonLearningObjects.position,
+          })
+            .from(schema.lessonLearningObjects)
+            .innerJoin(schema.learningObjects, eq(schema.lessonLearningObjects.learningObjectId, schema.learningObjects.id))
+            .where(eq(schema.lessonLearningObjects.lessonId, lesson.id))
+            .orderBy(schema.lessonLearningObjects.position);
 
-      // Transform to hierarchical structure
-      const modulesMap = new Map<number, any>();
-      
-      for (const row of structure.rows) {
-        const moduleId = row.module_id as number;
-        
-        if (!modulesMap.has(moduleId)) {
-          modulesMap.set(moduleId, {
-            id: moduleId,
-            title: row.module_title,
-            duration: row.module_duration,
-            position: row.module_position,
-            lessons: new Map()
-          });
-        }
-        
-        const module = modulesMap.get(moduleId);
-        const lessonId = row.lesson_id as number;
-        
-        if (lessonId && !module.lessons.has(lessonId)) {
-          module.lessons.set(lessonId, {
-            id: lessonId,
-            title: row.lesson_title,
-            duration: row.lesson_duration,
-            position: row.lesson_position,
-            learningObjects: []
-          });
-        }
-        
-        if (lessonId && row.lo_id) {
-          const lesson = module.lessons.get(lessonId);
-          const loExists = lesson.learningObjects.some((lo: any) => lo.id === row.lo_id);
-          if (!loExists) {
-            const objectTypeMap: Record<number, string> = {
-              1: 'video', 2: 'slide', 3: 'document', 4: 'test'
-            };
-            lesson.learningObjects.push({
-              id: row.lo_id,
-              title: row.lo_title,
-              type: objectTypeMap[row.lo_type as number] || 'video',
-              duration: row.lo_duration,
-              position: row.lo_position,
-              jwplayerCode: row.jwplayer_code
-            });
-          }
-        }
-      }
-      
-      const modules = Array.from(modulesMap.values()).map(module => ({
-        ...module,
-        lessons: Array.from(module.lessons.values())
+          return { ...lesson, learningObjects: lessonObjects };
+        }));
+
+        return { ...module, lessons: lessonsWithObjects };
       }));
 
       res.json({
-        id: projectId,
-        title: project?.title || 'Corso',
-        modules
+        ...course,
+        modules: modulesWithLessons,
       });
     } catch (error) {
-      console.error("Player course structure error:", error);
-      res.status(500).json({ error: "Errore nel recupero della struttura" });
+      console.error("Course structure error:", error);
+      res.status(500).json({ error: "Failed to fetch course structure" });
     }
   });
 
-  // Player login with username and fiscal code
-  app.post("/api/player/login", async (req, res) => {
+  // ============================================================
+  // CERTIFICATES
+  // ============================================================
+  app.get("/api/certificates", isAuthenticated, async (req, res) => {
     try {
-      const { username, fiscalCode } = req.body;
-      
-      // Parse username (format: firstname.lastname)
-      const [firstName, lastName] = username.split(".");
-      
-      // Find user by name parts and fiscal code
-      const users = await db.select()
-        .from(schema.users)
-        .where(
-          and(
-            ilike(schema.users.firstName, firstName || ""),
-            ilike(schema.users.lastName, lastName || ""),
-            eq(schema.users.fiscalCode, fiscalCode)
-          )
-        );
-      
-      if (users.length === 0) {
-        return res.status(401).json({ error: "Credenziali non valide" });
-      }
-      
-      const user = users[0];
-      
-      // Find active enrollment for this user
-      const enrollments = await db.select()
-        .from(schema.enrollments)
-        .where(eq(schema.enrollments.userId, user.id));
-      
-      if (enrollments.length === 0) {
-        return res.status(404).json({ error: "Nessun corso attivo trovato" });
-      }
-      
-      const enrollment = enrollments[0];
-      
-      // Get course info
-      const [course] = await db.select()
-        .from(schema.learningProjects)
-        .where(eq(schema.learningProjects.id, enrollment.learningProjectId!));
-      
-      res.json({
-        success: true,
-        user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email
-        },
-        enrollment: {
-          id: enrollment.id,
-          courseId: enrollment.learningProjectId,
-          courseTitle: course?.title || "Corso",
-          progress: enrollment.progress || 0
-        }
-      });
-    } catch (error) {
-      console.error("Player login error:", error);
-      res.status(500).json({ error: "Errore durante l'accesso" });
-    }
-  });
+      const certificates = await db.select({
+        id: schema.certificates.id,
+        enrollmentId: schema.certificates.enrollmentId,
+        certificateNumber: schema.certificates.certificateNumber,
+        issuedAt: schema.certificates.issuedAt,
+        pdfUrl: schema.certificates.pdfUrl,
+      })
+        .from(schema.certificates)
+        .orderBy(desc(schema.certificates.issuedAt));
 
-  // Save player progress
-  app.post("/api/player/progress", async (req, res) => {
-    try {
-      const { enrollmentId, lessonId, completed } = req.body;
-      
-      // Update progress in database
-      const existing = await db.select()
-        .from(schema.progress)
-        .where(
-          and(
-            eq(schema.progress.enrollmentId, enrollmentId),
-            eq(schema.progress.lessonId, lessonId)
-          )
-        );
-      
-      if (existing.length > 0) {
-        await db.update(schema.progress)
-          .set({
-            completed: completed || false,
-            completedAt: completed ? new Date() : null
-          })
-          .where(eq(schema.progress.id, existing[0].id));
-      } else {
-        await db.insert(schema.progress).values({
-          enrollmentId,
-          lessonId,
-          completed: completed || false,
-          completedAt: completed ? new Date() : null
-        });
-      }
-      
-      res.json({ success: true });
+      res.json(certificates);
     } catch (error) {
-      console.error("Save progress error:", error);
-      res.status(500).json({ error: "Failed to save progress" });
-    }
-  });
-
-  // Get player progress for an enrollment
-  app.get("/api/player/progress/:enrollmentId", async (req, res) => {
-    try {
-      const enrollmentId = parseInt(req.params.enrollmentId);
-      
-      const progressData = await db.select()
-        .from(schema.progress)
-        .where(eq(schema.progress.enrollmentId, enrollmentId));
-      
-      res.json(progressData);
-    } catch (error) {
-      console.error("Get progress error:", error);
-      res.status(500).json({ error: "Failed to get progress" });
-    }
-  });
-
-  // Reset demo user progress when exiting player
-  app.post("/api/player/demo/reset", async (req, res) => {
-    try {
-      const { enrollmentId } = req.body;
-      
-      // Delete all progress for this enrollment
-      await db.delete(schema.progress)
-        .where(eq(schema.progress.enrollmentId, enrollmentId));
-      
-      // Reset enrollment progress to 0
-      await db.update(schema.enrollments)
-        .set({ progress: 0 })
-        .where(eq(schema.enrollments.id, enrollmentId));
-      
-      res.json({ success: true, message: "Demo progress reset" });
-    } catch (error) {
-      console.error("Reset demo progress error:", error);
-      res.status(500).json({ error: "Failed to reset demo progress" });
-    }
-  });
-
-  // Get interruption points and questions for a learning object (for player)
-  app.get("/api/learning-objects/:id/interruptions", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const loId = parseInt(id);
-      
-      // Get interruption points for this learning object
-      const interruptionPoints = await db.select()
-        .from(schema.videoTestInterruptionPoints)
-        .where(eq(schema.videoTestInterruptionPoints.learningObjectId, loId));
-      
-      // For each point, get the questions
-      const pointsWithQuestions = await Promise.all(
-        interruptionPoints.map(async (point) => {
-          // Get question links for this point
-          const questionLinks = await db.select()
-            .from(schema.interruptionQuestions)
-            .where(eq(schema.interruptionQuestions.interruptionPointId, point.id));
-          
-          // Get question sentences and answers
-          const questions = await Promise.all(
-            questionLinks.filter(link => link.questionSentenceId != null).map(async (link) => {
-              const sentenceId = link.questionSentenceId!;
-              
-              const [sentence] = await db.select()
-                .from(schema.questionSentences)
-                .where(eq(schema.questionSentences.id, sentenceId));
-              
-              const answers = await db.select()
-                .from(schema.questionAnswers)
-                .where(eq(schema.questionAnswers.questionSentenceId, sentenceId));
-              
-              return {
-                id: sentence?.id,
-                text: sentence?.text,
-                answers: answers.map(a => ({
-                  id: a.id,
-                  text: a.text,
-                  isCorrect: a.isCorrect
-                }))
-              };
-            })
-          );
-          
-          return {
-            id: point.id,
-            time: point.time, // milliseconds
-            timeSeconds: Math.floor((point.time || 0) / 1000),
-            questions
-          };
-        })
-      );
-      
-      res.json(pointsWithQuestions);
-    } catch (error) {
-      console.error("Interruptions error:", error);
-      res.status(500).json({ error: "Failed to fetch interruption points" });
-    }
-  });
-
-  // Email tracking pixel - traccia apertura email
-  app.get("/api/email-track/:trackingId", async (req, res) => {
-    try {
-      const { trackingId } = req.params;
-      
-      // Aggiorna il record con la data di apertura
-      await db.update(schema.enrollments)
-        .set({ emailOpenedAt: new Date() })
-        .where(
-          and(
-            eq(schema.enrollments.emailTrackingId, trackingId),
-            sql`${schema.enrollments.emailOpenedAt} IS NULL`
-          )
-        );
-      
-      // Restituisci un pixel GIF trasparente 1x1
-      const pixel = Buffer.from(
-        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-        'base64'
-      );
-      
-      res.set({
-        'Content-Type': 'image/gif',
-        'Content-Length': pixel.length,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      });
-      
-      res.send(pixel);
-    } catch (error) {
-      console.error("Email tracking error:", error);
-      // Restituisci comunque il pixel per non rompere l'email
-      const pixel = Buffer.from(
-        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-        'base64'
-      );
-      res.set('Content-Type', 'image/gif');
-      res.send(pixel);
+      res.status(500).json({ error: "Failed to fetch certificates" });
     }
   });
 
