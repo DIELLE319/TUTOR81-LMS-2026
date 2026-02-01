@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TutorAdmins } from '@/components/TutorAdmins';
 
 const SUBSCRIPTION_OPTIONS = [
+  { value: 'NESSUNO', label: 'Nessun abbonamento', discount: 0 },
   { value: 'CONSULENTI 500', label: 'Consulenti 500', discount: 60 },
   { value: 'CONSULENTI 1500', label: 'Consulenti 1500', discount: 70 },
   { value: 'ENTI AUTORIZZATI 1500', label: 'Enti Autorizzati 1500', discount: 70 },
@@ -167,7 +168,7 @@ export default function Tutors() {
                   </td>
                   <td className="py-3 px-4">
                     <Select
-                      value={tutor.subscriptionType || 'CONSULENTI 500'}
+                      value={tutor.subscriptionType || 'NESSUNO'}
                       onValueChange={(value) => handleSubscriptionChange(tutor.id, value)}
                     >
                       <SelectTrigger 
