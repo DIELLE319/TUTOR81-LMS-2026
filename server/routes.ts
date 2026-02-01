@@ -425,7 +425,7 @@ export async function registerRoutes(
   });
 
   // ============================================================
-  // COURSES (Corsi)
+  // COURSES (Corsi) - anche /api/learning-projects per retrocompatibilità
   // ============================================================
   app.get("/api/courses", isAuthenticated, async (req, res) => {
     try {
@@ -434,6 +434,17 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Courses error:", error);
       res.status(500).json({ error: "Failed to fetch courses" });
+    }
+  });
+
+  // Alias per /api/learning-projects (usato da ContentManagement)
+  app.get("/api/learning-projects", isAuthenticated, async (req, res) => {
+    try {
+      const courses = await db.select().from(schema.courses).orderBy(schema.courses.title);
+      res.json(courses);
+    } catch (error) {
+      console.error("Learning projects error:", error);
+      res.status(500).json({ error: "Failed to fetch learning projects" });
     }
   });
 
