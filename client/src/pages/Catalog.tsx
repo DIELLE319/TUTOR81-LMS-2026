@@ -448,7 +448,18 @@ export default function Catalog() {
         ) : filteredCourses.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <h3 className="text-lg font-bold text-gray-700 mb-2">Nessun corso trovato</h3>
-            <p className="text-gray-500">Prova a modificare i filtri di ricerca</p>
+            <p className="text-gray-500 mb-4">Prova a modificare i filtri di ricerca</p>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('TUTTI');
+                setSelectedType('TUTTI');
+              }}
+              className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg transition-colors"
+              data-testid="btn-reset-filters"
+            >
+              Mostra tutti i corsi
+            </button>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
