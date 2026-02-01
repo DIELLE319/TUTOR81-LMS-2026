@@ -63,6 +63,7 @@ export function TutorAdmins({ tutorId }: Props) {
           className="inline-flex items-center gap-1 bg-zinc-800 text-yellow-500 text-xs px-2 py-1 rounded"
         >
           <User size={10} className="text-gray-500" />
+          <span className="text-gray-500">{admin.id}</span>
           {admin.name}
           <button 
             onClick={() => deleteMutation.mutate(admin.id)}
