@@ -4,6 +4,19 @@
 
 This is a full-stack e-learning management platform for Tutor81/TutorItalia, built to manage online and classroom courses, user enrollments, and certifications. The application is a modern rewrite of a legacy PHP system, migrated from a Vultr-hosted version to Replit.
 
+## IMPORTANT: Repository Git OVH (NON PERDERE!)
+
+**Repository codice sorgente OVH:**
+```
+admin6d05a9d5@amm.tutor81.com:~/git/amm.tutor81.com.git
+```
+
+**Database OVH:**
+- Host: 135.125.205.19:3306
+- Database: pro_tutor81
+- User: pro_tutor81
+- Password: hpm0?7C3
+
 The platform supports multiple user roles including administrators, tutors, and client companies, with features for course catalog management, sales tracking, user management, and certificate generation.
 
 ## Recent Changes (February 1, 2026)
