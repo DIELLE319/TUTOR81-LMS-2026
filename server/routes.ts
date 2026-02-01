@@ -732,15 +732,13 @@ export async function registerRoutes(
 
       await connection.end();
 
-      // Generate CSV with BOM for Excel
-      const headers = "id_ente_formativo;ente_formativo;id_admin;admin;id_cliente;cliente;id_corsista;corsista";
+      // Generate CSV for Numbers (Mac)
+      const headers = "id_ente_formativo,ente_formativo,id_admin,admin,id_cliente,cliente,id_corsista,corsista";
       const csvRows = (rows as any[]).map(row => 
-        `${row.id_ente_formativo};${row.ente_formativo};${row.id_admin};${row.admin};${row.id_cliente};${row.cliente};${row.id_corsista};${row.corsista}`
+        `${row.id_ente_formativo},"${(row.ente_formativo || '').replace(/"/g, '""')}",${row.id_admin},"${(row.admin || '').replace(/"/g, '""')}",${row.id_cliente},"${(row.cliente || '').replace(/"/g, '""')}",${row.id_corsista},"${(row.corsista || '').replace(/"/g, '""')}"`
       );
       
-      // Add UTF-8 BOM for Excel compatibility
-      const BOM = "\uFEFF";
-      const csv = BOM + headers + "\r\n" + csvRows.join("\r\n");
+      const csv = headers + "\n" + csvRows.join("\n");
 
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", 'attachment; filename="tutor_gerarchia.csv"');
