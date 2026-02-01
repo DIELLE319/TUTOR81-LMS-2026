@@ -808,6 +808,7 @@ export async function registerRoutes(
       const q = (req.query.q as string || '').toLowerCase().trim();
       if (q.length < 2) return res.json([]);
       
+      // Query semplice senza join - il join con companies causa problemi di tipo
       const allUsers = await db.select({
         id: schema.users.id,
         firstName: schema.users.firstName,
@@ -815,13 +816,24 @@ export async function registerRoutes(
         email: schema.users.email,
         fiscalCode: schema.users.fiscalCode,
         idcompany: schema.users.idcompany,
-        companyName: schema.companies.businessName,
       })
       .from(schema.users)
-      .leftJoin(schema.companies, sql`CASE WHEN ${schema.users.idcompany} ~ '^[0-9]+$' THEN ${schema.users.idcompany}::integer ELSE NULL END = ${schema.companies.id}`)
-      .limit(500);
+      .limit(1000);
       
-      const filtered = allUsers.filter(u => {
+      // Carica le aziende separatamente per il lookup
+      const companies = await db.select({
+        id: schema.companies.id,
+        businessName: schema.companies.businessName,
+      }).from(schema.companies);
+      
+      const companyMap = new Map(companies.map(c => [String(c.id), c.businessName]));
+      
+      const usersWithCompany = allUsers.map(u => ({
+        ...u,
+        companyName: u.idcompany ? companyMap.get(String(u.idcompany)) || null : null
+      }));
+      
+      const filtered = usersWithCompany.filter(u => {
         const fullName = `${u.lastName || ''} ${u.firstName || ''}`.toLowerCase();
         const email = (u.email || '').toLowerCase();
         const cf = (u.fiscalCode || '').toLowerCase();
