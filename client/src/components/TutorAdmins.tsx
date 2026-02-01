@@ -60,7 +60,7 @@ export function TutorAdmins({ tutorId }: Props) {
       {admins.map(admin => (
         <span 
           key={admin.id} 
-          className="inline-flex items-center gap-1 bg-zinc-800 text-gray-300 text-xs px-2 py-1 rounded group"
+          className="inline-flex items-center gap-1 bg-zinc-800 text-yellow-500 text-xs px-2 py-1 rounded group"
         >
           <User size={10} className="text-gray-500" />
           {admin.name}
