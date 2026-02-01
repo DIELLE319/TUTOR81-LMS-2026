@@ -14,6 +14,7 @@ interface User {
   lastName: string | null;
   email: string | null;
   fiscalCode: string | null;
+  companyName: string | null;
 }
 
 const getRoleName = (role: number | null | undefined): string => {
@@ -240,12 +241,9 @@ export default function Layout({ children }: LayoutProps) {
                       className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                     >
                       <div className="font-medium text-black text-sm">
-                        {u.lastName} {u.firstName}
+                        {u.id} - {u.firstName} {u.lastName} {u.companyName ? `- ${u.companyName}` : ''}
                       </div>
                       <div className="text-xs text-gray-500">{u.email}</div>
-                      {u.fiscalCode && (
-                        <div className="text-xs text-gray-400">CF: {u.fiscalCode}</div>
-                      )}
                     </div>
                   ))
                 )}

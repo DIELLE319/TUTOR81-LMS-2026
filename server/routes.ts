@@ -814,13 +814,19 @@ export async function registerRoutes(
         lastName: schema.users.lastName,
         email: schema.users.email,
         fiscalCode: schema.users.fiscalCode,
-      }).from(schema.users).limit(500);
+        idcompany: schema.users.idcompany,
+        companyName: schema.companies.businessName,
+      })
+      .from(schema.users)
+      .leftJoin(schema.companies, eq(schema.users.idcompany, sql`${schema.companies.id}::text`))
+      .limit(500);
       
       const filtered = allUsers.filter(u => {
         const fullName = `${u.lastName || ''} ${u.firstName || ''}`.toLowerCase();
         const email = (u.email || '').toLowerCase();
         const cf = (u.fiscalCode || '').toLowerCase();
-        return fullName.includes(q) || email.includes(q) || cf.includes(q);
+        const company = (u.companyName || '').toLowerCase();
+        return fullName.includes(q) || email.includes(q) || cf.includes(q) || company.includes(q);
       }).slice(0, 20);
       
       res.json(filtered);
