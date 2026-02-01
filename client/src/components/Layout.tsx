@@ -215,7 +215,7 @@ export default function Layout({ children }: LayoutProps) {
         
         <header className='h-16 border-b border-gray-800 flex justify-between items-center px-6 bg-black'>
           
-          <div className="relative w-96" ref={searchRef}>
+          <div className="relative w-[600px]" ref={searchRef}>
             <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 z-10" size={16} />
             <input 
               type="text" 
