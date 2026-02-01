@@ -239,20 +239,36 @@ export default function CoursePlayerVideo() {
   }, [showQuiz, quizTimer]);
 
   const handleExitCourse = () => {
-    // Save progress before exiting so user can resume later
     const enrollment = localStorage.getItem("playerEnrollment");
+    const user = localStorage.getItem("playerUser");
+    
     if (enrollment) {
       const enrollmentData = JSON.parse(enrollment);
-      // Save current progress to database
-      fetch("/api/player/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          enrollmentId: enrollmentData.id,
-          lessonId: currentLessonIndex,
-          completed: false
-        })
-      });
+      const userData = user ? JSON.parse(user) : null;
+      
+      // Check if demo user (demo.demo with CF 1)
+      const isDemo = userData?.firstName?.toLowerCase() === "demo" && 
+                     userData?.lastName?.toLowerCase() === "demo";
+      
+      if (isDemo) {
+        // Demo user: reset progress for testing
+        fetch("/api/player/demo/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enrollmentId: enrollmentData.id })
+        });
+      } else {
+        // Normal user: save progress to resume later
+        fetch("/api/player/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            enrollmentId: enrollmentData.id,
+            lessonId: currentLessonIndex,
+            completed: false
+          })
+        });
+      }
     }
     localStorage.removeItem("playerUser");
     localStorage.removeItem("playerEnrollment");
