@@ -20,6 +20,7 @@ interface Company {
 
 interface Enrollment {
   id: number;
+  learningProjectId: number | null;
   courseTitle: string;
   startDate: string | null;
   activeDate: string | null;
@@ -405,6 +406,7 @@ export default function Users() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-600 border-b">
+                      <th className="pb-2 font-medium w-16">ID</th>
                       <th className="pb-2 font-medium">Nome Corso</th>
                       <th className="pb-2 font-medium text-center">Programmato</th>
                       <th className="pb-2 font-medium text-center">In attività</th>
@@ -414,21 +416,22 @@ export default function Users() {
                   <tbody>
                     {userEnrollments.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="py-4 text-center text-gray-400">
+                        <td colSpan={5} className="py-4 text-center text-gray-400">
                           Nessun corso assegnato
                         </td>
                       </tr>
                     ) : (
                       userEnrollments.map((enr) => (
                         <tr key={enr.id} className="border-b border-gray-100">
-                          <td className="py-2 text-gray-700">{enr.courseTitle?.replace(/^EL\s*-\s*/, '')}</td>
-                          <td className="py-2 text-center text-gray-500">
+                          <td className="py-2 text-gray-500 font-mono text-xs">{enr.learningProjectId || '-'}</td>
+                          <td className="py-2 text-gray-700">{enr.courseTitle?.replace(/^[A-Za-z0-9]+\s*-\s*/, '')}</td>
+                          <td className="py-2 text-center text-gray-700">
                             {enr.startDate ? new Date(enr.startDate).toLocaleDateString('it-IT') : '-'}
                           </td>
-                          <td className="py-2 text-center text-gray-500">
+                          <td className="py-2 text-center text-gray-700">
                             {enr.activeDate ? new Date(enr.activeDate).toLocaleDateString('it-IT') : '-'}
                           </td>
-                          <td className="py-2 text-center">
+                          <td className="py-2 text-center text-gray-700 font-medium">
                             {enr.completedAt ? new Date(enr.completedAt).toLocaleDateString('it-IT') : '-'}
                           </td>
                         </tr>

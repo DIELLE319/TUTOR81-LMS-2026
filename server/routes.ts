@@ -886,6 +886,7 @@ export async function registerRoutes(
       // Un corso è completato se ha un legacy_id (significa che c'è un attestato)
       const userEnrollments = await db.select({
         id: schema.enrollments.id,
+        learningProjectId: schema.enrollments.learningProjectId,
         courseTitle: schema.learningProjects.title,
         startDate: schema.enrollments.startDate,
         endDate: schema.enrollments.endDate,
@@ -908,6 +909,7 @@ export async function registerRoutes(
         
         return {
           id: e.id,
+          learningProjectId: e.learningProjectId,
           courseTitle: e.courseTitle || 'Corso senza titolo',
           startDate: e.startDate,      // Data programmazione
           activeDate: e.lastAccessAt,  // Data inizio attività
