@@ -388,23 +388,23 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
           <div className="border-t border-zinc-800 pt-4 mt-4">
             <h3 className="text-lg font-bold text-yellow-500 mb-4">PIANO DI ABBONAMENTO</h3>
             
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-400">Tipo abbonamento</Label>
+                <Label className="text-gray-400">Seleziona piano</Label>
                 <Select value={form.subscriptionType} onValueChange={(v) => setForm({ ...form, subscriptionType: v })}>
                   <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white mt-1" data-testid="select-subscription">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {SUBSCRIPTION_OPTIONS.map(o => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      <SelectItem key={o.value} value={o.value}>{o.label} ({o.discount}%)</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label className="text-gray-400">Data inizio abbonamento</Label>
+                <Label className="text-gray-400">Data inizio attivazione</Label>
                 <Input
                   type="date"
                   value={form.subscriptionStart}
@@ -414,39 +414,6 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
                 />
               </div>
             </div>
-
-            {selectedPlan && selectedPlan.value !== 'NESSUNO' && (
-              <div className="bg-zinc-800 rounded-lg p-4">
-                <table className="w-full text-sm">
-                  <tbody>
-                    <tr className="border-b border-zinc-700">
-                      <td className="py-2 text-gray-400">Piano</td>
-                      <td className="py-2 text-white text-right font-medium">{selectedPlan.label}</td>
-                    </tr>
-                    <tr className="border-b border-zinc-700">
-                      <td className="py-2 text-gray-400">Sconto su listino (%)</td>
-                      <td className="py-2 text-yellow-500 text-right font-medium">{selectedPlan.discount}%</td>
-                    </tr>
-                    <tr className="border-b border-zinc-700">
-                      <td className="py-2 text-gray-400">Corsi personalizzati</td>
-                      <td className="py-2 text-white text-right">{selectedPlan.customCourses ? 'SI' : 'NO'}</td>
-                    </tr>
-                    <tr className="border-b border-zinc-700">
-                      <td className="py-2 text-gray-400">Sito Ecommerce</td>
-                      <td className="py-2 text-white text-right">{selectedPlan.ecommerce ? 'SI' : 'NO'}</td>
-                    </tr>
-                    <tr className="border-b border-zinc-700">
-                      <td className="py-2 text-gray-400">Max numero amministratori</td>
-                      <td className="py-2 text-white text-right">{selectedPlan.maxAdmins}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 text-gray-400">Prezzo</td>
-                      <td className="py-2 text-green-500 text-right font-bold">Euro {selectedPlan.price}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
