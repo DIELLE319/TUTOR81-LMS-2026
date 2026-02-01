@@ -310,7 +310,7 @@ export default function ActivatedCourses() {
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0 bg-white" align="start">
                   <Command>
-                    <CommandInput placeholder="Cerca azienda..." className="text-black" />
+                    <CommandInput placeholder="Cerca azienda..." className="text-black bg-white border-b border-gray-300" />
                     <CommandList>
                       <CommandEmpty className="text-gray-500 py-4 text-center">Nessuna azienda trovata</CommandEmpty>
                       <CommandGroup>
