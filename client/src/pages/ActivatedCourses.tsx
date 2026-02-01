@@ -521,15 +521,58 @@ export default function ActivatedCourses() {
                       )}
                     </td>
                     <td className="p-3 text-center">
-                      <Button
-                        size="sm"
-                        onClick={() => handleLaunchCourse(enrollment)}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        data-testid={`button-launch-${enrollment.id}`}
-                      >
-                        <Play className="h-4 w-4 mr-1" />
-                        Avvia
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-gray-600 text-black hover:bg-gray-100"
+                            data-testid={`button-actions-${enrollment.id}`}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-white border-gray-200">
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setSelectedIds([enrollment.id]);
+                              setShowDateDialog(true);
+                            }}
+                            className="cursor-pointer text-black hover:bg-gray-100"
+                            data-testid={`menu-edit-date-${enrollment.id}`}
+                          >
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Modifica scadenza
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setSelectedIds([enrollment.id]);
+                              setShowDeleteDialog(true);
+                            }}
+                            className="cursor-pointer text-black hover:bg-gray-100"
+                            data-testid={`menu-remove-${enrollment.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Rimuovi dalla visualizzazione
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => sendEmailsMutation.mutate([enrollment.id])}
+                            className="cursor-pointer text-black hover:bg-gray-100"
+                            data-testid={`menu-send-email-${enrollment.id}`}
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Invia email
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleLaunchCourse(enrollment)}
+                            className="cursor-pointer text-green-600 hover:bg-green-50"
+                            data-testid={`menu-launch-${enrollment.id}`}
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Avvia corso
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))
