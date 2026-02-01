@@ -202,13 +202,14 @@ export default function Catalog() {
       }));
   }, [filteredCourses]);
 
-  // Espandi automaticamente tutte le categorie quando c'è un termine di ricerca
-  useEffect(() => {
+  // Calcola quali categorie espandere
+  const effectiveExpandedCategories = useMemo(() => {
     if (searchTerm.length > 0) {
-      const allCategories = groupedCourses.map(g => g.category);
-      setExpandedCategories(new Set(allCategories));
+      // Quando c'è una ricerca, espandi tutte le categorie con risultati
+      return new Set(groupedCourses.map(g => g.category));
     }
-  }, [searchTerm, groupedCourses]);
+    return expandedCategories;
+  }, [searchTerm, groupedCourses, expandedCategories]);
 
   const toggleCategory = (category: string) => {
     const newExpanded = new Set(expandedCategories);
@@ -346,7 +347,7 @@ export default function Catalog() {
                     >
                       <td colSpan={9} className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
-                          {expandedCategories.has(group.category) ? (
+                          {effectiveExpandedCategories.has(group.category) ? (
                             <ChevronUp size={18} className="text-yellow-400" />
                           ) : (
                             <ChevronDown size={18} className="text-yellow-400" />
@@ -356,7 +357,7 @@ export default function Catalog() {
                         </div>
                       </td>
                     </tr>
-                    {expandedCategories.has(group.category) && group.courses.map((course, idx) => {
+                    {effectiveExpandedCategories.has(group.category) && group.courses.map((course, idx) => {
                       const courseType = getCourseTypeLabel(course.courseType);
                       const risk = getRiskLabel(course.riskLevel);
                       
