@@ -22,6 +22,7 @@ import LearningObjects from "@/pages/LearningObjects";
 import LearningObjectDetail from "@/pages/LearningObjectDetail";
 import CourseStructure from "@/pages/CourseStructure";
 import CoursePlayer from "@/pages/CoursePlayer";
+import CoursePlayerVideo from "@/pages/CoursePlayerVideo";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -188,6 +189,10 @@ function Router() {
 
       <Route path="/player">
         <CoursePlayer />
+      </Route>
+
+      <Route path="/player/course/:id">
+        <CoursePlayerVideo />
       </Route>
 
       <Route path="/">

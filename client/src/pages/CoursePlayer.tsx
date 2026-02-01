@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ export default function CoursePlayer() {
   const [verificationError, setVerificationError] = useState("");
   const [userData, setUserData] = useState<UserData | null>(null);
   const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -89,8 +91,7 @@ export default function CoursePlayer() {
   };
 
   const handleStartCourse = (courseId: number) => {
-    // TODO: Avvia il corso
-    setStep("playing");
+    setLocation(`/player/course/${courseId}`);
   };
 
   return (

@@ -1,0 +1,315 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { 
+  LogOut, 
+  MessageCircle, 
+  HelpCircle, 
+  GraduationCap,
+  Play,
+  Pause,
+  Volume2,
+  ChevronRight,
+  FileText,
+  Video,
+  Presentation
+} from "lucide-react";
+
+interface LearningObject {
+  id: number;
+  title: string;
+  type: "video" | "slide" | "document";
+  duration: number;
+  completed: boolean;
+}
+
+interface Lesson {
+  id: number;
+  title: string;
+  learningObjects: LearningObject[];
+}
+
+interface Module {
+  id: number;
+  title: string;
+  lessons: Lesson[];
+}
+
+interface CourseData {
+  title: string;
+  modules: Module[];
+}
+
+function getLoIcon(type: string) {
+  switch (type) {
+    case "video":
+      return <Video className="h-4 w-4 text-blue-500" />;
+    case "slide":
+      return <Presentation className="h-4 w-4 text-yellow-600" />;
+    default:
+      return <FileText className="h-4 w-4 text-orange-500" />;
+  }
+}
+
+export default function CoursePlayerVideo() {
+  const [isPaused, setIsPaused] = useState(false);
+  const [currentTime, setCurrentTime] = useState(9);
+  const [totalTime] = useState(120);
+  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [currentLoIndex, setCurrentLoIndex] = useState(0);
+
+  // Mock data - in produzione verrà da API
+  const userData = {
+    name: "Luigiptrlgu80a01",
+    surname: "a944a Paterno",
+    company: "AZIENDA DIMOSTRATIVA SPA",
+    loginTime: "13:39 01-02-2026",
+    ip: "87.4.37.9"
+  };
+
+  const courseData: CourseData = {
+    title: "CORSO DIMOSTRATIVO TUTOR81 2022",
+    modules: [
+      {
+        id: 1,
+        title: "Modulo 1",
+        lessons: [
+          {
+            id: 1,
+            title: "Demo T81 - Lezioni dimostrative",
+            learningObjects: [
+              { id: 1, title: "Demo T81 - Es. 1 - Diritti e doveri", type: "video", duration: 120, completed: false },
+              { id: 2, title: "Demo T81 - Es.2 - Introduzione al Decreto 81", type: "slide", duration: 90, completed: false },
+              { id: 3, title: "Demo T81 - Es. 3 - Introduzione Decreto 81 parte 2", type: "slide", duration: 60, completed: false },
+              { id: 4, title: "Demo T81 - Es. 4 - La costituzione", type: "video", duration: 45, completed: false },
+              { id: 5, title: "Demo T81 - Es. 5 - Rischio MMC", type: "video", duration: 80, completed: false },
+              { id: 6, title: "Demo T81 - Es. 6 - Rischio di mansione", type: "slide", duration: 55, completed: false },
+              { id: 7, title: "Demo T81 - Es. 7 - Lezione personalizzata Azienda", type: "document", duration: 30, completed: false },
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const currentLesson = courseData.modules[0]?.lessons[currentLessonIndex];
+  const currentLo = currentLesson?.learningObjects[currentLoIndex];
+
+  useEffect(() => {
+    if (!isPaused && currentTime < totalTime) {
+      const timer = setInterval(() => {
+        setCurrentTime(prev => prev + 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [isPaused, currentTime, totalTime]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins} min ${secs} sec` : `${secs} sec.`;
+  };
+
+  const handleExit = () => {
+    window.location.href = "/player";
+  };
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar sinistra */}
+        <div className="w-48 bg-zinc-800 text-white flex flex-col">
+          <div className="p-2 border-b border-zinc-700">
+            <button className="flex items-center gap-2 text-white hover:text-yellow-400" data-testid="button-volume">
+              <div className="w-8 h-8 bg-zinc-700 rounded flex items-center justify-center">
+                <ChevronRight className="h-5 w-5" />
+              </div>
+              <Volume2 className="h-5 w-5" />
+            </button>
+          </div>
+          
+          <button 
+            onClick={handleExit}
+            className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 border-b border-zinc-700"
+            data-testid="button-exit"
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="font-semibold">ESCI</span>
+          </button>
+
+          <div className="px-4 py-3 border-b border-zinc-700 text-sm">
+            <div className="font-bold text-yellow-400">{userData.name}</div>
+            <div className="text-gray-400">{userData.surname}</div>
+          </div>
+
+          <div className="px-4 py-2 border-b border-zinc-700 text-xs text-gray-400">
+            <div className="font-semibold text-white">{userData.company}</div>
+          </div>
+
+          <div className="px-4 py-2 border-b border-zinc-700 text-xs">
+            <div className="text-gray-400">{userData.loginTime}</div>
+          </div>
+
+          <div className="px-4 py-2 border-b border-zinc-700 text-xs">
+            <div className="text-gray-400">{userData.ip}</div>
+          </div>
+
+          <button className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 border-b border-zinc-700">
+            <MessageCircle className="h-5 w-5" />
+            <span>Chat</span>
+          </button>
+
+          <button className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 border-b border-zinc-700">
+            <HelpCircle className="h-5 w-5" />
+            <span>Assistenza</span>
+          </button>
+
+          <button className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-700">
+            <GraduationCap className="h-5 w-5" />
+            <span className="text-sm">Tutor Didattico</span>
+          </button>
+
+          <div className="flex-1" />
+        </div>
+
+        {/* Pannello PROGRAMMA */}
+        <div className="w-72 bg-yellow-100 border-r border-yellow-300 overflow-y-auto">
+          <div className="bg-yellow-400 px-4 py-2 font-bold text-gray-800">
+            PROGRAMMA
+          </div>
+          
+          {courseData.modules.map((module) => (
+            <div key={module.id} className="text-sm">
+              <div className="px-4 py-2 font-semibold text-gray-700 bg-yellow-200">
+                {module.title}
+              </div>
+              
+              {module.lessons.map((lesson, lessonIdx) => (
+                <div key={lesson.id}>
+                  <div className="px-4 py-2 text-gray-800 font-medium flex items-center gap-2">
+                    <span className="text-gray-500">{lessonIdx + 1}.</span>
+                    {lesson.title}
+                  </div>
+                  
+                  {lesson.learningObjects.map((lo, loIdx) => (
+                    <button
+                      key={lo.id}
+                      onClick={() => {
+                        setCurrentLessonIndex(lessonIdx);
+                        setCurrentLoIndex(loIdx);
+                      }}
+                      className={`w-full text-left px-6 py-1.5 flex items-center gap-2 text-xs hover:bg-yellow-200 ${
+                        currentLessonIndex === lessonIdx && currentLoIndex === loIdx
+                          ? "bg-yellow-300 font-semibold"
+                          : ""
+                      }`}
+                      data-testid={`lo-${lo.id}`}
+                    >
+                      {getLoIcon(lo.type)}
+                      <span className={lo.completed ? "text-green-700" : "text-gray-700"}>
+                        {lo.title}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Area principale */}
+        <div className="flex-1 flex flex-col">
+          {/* Header corso */}
+          <div className="bg-white border-b px-6 py-3">
+            <h1 className="text-xl font-bold text-gray-900">
+              Corso: {courseData.title}
+            </h1>
+            <div className="text-sm text-gray-600">
+              <span>Lezione: {currentLesson?.title}</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              Oggetto: {currentLo?.title} - {currentLo?.duration ? Math.floor(currentLo.duration / 60) : 0} minuti
+            </div>
+          </div>
+
+          {/* Area video/contenuto */}
+          <div className="flex-1 flex">
+            <div className="flex-1 bg-gray-200 flex items-center justify-center p-8">
+              <div className="bg-gradient-to-br from-yellow-400 via-yellow-500 to-blue-500 rounded-lg shadow-xl w-full max-w-2xl aspect-video flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-transparent" />
+                <div className="relative z-10 p-8 text-left">
+                  <h2 className="text-4xl font-black text-gray-900 mb-2">
+                    DIMOSTRATIVO TUTOR81
+                  </h2>
+                  <p className="text-lg text-gray-800 mb-4">
+                    Esempio corso per Lavoratore
+                  </p>
+                  <p className="text-gray-700">Il metodo Tutor81</p>
+                </div>
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-blue-600 flex flex-col justify-center p-4 text-white">
+                  <h3 className="font-bold mb-4">In questo Dimostrativo:</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li>Esempi da lezioni STANDARD</li>
+                    <li>Lezioni Rischio specifico</li>
+                    <li>Lezioni di comparto produttivo</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Pannello verifica apprendimento */}
+            <div className="w-64 bg-white border-l p-4">
+              <h3 className="font-semibold text-gray-700 mb-4">Verifica apprendimento:</h3>
+              <div className="border-2 border-yellow-400 rounded h-24 mb-4"></div>
+              <p className="text-sm text-gray-500 text-center">
+                Totale domande previste: 3
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Barra inferiore */}
+      <div className="h-14 bg-zinc-900 flex items-center px-4 gap-4">
+        <div className="text-2xl font-bold">
+          <span className="text-white">tutor</span>
+          <span className="text-yellow-500">81</span>
+        </div>
+
+        <div className="flex-1 flex items-center gap-4">
+          <div className="flex-1 relative">
+            <div className="h-6 bg-zinc-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-green-500 transition-all duration-1000"
+                style={{ width: `${(currentTime / totalTime) * 100}%` }}
+              />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-white text-sm font-medium">
+                {formatTime(currentTime)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsPaused(!isPaused)}
+          className="flex items-center gap-2 text-white hover:text-yellow-400"
+          data-testid="button-pause"
+        >
+          {isPaused ? (
+            <>
+              <Play className="h-8 w-8" />
+              <span className="font-semibold">PLAY</span>
+            </>
+          ) : (
+            <>
+              <Pause className="h-8 w-8" />
+              <span className="font-semibold">PAUSA</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
