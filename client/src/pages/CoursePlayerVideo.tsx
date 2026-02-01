@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { 
   LogOut, 
   MessageCircle, 
@@ -12,7 +14,8 @@ import {
   ChevronRight,
   FileText,
   Video,
-  Presentation
+  Presentation,
+  Check
 } from "lucide-react";
 
 interface LearningObject {
@@ -33,6 +36,13 @@ interface Module {
   id: number;
   title: string;
   lessons: Lesson[];
+}
+
+interface Question {
+  id: number;
+  text: string;
+  options: string[];
+  correctAnswer: number;
 }
 
 interface CourseData {
@@ -57,6 +67,29 @@ export default function CoursePlayerVideo() {
   const [totalTime] = useState(120);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentLoIndex, setCurrentLoIndex] = useState(0);
+  
+  // Quiz state
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizTimer, setQuizTimer] = useState(30);
+  const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [totalQuestions] = useState(3);
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+
+  const sampleQuestions: Question[] = [
+    {
+      id: 1,
+      text: "Questa è una domanda in itinere, in Tutor81 ne inseriamo molte random e a tempo, per tenere alta l'attenzione",
+      options: ["Mi piace", "Preferisco domande al termine della lezione", "Non lo so..."],
+      correctAnswer: 0
+    },
+    {
+      id: 2,
+      text: "Qual è l'obiettivo principale della formazione sulla sicurezza?",
+      options: ["Evitare sanzioni", "Proteggere la salute dei lavoratori", "Compilare documenti"],
+      correctAnswer: 1
+    }
+  ];
 
   // Mock data - in produzione verrà da API
   const userData = {
@@ -112,6 +145,54 @@ export default function CoursePlayerVideo() {
 
   const handleExit = () => {
     window.location.href = "/player";
+  };
+
+  // Trigger quiz at certain times (demo: at 15 seconds)
+  useEffect(() => {
+    if (currentTime === 15 && !showQuiz && sampleQuestions.length > 0) {
+      setCurrentQuestion(sampleQuestions[0]);
+      setShowQuiz(true);
+      setQuizTimer(30);
+      setSelectedAnswer("");
+    }
+  }, [currentTime, showQuiz]);
+
+  // Quiz timer countdown
+  useEffect(() => {
+    if (showQuiz && quizTimer > 0) {
+      const timer = setInterval(() => {
+        setQuizTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    } else if (showQuiz && quizTimer === 0) {
+      // Time expired, close quiz
+      setShowQuiz(false);
+      setCurrentQuestion(null);
+    }
+  }, [showQuiz, quizTimer]);
+
+  const handleConfirmAnswer = () => {
+    if (!currentQuestion || !selectedAnswer) return;
+    
+    const answerIndex = parseInt(selectedAnswer);
+    if (answerIndex === currentQuestion.correctAnswer) {
+      setCorrectAnswers(prev => prev + 1);
+    }
+    
+    setShowQuiz(false);
+    setCurrentQuestion(null);
+    setSelectedAnswer("");
+  };
+
+  // Demo: trigger quiz manually for testing
+  const triggerDemoQuiz = () => {
+    if (!showQuiz && sampleQuestions.length > 0) {
+      const randomQ = sampleQuestions[Math.floor(Math.random() * sampleQuestions.length)];
+      setCurrentQuestion(randomQ);
+      setShowQuiz(true);
+      setQuizTimer(30);
+      setSelectedAnswer("");
+    }
   };
 
   return (
@@ -234,35 +315,101 @@ export default function CoursePlayerVideo() {
 
           {/* Area video/contenuto */}
           <div className="flex-1 flex">
-            <div className="flex-1 bg-gray-200 flex items-center justify-center p-8">
-              <div className="bg-gradient-to-br from-yellow-400 via-yellow-500 to-blue-500 rounded-lg shadow-xl w-full max-w-2xl aspect-video flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-transparent" />
-                <div className="relative z-10 p-8 text-left">
-                  <h2 className="text-4xl font-black text-gray-900 mb-2">
-                    DIMOSTRATIVO TUTOR81
-                  </h2>
-                  <p className="text-lg text-gray-800 mb-4">
-                    Esempio corso per Lavoratore
-                  </p>
-                  <p className="text-gray-700">Il metodo Tutor81</p>
+            <div className="flex-1 bg-gray-200 flex flex-col p-8">
+              {showQuiz && currentQuestion ? (
+                /* Quiz mode - blocca il video */
+                <div className="flex-1 flex">
+                  <div className="flex-1 bg-white rounded-lg shadow p-8">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">Domanda:</h2>
+                    <p className="text-gray-800 mb-8 text-lg">
+                      {currentQuestion.text}
+                    </p>
+                    
+                    <RadioGroup 
+                      value={selectedAnswer} 
+                      onValueChange={setSelectedAnswer}
+                      className="space-y-4"
+                    >
+                      {currentQuestion.options.map((option, idx) => (
+                        <div key={idx} className="flex items-center space-x-3">
+                          <RadioGroupItem 
+                            value={idx.toString()} 
+                            id={`option-${idx}`}
+                            className="border-gray-400"
+                            data-testid={`quiz-option-${idx}`}
+                          />
+                          <Label 
+                            htmlFor={`option-${idx}`}
+                            className="text-gray-700 cursor-pointer"
+                          >
+                            {option}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                    
+                    <Button
+                      onClick={handleConfirmAnswer}
+                      disabled={!selectedAnswer}
+                      className="mt-8 bg-orange-500 hover:bg-orange-600 text-white"
+                      data-testid="button-confirm-answer"
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Conferma risposta
+                    </Button>
+                  </div>
+                  
+                  {/* Timer grande */}
+                  <div className="w-48 flex items-center justify-center">
+                    <div className="text-8xl font-bold text-blue-500">
+                      {quizTimer}
+                    </div>
+                  </div>
                 </div>
-                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-blue-600 flex flex-col justify-center p-4 text-white">
-                  <h3 className="font-bold mb-4">In questo Dimostrativo:</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li>Esempi da lezioni STANDARD</li>
-                    <li>Lezioni Rischio specifico</li>
-                    <li>Lezioni di comparto produttivo</li>
-                  </ul>
+              ) : (
+                /* Normal video mode */
+                <div className="flex-1 flex items-center justify-center">
+                  <div 
+                    className="bg-gradient-to-br from-yellow-400 via-yellow-500 to-blue-500 rounded-lg shadow-xl w-full max-w-2xl aspect-video flex items-center justify-center relative overflow-hidden cursor-pointer"
+                    onClick={triggerDemoQuiz}
+                    data-testid="video-area"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-transparent" />
+                    <div className="relative z-10 p-8 text-left">
+                      <h2 className="text-4xl font-black text-gray-900 mb-2">
+                        DIMOSTRATIVO TUTOR81
+                      </h2>
+                      <p className="text-lg text-gray-800 mb-4">
+                        Esempio corso per Lavoratore
+                      </p>
+                      <p className="text-gray-700">Il metodo Tutor81</p>
+                      <p className="text-xs text-gray-500 mt-4">(Clicca per testare una domanda)</p>
+                    </div>
+                    <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-blue-600 flex flex-col justify-center p-4 text-white">
+                      <h3 className="font-bold mb-4">In questo Dimostrativo:</h3>
+                      <ul className="space-y-2 text-sm">
+                        <li>Esempi da lezioni STANDARD</li>
+                        <li>Lezioni Rischio specifico</li>
+                        <li>Lezioni di comparto produttivo</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Pannello verifica apprendimento */}
             <div className="w-64 bg-white border-l p-4">
               <h3 className="font-semibold text-gray-700 mb-4">Verifica apprendimento:</h3>
-              <div className="border-2 border-yellow-400 rounded h-24 mb-4"></div>
+              {correctAnswers > 0 ? (
+                <div className="bg-blue-500 text-white rounded h-24 mb-4 flex items-center justify-center">
+                  <span className="text-4xl font-bold">{correctAnswers}</span>
+                </div>
+              ) : (
+                <div className="border-2 border-yellow-400 rounded h-24 mb-4"></div>
+              )}
               <p className="text-sm text-gray-500 text-center">
-                Totale domande previste: 3
+                Totale domande previste: {totalQuestions}
               </p>
             </div>
           </div>
