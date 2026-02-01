@@ -567,6 +567,7 @@ export default function Catalog() {
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <button 
+                              type="button"
                               onClick={() => handleSellClick(course)}
                               className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1.5 mx-auto"
                               data-testid={`button-sell-${course.id}`}
