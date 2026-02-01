@@ -883,6 +883,7 @@ export async function registerRoutes(
       if (!userId) return res.json([]);
       
       // Cerca gli enrollments dell'utente dalla tabella enrollments
+      // Un corso è completato se ha un legacy_id (significa che c'è un attestato)
       const userEnrollments = await db.select({
         id: schema.enrollments.id,
         courseTitle: schema.learningProjects.title,
@@ -890,6 +891,8 @@ export async function registerRoutes(
         endDate: schema.enrollments.endDate,
         status: schema.enrollments.status,
         progress: schema.enrollments.progress,
+        legacyId: schema.enrollments.legacyId,
+        lastAccessAt: schema.enrollments.lastAccessAt,
       })
         .from(schema.enrollments)
         .leftJoin(schema.learningProjects, eq(schema.enrollments.learningProjectId, schema.learningProjects.id))
@@ -897,14 +900,22 @@ export async function registerRoutes(
         .orderBy(desc(schema.enrollments.startDate))
         .limit(50);
       
-      const enrollments = userEnrollments.map(e => ({
-        id: e.id,
-        courseTitle: e.courseTitle || 'Corso senza titolo',
-        startDate: e.startDate,
-        status: e.status,
-        progress: e.progress || 0,
-        completedAt: e.status === 'completed' ? e.endDate : null,
-      }));
+      const enrollments = userEnrollments.map(e => {
+        // Un corso è completato se ha un legacy_id (attestato generato)
+        const isCompleted = !!e.legacyId;
+        // "In attività" significa che l'utente ha iniziato il corso (lastAccessAt != null)
+        const isInProgress = !!e.lastAccessAt && !isCompleted;
+        
+        return {
+          id: e.id,
+          courseTitle: e.courseTitle || 'Corso senza titolo',
+          startDate: e.startDate,      // Data programmazione
+          activeDate: e.lastAccessAt,  // Data inizio attività
+          completedAt: isCompleted ? e.endDate : null,  // Data completamento
+          status: isCompleted ? 'completed' : (isInProgress ? 'active' : 'scheduled'),
+          progress: e.progress || 0,
+        };
+      });
       
       res.json(enrollments);
     } catch (error) {

@@ -22,6 +22,7 @@ interface Enrollment {
   id: number;
   courseTitle: string;
   startDate: string | null;
+  activeDate: string | null;
   status: string;
   progress: number;
   completedAt: string | null;
@@ -424,8 +425,8 @@ export default function Users() {
                           <td className="py-2 text-center text-gray-500">
                             {enr.startDate ? new Date(enr.startDate).toLocaleDateString('it-IT') : '-'}
                           </td>
-                          <td className="py-2 text-center">
-                            {enr.status === 'active' ? '✓' : '-'}
+                          <td className="py-2 text-center text-gray-500">
+                            {enr.activeDate ? new Date(enr.activeDate).toLocaleDateString('it-IT') : '-'}
                           </td>
                           <td className="py-2 text-center">
                             {enr.completedAt ? new Date(enr.completedAt).toLocaleDateString('it-IT') : '-'}
