@@ -495,23 +495,13 @@ export default function ActivatedCourses() {
                     <td className="p-3 text-sm text-black font-medium">
                       {formatDate(enrollment.endDate)}
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded text-xs font-bold text-white ${getProgressColor(enrollment.progress)}`}
-                          data-testid={`badge-progress-${enrollment.id}`}
-                        >
-                          {enrollment.progress}
-                        </span>
-                        {enrollment.progress > 0 && enrollment.progress < 100 && (
-                          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full ${getProgressColor(enrollment.progress)}`}
-                              style={{ width: `${enrollment.progress}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
+                    <td className="p-3 text-center">
+                      <span
+                        className={`inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded text-xs font-bold text-white ${getProgressColor(enrollment.progress)}`}
+                        data-testid={`badge-progress-${enrollment.id}`}
+                      >
+                        {enrollment.progress}%
+                      </span>
                     </td>
                     <td className="p-3 text-center">
                       <DropdownMenu>
