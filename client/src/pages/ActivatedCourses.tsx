@@ -70,7 +70,7 @@ export default function ActivatedCourses() {
   const [companyFilter, setCompanyFilter] = useState<string>("");
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [pageSize, setPageSize] = useState("25");
+  const [pageSize, setPageSize] = useState("100");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showDateDialog, setShowDateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
