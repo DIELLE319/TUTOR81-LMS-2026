@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
-import type { LearningProject } from '@shared/schema';
+import type { Course } from '@shared/schema';
 import SellCourseModal from '@/components/SellCourseModal';
 
 // Keywords per identificare corsi di test/demo
@@ -52,29 +52,36 @@ const getCourseCategory = (title: string) => {
   return 'ALTRI CORSI';
 };
 
+const getCourseType = (title: string): 'base' | 'aggiornamento' | 'nd' => {
+  const t = title.toUpperCase();
+  if (t.includes('AGGIORNAMENTO') || t.includes('AGG.') || t.includes('AGG ')) return 'aggiornamento';
+  if (t.includes('BASE') || t.includes('COMPLETO') || t.includes('FORMAZIONE GENERALE') || 
+      t.includes('FORMAZIONE SPECIFICA')) return 'base';
+  return 'nd';
+};
+
 export default function Catalog() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('TUTTI');
   const [selectedType, setSelectedType] = useState('TUTTI');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['LAVORATORE']));
   const [sellModalOpen, setSellModalOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<LearningProject | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
-  const handleSellClick = (course: LearningProject) => {
+  const handleSellClick = (course: Course) => {
     setSelectedCourse(course);
     setSellModalOpen(true);
   };
 
-  const { data: projects = [], isLoading } = useQuery<LearningProject[]>({
+  const { data: projects = [], isLoading } = useQuery<Course[]>({
     queryKey: ['/api/learning-projects'],
   });
 
-  // Filtra solo corsi pubblicati, non test, non riservati
+  // Filtra solo corsi pubblicati e non test
   const publishedCourses = useMemo(() => {
     return projects.filter(c => 
       c.isPublished === true && 
-      !isTestCourse(c.title) && 
-      !(c.reservedTo && c.reservedTo > 0)
+      !isTestCourse(c.title)
     );
   }, [projects]);
 
@@ -88,10 +95,11 @@ export default function Catalog() {
       // Se c'è un termine di ricerca, cerca in tutte le categorie
       const matchesCategory = searchTerm.length > 0 || selectedCategory === 'TUTTI' || getCourseCategory(c.title) === selectedCategory;
       
+      const courseType = getCourseType(c.title);
       const matchesType = selectedType === 'TUTTI' || 
-        (selectedType === 'BASE' && c.courseType?.toLowerCase() === 'base') ||
-        (selectedType === 'AGGIORNAMENTO' && c.courseType?.toLowerCase() === 'aggiornamento') ||
-        (selectedType === 'ND' && (!c.courseType || c.courseType === ''));
+        (selectedType === 'BASE' && courseType === 'base') ||
+        (selectedType === 'AGGIORNAMENTO' && courseType === 'aggiornamento') ||
+        (selectedType === 'ND' && courseType === 'nd');
       return matchesSearch && matchesCategory && matchesType;
     });
   }, [publishedCourses, searchTerm, selectedCategory, selectedType]);
@@ -148,23 +156,24 @@ export default function Catalog() {
     return labels[subcategory] || { label: subcategory.substring(0, 3).toUpperCase(), color: 'bg-gray-500' };
   };
 
-  const getCourseTypeLabel = (courseType: string | null) => {
-    if (!courseType) return { label: '', color: 'hidden' };
-    if (courseType.toLowerCase() === 'aggiornamento') {
-      return { label: 'Agg.', color: 'bg-orange-500' };
+  const getCourseTypeLabel = (courseType: string) => {
+    if (courseType === 'aggiornamento') {
+      return { label: 'Aggiornamento', color: 'bg-orange-500' };
     }
-    return { label: 'Base', color: 'bg-blue-500' };
+    if (courseType === 'base') {
+      return { label: 'Base', color: 'bg-blue-500' };
+    }
+    return { label: 'N/D', color: 'bg-gray-400' };
   };
 
   const getRiskLabel = (riskLevel: string | null) => {
-    if (!riskLevel) return { label: '', color: 'hidden' };
+    if (!riskLevel) return { label: 'N/D', color: 'bg-gray-400' };
     const risk = riskLevel.toLowerCase();
     if (risk === 'alto') return { label: 'Alto', color: 'bg-red-500' };
     if (risk === 'medio') return { label: 'Medio', color: 'bg-yellow-500' };
     if (risk === 'basso') return { label: 'Basso', color: 'bg-cyan-500' };
     if (risk === 'tutti') return { label: 'Tutti', color: 'bg-teal-500' };
-    if (risk === 'nd') return { label: 'N/D', color: 'bg-gray-400' };
-    return { label: riskLevel, color: 'bg-gray-400' };
+    return { label: 'N/D', color: 'bg-gray-400' };
   };
 
   const getCourseDuration = (hours: number | null) => {
@@ -173,7 +182,7 @@ export default function Catalog() {
   };
 
   const groupedCourses = useMemo(() => {
-    const groups: { [key: string]: LearningProject[] } = {};
+    const groups: { [key: string]: Course[] } = {};
     
     filteredCourses.forEach(course => {
       const category = getCourseCategory(course.title);
@@ -205,8 +214,8 @@ export default function Catalog() {
             if (t === 'aggiornamento') return 1;
             return 2;
           };
-          const typeA = getTypeOrder(a.courseType);
-          const typeB = getTypeOrder(b.courseType);
+          const typeA = getTypeOrder(getCourseType(a.title));
+          const typeB = getTypeOrder(getCourseType(b.title));
           if (typeA !== typeB) return typeA - typeB;
           
           // Poi per Rischio: Basso (0) → Medio (1) → Alto (2) → altri (3)
@@ -250,9 +259,9 @@ export default function Catalog() {
     return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(numPrice);
   };
 
-  const calculateTutorCost = (listPrice: string | number | null) => {
+  const calculateTutorCost = (listPrice: string | number | null, discountPercent: number = 60) => {
     const numPrice = typeof listPrice === 'string' ? parseFloat(listPrice) : (listPrice ?? 0);
-    return numPrice * 0.3;
+    return numPrice * (1 - discountPercent / 100);
   };
 
   return (
@@ -321,9 +330,9 @@ export default function Catalog() {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '40%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '34%' }} />
                 <col style={{ width: '7%' }} />
                 <col style={{ width: '4%' }} />
                 <col style={{ width: '10%' }} />
@@ -381,7 +390,7 @@ export default function Catalog() {
                       </td>
                     </tr>
                     {effectiveExpandedCategories.has(group.category) && group.courses.map((course, idx) => {
-                      const courseType = getCourseTypeLabel(course.courseType);
+                      const courseTypeLabel = getCourseTypeLabel(getCourseType(course.title));
                       const risk = getRiskLabel(course.riskLevel);
                       
                       return (
@@ -391,12 +400,12 @@ export default function Catalog() {
                           data-testid={`row-course-${course.id}`}
                         >
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block w-[50px] text-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${courseType.color}`}>
-                              {courseType.label}
+                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold text-white ${courseTypeLabel.color}`}>
+                              {courseTypeLabel.label}
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block w-[50px] text-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${risk.color}`}>
+                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold text-white ${risk.color}`}>
                               {risk.label}
                             </span>
                           </td>

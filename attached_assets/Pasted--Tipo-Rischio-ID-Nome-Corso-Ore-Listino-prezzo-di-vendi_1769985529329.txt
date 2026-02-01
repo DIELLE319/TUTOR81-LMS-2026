@@ -1,0 +1,78 @@
+
+Tipo	Rischio	ID	Nome Corso	Ore	Listino
+prezzo di vendita consigliato	Tuo Costo €	Vendi
+Base	Non Definito	313	corso haccp prova 2		---	€ 0	
+Base	Non Definito	291	Il sistema di gestione della parità di genere	1	€ 35,00	€ 10,50	
+Base	Non Definito	290	Modulo A: Modulo accesso alimentare (M.A.A.)	2	€ 30,00	€ 9,00	
+ LAVORATORE
+Base	Tutti	263	LAVORATORE - FORMAZIONE GENERALE - 4 ORE	4	€ 41,00	€ 12,30	
+Base	Tutti	280	CARRELLO ELEVATORE - teoria 8 ore	8	€ 158,00	€ 47,40	
+Base	Basso	264	LAVORATORE - FORMAZIONE SPECIFICA - RISCHIO BASSO - 4 ORE	4	€ 43,00	€ 12,90	
+Base	Basso	212	Lavoratore (Inglese) - Formazione generale e specifica - Rischio basso 8 ore	8	€ 95,00	€ 28,50	
+Base	Basso	288	LAVORATORE - FORMAZIONE GENERALE E SPECIFICA - RISCHIO BASSO - 8 ORE	8	€ 82,00	€ 24,60	
+Base	Medio	200	Lavoratore - (Acconciatori) - Formazione generale e specifica - 12 ORE	12	€ 84,00	€ 25,20	
+Base	Medio	277	LAVORATORE - F. GENERALE+ SPECIFICA - RISCHIO MEDIO - 12 ORE. (Comparto scuole)	12	€ 126,00	€ 37,80	
+Base	Medio	289	Formazione specifica rischio medio 8 ore (comparto scuole)	8	€ 90,00	€ 27,00	
+Base	Alto	219	LAVORATORE (SANITÀ) - SPECIFICA - RISCHIO ALTO - 12 ORE	12	€ 126,00	€ 37,80	
+Base	Alto	213	Lavoratore (Sanità) - Formazione generale e specifica - Rischio alto - 16 ore	16	€ 168,00	€ 50,40	
+Agg.	Basso	266	AGGIORNAMENTO LAVORATORE - RISCHIO BASSO - 6 ORE	6	€ 63,00	€ 18,90	
+Agg.	Medio	201	Aggiornamento Lavoratore (acconciatori) - Rischio medio - 6 ORE	6	€ 65,00	€ 19,50	
+Agg.	Medio	269	AGGIORNAMENTO LAVORATORE -- RISCHIO MEDIO - 6 ORE	6	€ 63,00	€ 18,90	
+Agg.	Alto	270	AGGIORNAMENTO LAVORATORE -- RISCHIO ALTO - 6 ORE	6	€ 63,00	€ 18,90	
+ PREPOSTO
+Base	Tutti	191	Preposto - Base - 8 ore	8	€ 126,00	€ 37,80	
+Base	Non Definito	189	Preposto - Base - 5 ore	5	€ 84,00	€ 25,20	
+Agg.	Tutti	279	PREPOSTO - AGGIORNAMENTO - 6 ORE	6	€ 100,00	€ 30,00	
+ DIRIGENTE
+Base	Tutti	299	Formazione del dirigente - vers 2025	12	€ 250,00	€ 75,00	
+Base	Tutti	267	FORMAZIONE DEL DIRIGENTE - BASE - 16 ORE	16	€ 241,00	€ 72,30	
+Agg.	Tutti	272	DIRIGENTE AGGIORNAMENTO 6 ORE	6	€ 100,00	€ 30,00	
+ RSPP DL
+Base	Basso	253	DATORE DI LAVORO RSPP - BASE - RISCHIO BASSO - 8 ORE	8	€ 150,00	€ 45,00	
+Base	Medio	254	DATORE DI LAVORO RSPP - BASE - RISCHIO MEDIO - 16 ORE	16	€ 273,00	€ 81,90	
+Base	Alto	255	DATORE DI LAVORO RSPP - BASE - RISCHIO ALTO - 24 ORE	24	€ 357,00	€ 107,10	
+Agg.	Tutti	276	DATORE DI LAVORO RSPP - AGGIORNAMENTO - RISCHIO BASSO - 6 ORE	6	€ 120,00	€ 36,00	
+Agg.	Tutti	301	DATORE DI LAVORO RSPP - AGGIORNAMENTO 8 ORE - 2025	8	€ 120,00	€ 36,00	
+Agg.	Medio	249	DATORE DI LAVORO RSPP - AGGIORNAMENTO - RISCHIO MEDIO - 10 ORE	10	€ 147,00	€ 44,10	
+Agg.	Alto	250	DATORE DI LAVORO RSPP - AGGIORNAMENTO - RISCHIO ALTO -14 ORE	14	€ 221,00	€ 66,30	
+ RSPP
+Base	Tutti	256	RSPP - BASE - MODULO A - 28 ORE	28	€ 265,00	€ 79,50	
+Agg.	Tutti	257	Rspp corso di aggiornamento. 40 ore	40	€ 300,00	€ 90,00	
+ ASPP
+Agg.	Tutti	258	ASPP - AGGIORNAMENTO 20 ORE	20	€ 210,00	€ 63,00	
+ RLS
+Base	Tutti	271	RLS - BASE - 32 ORE	32	€ 250,00	€ 75,00	
+Agg.	Basso	292	RLS AGGIORNAMENTO 4 ore - 2025	4	€ 75,00	€ 22,50	
+Agg.	Alto	293	RLS AGGIORNAMENTO 8 ORE 2025	8	€ 120,00	€ 36,00	
+ ANTINCENDIO
+Base	Basso	192	Antincendio rischio basso 4 ore	4	€ 100,00	€ 30,00	
+Base	Medio	82	Antincendio - Base - COMPLETO - Rischio medio - 5 ore	5	€ 125,00	€ 37,50	
+Agg.	Basso	158	Antincendio - Aggiornamento - 2 ore	2	€ 80,00	€ 24,00	
+ PRIMO SOCCORSO
+Base	Basso	76	Primo Soccorso - Base - COMPLETO - 8 ore	8	€ 130,00	€ 39,00	
+ PRIVACY
+Base	Non Definito	228	Corso privacy per soggetti autorizzati al trattamento dei dati personali	1	€ 25,00	€ 7,50	
+ NON DEFINITO
+Base	Tutti	238	CORSO cybersecurity per tutti	1	€ 30,00	€ 9,00	
+Base	Tutti	295	DATORE DI LAVORO - 16 ORE	16	€ 150,00	€ 45,00	
+Base	Tutti	278	CORSO PES PAV PEI - BASE	16	€ 250,00	€ 75,00	
+Base	Basso	194	Datore di Lavoro Rspp - Base - COMPLETO - Rischio basso - 16 ore	16	€ 210,00	€ 63,00	
+Base	Medio	185	Lavoratore - Formazione generale e specifica - Rischio medio - 12 ore	12	€ 80,00	€ 24,00	
+Base	Medio	193	Datore di Lavoro RSPP - Base - COMPLETO - Rischio medio - 32 ORE	32	€ 350,00	€ 105,00	
+Base	Medio	180	Lavoratore - Formazione SPECIFICA - Rischio medio - 8 ore	8	€ 65,00	€ 19,50	
+Base	Alto	175	Lavoratore - Formazione SPECIFICA - Rischio alto - 12 ore	12	€ 90,00	€ 27,00	
+Base	Alto	187	Lavoratore - Formazione generale e Specifica - Rischio alto - 16 ore	16	€ 100,00	€ 30,00	
+Base	Alto	177	Datore di Lavoro RSPP - Base - COMPLETO - Rischio alto - 48 ore	48	€ 450,00	€ 135,00	
+Base	Non Definito	217	CORSO DIMOSTRATIVO TUTOR81 2022	1	---	€ 0	
+Base	Non Definito	231	Uso sicuro dei disocianati - livello intermedio	2	€ 27,00	€ 8,10	
+Base	Non Definito	214	Corso HACCP base per alimentaristi - 4 ore (valido Reg. Lombardia -Trentino-Veneto)	4	€ 30,00	€ 9,00	
+Agg.	Tutti	259	CORSO PES PAV PEI - agg. 4	4	€ 90,00	€ 27,00	
+ PERSONALIZZATO
+Base	Non Definito	314	corso haccp prova 2		---	€ 0	
+Base	Non Definito	315	CORSO HACCP PROVA 3		---	€ 0	
+Base	Non Definito	202	corso prova slide	0	---	€ 0	
+Base	Non Definito	205	TEST per sostituire video con jw	0	---	€ 0	
+Base	Non Definito	311	CORSO PARITA' DI GENERE REV11	1	---	€ 0	
+Base	Non Definito	275	corso prova documenti	1	---	€ 0	
+Base	Non Definito	283	INOVYN il sistema di gestione della parità di genere	1	€ 10,00	€ 3,00	
+Agg.	Basso	215	Aggiornamento Formazione Lavoratore Rischio basso - Miroglio spa	6	€ 100,00	€ 30,00	
