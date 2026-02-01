@@ -107,7 +107,7 @@ function calculateLessonDuration(learningObjects: LearningObject[]): number {
 export default function CourseStructure() {
   const params = useParams();
   const [, setLocation] = useLocation();
-  const [showObjects, setShowObjects] = useState(true);
+  const showObjects = true; // Sempre espanso
   const [selectedProjectId, setSelectedProjectId] = useState<string>(params.id || "");
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -330,15 +330,6 @@ export default function CourseStructure() {
             <h2 className="text-lg font-semibold text-cyan-400 uppercase tracking-wide">
               Moduli Inseriti
             </h2>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowObjects(!showObjects)}
-              className="text-xs"
-              data-testid="button-toggle-objects"
-            >
-              {showObjects ? "nascondi oggetti" : "mostra oggetti"}
-            </Button>
             <div className="flex-1" />
             <Badge variant="outline" className="bg-zinc-800">
               {structure.stats.totalModules} moduli, {structure.stats.totalLessons} lezioni, {structure.stats.totalLearningObjects} LO
