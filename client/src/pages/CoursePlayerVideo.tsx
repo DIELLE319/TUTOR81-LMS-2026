@@ -160,7 +160,8 @@ export default function CoursePlayerVideo() {
   const allLessons = courseData?.modules.flatMap(m => m.lessons) || [];
   const currentLesson = allLessons[currentLessonIndex];
   const currentLo = currentLesson?.learningObjects[currentLoIndex];
-  const loDuration = currentLo?.duration || 60;
+  // Duration from DB is in minutes, convert to seconds
+  const loDuration = (currentLo?.duration || 1) * 60;
 
   // Timer for current learning object
   useEffect(() => {
