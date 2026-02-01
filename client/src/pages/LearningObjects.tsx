@@ -45,9 +45,10 @@ export default function LearningObjects() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  const { data: objects = [], isLoading } = useQuery<LearningObject[]>({
+  const { data: loResponse, isLoading } = useQuery<{ data: LearningObject[], pagination: { total: number } }>({
     queryKey: ["/api/learning-objects"],
   });
+  const objects = loResponse?.data || [];
 
   const suspendMutation = useMutation({
     mutationFn: async ({ id, suspended }: { id: number; suspended: boolean }) => {

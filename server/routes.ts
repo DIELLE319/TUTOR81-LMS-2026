@@ -136,14 +136,42 @@ export async function registerRoutes(
 
   app.get("/api/companies", isAuthenticated, async (req, res) => {
     try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const search = (req.query.search as string) || "";
+      const offset = (page - 1) * limit;
+      
       // Filter companies under Tutor81 (parent_company_id = 2) and exclude tutors
-      const allCompanies = await db.select().from(schema.companies)
+      let query = db.select().from(schema.companies)
         .where(and(
           eq(schema.companies.parentCompanyId, 2),
-          eq(schema.companies.isTutor, false)
+          eq(schema.companies.isTutor, false),
+          search ? ilike(schema.companies.businessName, `%${search}%`) : undefined
         ))
-        .orderBy(schema.companies.businessName);
-      res.json(allCompanies);
+        .orderBy(schema.companies.businessName)
+        .limit(limit)
+        .offset(offset);
+      
+      const allCompanies = await query;
+      
+      // Get total count for pagination
+      const [countResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.companies)
+        .where(and(
+          eq(schema.companies.parentCompanyId, 2),
+          eq(schema.companies.isTutor, false),
+          search ? ilike(schema.companies.businessName, `%${search}%`) : undefined
+        ));
+      
+      res.json({
+        data: allCompanies,
+        pagination: {
+          page,
+          limit,
+          total: Number(countResult.count),
+          totalPages: Math.ceil(Number(countResult.count) / limit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching companies:", error);
       res.status(500).json({ error: "Failed to fetch companies" });
@@ -1658,14 +1686,34 @@ export async function registerRoutes(
 
   seedSampleData().catch(console.error);
 
-  // Learning Objects API
+  // Learning Objects API with pagination
   app.get("/api/learning-objects", isAuthenticated, async (req, res) => {
     try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const search = (req.query.search as string) || "";
+      const offset = (page - 1) * limit;
+      
       const objects = await db.select()
         .from(schema.learningObjects)
-        .orderBy(desc(schema.learningObjects.id));
+        .where(search ? ilike(schema.learningObjects.title, `%${search}%`) : undefined)
+        .orderBy(desc(schema.learningObjects.id))
+        .limit(limit)
+        .offset(offset);
       
-      res.json(objects);
+      const [countResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(schema.learningObjects)
+        .where(search ? ilike(schema.learningObjects.title, `%${search}%`) : undefined);
+      
+      res.json({
+        data: objects,
+        pagination: {
+          page,
+          limit,
+          total: Number(countResult.count),
+          totalPages: Math.ceil(Number(countResult.count) / limit)
+        }
+      });
     } catch (error) {
       console.error("Learning objects error:", error);
       res.status(500).json({ error: "Failed to fetch learning objects" });
@@ -1675,12 +1723,12 @@ export async function registerRoutes(
   // Get learning object details with questions
   app.get("/api/learning-objects/:id/details", isAuthenticated, async (req, res) => {
     try {
-      const { id } = req.params;
+      const loId = parseInt(req.params.id as string);
       
       // Get the learning object
       const [lo] = await db.select()
         .from(schema.learningObjects)
-        .where(eq(schema.learningObjects.id, parseInt(id)));
+        .where(eq(schema.learningObjects.id, loId));
       
       if (!lo) {
         return res.status(404).json({ error: "Learning object not found" });
@@ -1701,7 +1749,7 @@ export async function registerRoutes(
         FROM video_test_interruption_points ip
         LEFT JOIN interruption_questions iq ON iq.interruption_point_id = ip.id
         LEFT JOIN question_sentences qs ON qs.id = iq.question_sentence_id
-        WHERE ip.learning_object_id = ${parseInt(id)}
+        WHERE ip.learning_object_id = ${loId}
         GROUP BY ip.id, ip.legacy_id, ip.time
         ORDER BY ip.time
       `);
@@ -1718,17 +1766,237 @@ export async function registerRoutes(
 
   app.patch("/api/learning-objects/:id/suspend", isAuthenticated, async (req, res) => {
     try {
-      const { id } = req.params;
+      const loId = parseInt(req.params.id as string);
       const { suspended } = req.body;
       
       await db.update(schema.learningObjects)
         .set({ suspended: suspended })
-        .where(eq(schema.learningObjects.id, parseInt(id)));
+        .where(eq(schema.learningObjects.id, loId));
       
       res.json({ success: true });
     } catch (error) {
       console.error("Suspend learning object error:", error);
       res.status(500).json({ error: "Failed to update learning object" });
+    }
+  });
+
+  // Public endpoint for player - get course structure
+  app.get("/api/player/course/:id/structure", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id as string);
+      
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "ID corso non valido" });
+      }
+
+      // Get learning project info
+      const [project] = await db.select().from(schema.learningProjects).where(eq(schema.learningProjects.id, projectId));
+      
+      const legacyCourseId = project?.sortOrder || projectId;
+
+      // Query for complete structure
+      const structure = await db.execute(sql`
+        SELECT 
+          cm.id as course_module_id,
+          cm.position as module_position,
+          m.id as module_id,
+          m.title as module_title,
+          m.duration as module_duration,
+          ml.position as lesson_position,
+          l.id as lesson_id,
+          l.title as lesson_title,
+          l.duration as lesson_duration,
+          llo.position as lo_position,
+          lo.id as lo_id,
+          lo.title as lo_title,
+          lo.object_type as lo_type,
+          lo.duration as lo_duration,
+          lo.jwplayer_code as jwplayer_code
+        FROM course_modules cm
+        JOIN modules m ON m.id = cm.module_id
+        LEFT JOIN module_lessons ml ON ml.module_id = m.id
+        LEFT JOIN lessons l ON l.id = ml.lesson_id
+        LEFT JOIN lesson_learning_objects llo ON llo.lesson_id = l.id
+        LEFT JOIN learning_objects lo ON lo.id = llo.learning_object_id
+        WHERE cm.legacy_course_id = ${legacyCourseId} OR cm.learning_project_id = ${projectId}
+        ORDER BY cm.position, ml.position, llo.position
+      `);
+
+      // Transform to hierarchical structure
+      const modulesMap = new Map<number, any>();
+      
+      for (const row of structure.rows) {
+        const moduleId = row.module_id as number;
+        
+        if (!modulesMap.has(moduleId)) {
+          modulesMap.set(moduleId, {
+            id: moduleId,
+            title: row.module_title,
+            duration: row.module_duration,
+            position: row.module_position,
+            lessons: new Map()
+          });
+        }
+        
+        const module = modulesMap.get(moduleId);
+        const lessonId = row.lesson_id as number;
+        
+        if (lessonId && !module.lessons.has(lessonId)) {
+          module.lessons.set(lessonId, {
+            id: lessonId,
+            title: row.lesson_title,
+            duration: row.lesson_duration,
+            position: row.lesson_position,
+            learningObjects: []
+          });
+        }
+        
+        if (lessonId && row.lo_id) {
+          const lesson = module.lessons.get(lessonId);
+          const loExists = lesson.learningObjects.some((lo: any) => lo.id === row.lo_id);
+          if (!loExists) {
+            const objectTypeMap: Record<number, string> = {
+              1: 'video', 2: 'slide', 3: 'document', 4: 'test'
+            };
+            lesson.learningObjects.push({
+              id: row.lo_id,
+              title: row.lo_title,
+              type: objectTypeMap[row.lo_type as number] || 'video',
+              duration: row.lo_duration,
+              position: row.lo_position,
+              jwplayerCode: row.jwplayer_code
+            });
+          }
+        }
+      }
+      
+      const modules = Array.from(modulesMap.values()).map(module => ({
+        ...module,
+        lessons: Array.from(module.lessons.values())
+      }));
+
+      res.json({
+        id: projectId,
+        title: project?.title || 'Corso',
+        modules
+      });
+    } catch (error) {
+      console.error("Player course structure error:", error);
+      res.status(500).json({ error: "Errore nel recupero della struttura" });
+    }
+  });
+
+  // Save player progress
+  app.post("/api/player/progress", async (req, res) => {
+    try {
+      const { enrollmentId, lessonId, completed } = req.body;
+      
+      // Update progress in database
+      const existing = await db.select()
+        .from(schema.progress)
+        .where(
+          and(
+            eq(schema.progress.enrollmentId, enrollmentId),
+            eq(schema.progress.lessonId, lessonId)
+          )
+        );
+      
+      if (existing.length > 0) {
+        await db.update(schema.progress)
+          .set({
+            completed: completed || false,
+            completedAt: completed ? new Date() : null
+          })
+          .where(eq(schema.progress.id, existing[0].id));
+      } else {
+        await db.insert(schema.progress).values({
+          enrollmentId,
+          lessonId,
+          completed: completed || false,
+          completedAt: completed ? new Date() : null
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Save progress error:", error);
+      res.status(500).json({ error: "Failed to save progress" });
+    }
+  });
+
+  // Get player progress for an enrollment
+  app.get("/api/player/progress/:enrollmentId", async (req, res) => {
+    try {
+      const enrollmentId = parseInt(req.params.enrollmentId);
+      
+      const progressData = await db.select()
+        .from(schema.progress)
+        .where(eq(schema.progress.enrollmentId, enrollmentId));
+      
+      res.json(progressData);
+    } catch (error) {
+      console.error("Get progress error:", error);
+      res.status(500).json({ error: "Failed to get progress" });
+    }
+  });
+
+  // Get interruption points and questions for a learning object (for player)
+  app.get("/api/learning-objects/:id/interruptions", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const loId = parseInt(id);
+      
+      // Get interruption points for this learning object
+      const interruptionPoints = await db.select()
+        .from(schema.videoTestInterruptionPoints)
+        .where(eq(schema.videoTestInterruptionPoints.learningObjectId, loId));
+      
+      // For each point, get the questions
+      const pointsWithQuestions = await Promise.all(
+        interruptionPoints.map(async (point) => {
+          // Get question links for this point
+          const questionLinks = await db.select()
+            .from(schema.interruptionQuestions)
+            .where(eq(schema.interruptionQuestions.interruptionPointId, point.id));
+          
+          // Get question sentences and answers
+          const questions = await Promise.all(
+            questionLinks.filter(link => link.questionSentenceId != null).map(async (link) => {
+              const sentenceId = link.questionSentenceId!;
+              
+              const [sentence] = await db.select()
+                .from(schema.questionSentences)
+                .where(eq(schema.questionSentences.id, sentenceId));
+              
+              const answers = await db.select()
+                .from(schema.questionAnswers)
+                .where(eq(schema.questionAnswers.questionSentenceId, sentenceId));
+              
+              return {
+                id: sentence?.id,
+                text: sentence?.text,
+                answers: answers.map(a => ({
+                  id: a.id,
+                  text: a.text,
+                  isCorrect: a.isCorrect
+                }))
+              };
+            })
+          );
+          
+          return {
+            id: point.id,
+            time: point.time, // milliseconds
+            timeSeconds: Math.floor((point.time || 0) / 1000),
+            questions
+          };
+        })
+      );
+      
+      res.json(pointsWithQuestions);
+    } catch (error) {
+      console.error("Interruptions error:", error);
+      res.status(500).json({ error: "Failed to fetch interruption points" });
     }
   });
 

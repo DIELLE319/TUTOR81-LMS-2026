@@ -59,13 +59,15 @@ export default function ContentManagement() {
     queryKey: ['/api/learning-projects'],
   });
 
-  const { data: companies = [] } = useQuery<Company[]>({
+  const { data: companiesResponse } = useQuery<{ data: Company[], pagination: { total: number } }>({
     queryKey: ['/api/companies'],
   });
+  const companies = companiesResponse?.data || [];
 
-  const { data: learningObjects = [], isLoading: loadingLOs } = useQuery<LearningObject[]>({
+  const { data: loResponse, isLoading: loadingLOs } = useQuery<{ data: LearningObject[], pagination: { total: number } }>({
     queryKey: ['/api/learning-objects'],
   });
+  const learningObjects = loResponse?.data || [];
 
   const companyLookup = useMemo(() => {
     const lookup: Record<number, string> = {};

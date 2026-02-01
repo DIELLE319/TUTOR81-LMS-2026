@@ -38,11 +38,23 @@ interface Module {
   lessons: Lesson[];
 }
 
-interface Question {
+interface Answer {
   id: number;
   text: string;
-  options: string[];
-  correctAnswer: number;
+  isCorrect: boolean;
+}
+
+interface QuestionData {
+  id: number;
+  text: string;
+  answers: Answer[];
+}
+
+interface InterruptionPoint {
+  id: number;
+  time: number;
+  timeSeconds: number;
+  questions: QuestionData[];
 }
 
 interface CourseData {
@@ -73,25 +85,14 @@ export default function CoursePlayerVideo() {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState(0);
-  const [totalQuestions] = useState(3);
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<QuestionData | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
-
-  const sampleQuestions: Question[] = [
-    {
-      id: 1,
-      text: "Questa è una domanda in itinere, in Tutor81 ne inseriamo molte random e a tempo, per tenere alta l'attenzione",
-      options: ["Mi piace", "Preferisco domande al termine della lezione", "Non lo so..."],
-      correctAnswer: 0
-    },
-    {
-      id: 2,
-      text: "Qual è l'obiettivo principale della formazione sulla sicurezza?",
-      options: ["Evitare sanzioni", "Proteggere la salute dei lavoratori", "Compilare documenti"],
-      correctAnswer: 1
-    }
-  ];
+  
+  // Interruption points from database
+  const [interruptionPoints, setInterruptionPoints] = useState<InterruptionPoint[]>([]);
+  const [triggeredPoints, setTriggeredPoints] = useState<Set<number>>(new Set());
+  const [totalQuestionsCount, setTotalQuestionsCount] = useState(0);
 
   // Mock data - in produzione verrà da API
   const userData = {
@@ -171,15 +172,56 @@ export default function CoursePlayerVideo() {
     window.location.href = "/player";
   };
 
-  // Trigger quiz at certain times (demo: at 15 seconds)
+  // Load interruption points when learning object changes
   useEffect(() => {
-    if (currentTime === 15 && !showQuiz && sampleQuestions.length > 0) {
-      setCurrentQuestion(sampleQuestions[0]);
-      setShowQuiz(true);
-      setQuizTimer(30);
-      setSelectedAnswer("");
+    const loadInterruptions = async () => {
+      if (!currentLo?.id) return;
+      
+      try {
+        const response = await fetch(`/api/learning-objects/${currentLo.id}/interruptions`);
+        if (response.ok) {
+          const data = await response.json();
+          setInterruptionPoints(data);
+          setTriggeredPoints(new Set());
+          
+          // Count total questions
+          const total = data.reduce((sum: number, point: InterruptionPoint) => 
+            sum + point.questions.length, 0);
+          setTotalQuestionsCount(total);
+        }
+      } catch (error) {
+        console.error("Failed to load interruptions:", error);
+      }
+    };
+    
+    loadInterruptions();
+  }, [currentLo?.id]);
+
+  // Trigger quiz at interruption points
+  useEffect(() => {
+    if (showQuiz || interruptionPoints.length === 0) return;
+    
+    // Find interruption point that matches current time
+    const matchingPoint = interruptionPoints.find(point => 
+      point.timeSeconds === currentTime && 
+      !triggeredPoints.has(point.id) &&
+      point.questions.length > 0
+    );
+    
+    if (matchingPoint) {
+      // Mark point as triggered
+      setTriggeredPoints(prev => new Set(prev).add(matchingPoint.id));
+      
+      // Pick first question from this point
+      const question = matchingPoint.questions[0];
+      if (question) {
+        setCurrentQuestion(question);
+        setShowQuiz(true);
+        setQuizTimer(30);
+        setSelectedAnswer("");
+      }
     }
-  }, [currentTime, showQuiz]);
+  }, [currentTime, showQuiz, interruptionPoints, triggeredPoints]);
 
   // Quiz timer countdown
   useEffect(() => {
@@ -189,7 +231,8 @@ export default function CoursePlayerVideo() {
       }, 1000);
       return () => clearInterval(timer);
     } else if (showQuiz && quizTimer === 0) {
-      // Time expired, close quiz
+      // Time expired, mark as wrong and close quiz
+      setWrongAnswers(prev => prev + 1);
       setShowQuiz(false);
       setCurrentQuestion(null);
     }
@@ -198,8 +241,9 @@ export default function CoursePlayerVideo() {
   const handleConfirmAnswer = () => {
     if (!currentQuestion || !selectedAnswer) return;
     
-    const answerIndex = parseInt(selectedAnswer);
-    const isCorrect = answerIndex === currentQuestion.correctAnswer;
+    const selectedAnswerId = parseInt(selectedAnswer);
+    const selectedAnswerObj = currentQuestion.answers.find(a => a.id === selectedAnswerId);
+    const isCorrect = selectedAnswerObj?.isCorrect || false;
     
     if (isCorrect) {
       setCorrectAnswers(prev => prev + 1);

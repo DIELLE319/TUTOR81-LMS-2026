@@ -60,9 +60,10 @@ export default function Users() {
     }
   }, [users, searchString]);
 
-  const { data: companies = [] } = useQuery<Company[]>({
+  const { data: companiesResponse } = useQuery<{ data: Company[], pagination: { total: number } }>({
     queryKey: ['/api/companies'],
   });
+  const companies = companiesResponse?.data || [];
 
   const { data: userEnrollments = [] } = useQuery<Enrollment[]>({
     queryKey: ['/api/user-enrollments', selectedUser?.id],

@@ -298,6 +298,14 @@ export const questionAnswers = pgTable("question_answers", {
   code: text("code"),
 });
 
+export const progress = pgTable("progress", {
+  id: serial("id").primaryKey(),
+  enrollmentId: integer("enrollment_id").references(() => enrollments.id),
+  lessonId: integer("lesson_id").references(() => lessons.id),
+  completed: boolean("completed").default(false),
+  completedAt: timestamp("completed_at"),
+});
+
 export const tests = pgTable("tests", {
   id: serial("id").primaryKey(),
   learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
