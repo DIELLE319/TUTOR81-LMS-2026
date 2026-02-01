@@ -12,11 +12,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Mail, MailOpen, MailX, Send, ChevronsUpDown, Check, X } from "lucide-react";
+import { Search, Mail, MailOpen, MailX, Send, ChevronsUpDown, Check, X, Calendar, Trash2, Bell, Play, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Enrollment {
   id: number;
@@ -45,6 +69,9 @@ export default function ActivatedCourses() {
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState("25");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [showDateDialog, setShowDateDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [newEndDate, setNewEndDate] = useState("");
   const { toast } = useToast();
 
   const { data: enrollments = [], isLoading } = useQuery<Enrollment[]>({
@@ -84,6 +111,83 @@ export default function ActivatedCourses() {
       toast({ title: "Errore nell'invio", description: error.message, variant: "destructive" });
     },
   });
+
+  const updateEndDateMutation = useMutation({
+    mutationFn: async ({ enrollmentIds, endDate }: { enrollmentIds: number[]; endDate: string }) => {
+      return apiRequest("/api/enrollments/update-end-date", {
+        method: "POST",
+        body: JSON.stringify({ enrollmentIds, endDate }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Scadenza aggiornata con successo!" });
+      setSelectedIds([]);
+      setShowDateDialog(false);
+      setNewEndDate("");
+      queryClient.invalidateQueries({ queryKey: ["/api/enrollments"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Errore nell'aggiornamento", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteEnrollmentsMutation = useMutation({
+    mutationFn: async (enrollmentIds: number[]) => {
+      return apiRequest("/api/enrollments/delete", {
+        method: "POST",
+        body: JSON.stringify({ enrollmentIds }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Licenze rimosse con successo!" });
+      setSelectedIds([]);
+      setShowDeleteDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/enrollments"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Errore nella rimozione", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const sendReminderMutation = useMutation({
+    mutationFn: async (enrollmentIds: number[]) => {
+      return apiRequest("/api/enrollments/send-reminder", {
+        method: "POST",
+        body: JSON.stringify({ enrollmentIds }),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Solleciti inviati con successo!" });
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/enrollments"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Errore nell'invio", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleUpdateEndDate = () => {
+    if (selectedIds.length === 0 || !newEndDate) return;
+    updateEndDateMutation.mutate({ enrollmentIds: selectedIds, endDate: newEndDate });
+  };
+
+  const handleDeleteEnrollments = () => {
+    if (selectedIds.length === 0) return;
+    deleteEnrollmentsMutation.mutate(selectedIds);
+  };
+
+  const handleSendReminder = () => {
+    if (selectedIds.length === 0) return;
+    sendReminderMutation.mutate(selectedIds);
+  };
+
+  const handleLaunchCourse = (enrollment: Enrollment) => {
+    const playerUrl = `https://avviacorso.tutor81.com/player.php?enrollment_id=${enrollment.id}`;
+    window.open(playerUrl, '_blank');
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -253,17 +357,44 @@ export default function ActivatedCourses() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {selectedIds.length > 0 && (
-              <Button
-                onClick={handleSendEmails}
-                disabled={sendEmailsMutation.isPending}
-                className="bg-green-600 hover:bg-green-700 text-white font-bold"
-                data-testid="button-send-emails"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Invia Email ({selectedIds.length})
-              </Button>
+              <>
+                <Button
+                  onClick={() => setShowDateDialog(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                  data-testid="button-modify-date"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Modifica scadenza ({selectedIds.length})
+                </Button>
+                <Button
+                  onClick={handleSendEmails}
+                  disabled={sendEmailsMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                  data-testid="button-send-emails"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Invia avvia corso ({selectedIds.length})
+                </Button>
+                <Button
+                  onClick={handleSendReminder}
+                  disabled={sendReminderMutation.isPending}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                  data-testid="button-send-reminder"
+                >
+                  <Bell className="h-4 w-4 mr-2" />
+                  Invia sollecito ({selectedIds.length})
+                </Button>
+                <Button
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold"
+                  data-testid="button-delete-enrollments"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Rimuovi licenze ({selectedIds.length})
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -307,18 +438,21 @@ export default function ActivatedCourses() {
                 <th className="text-center p-3 text-xs font-bold text-yellow-400 uppercase">
                   Email
                 </th>
+                <th className="text-center p-3 text-xs font-bold text-yellow-400 uppercase">
+                  Azioni
+                </th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-8 text-black">
+                  <td colSpan={11} className="text-center py-8 text-black">
                     Caricamento...
                   </td>
                 </tr>
               ) : displayedEnrollments.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-8 text-black">
+                  <td colSpan={11} className="text-center py-8 text-black">
                     Nessun corso attivato trovato
                   </td>
                 </tr>
@@ -399,6 +533,17 @@ export default function ActivatedCourses() {
                         </div>
                       )}
                     </td>
+                    <td className="p-3 text-center">
+                      <Button
+                        size="sm"
+                        onClick={() => handleLaunchCourse(enrollment)}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        data-testid={`button-launch-${enrollment.id}`}
+                      >
+                        <Play className="h-4 w-4 mr-1" />
+                        Avvia
+                      </Button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -410,6 +555,60 @@ export default function ActivatedCourses() {
           Mostrando {displayedEnrollments.length} di {filteredEnrollments.length} risultati
         </div>
       </div>
+
+      <Dialog open={showDateDialog} onOpenChange={setShowDateDialog}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-black">Modifica Scadenza</DialogTitle>
+            <DialogDescription>
+              Imposta la nuova data di scadenza per {selectedIds.length} corso/i selezionato/i
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              type="date"
+              value={newEndDate}
+              onChange={(e) => setNewEndDate(e.target.value)}
+              className="bg-white text-black border-gray-300"
+              data-testid="input-new-end-date"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDateDialog(false)} data-testid="button-cancel-date">
+              Annulla
+            </Button>
+            <Button
+              onClick={handleUpdateEndDate}
+              disabled={!newEndDate || updateEndDateMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              data-testid="button-confirm-date"
+            >
+              Conferma
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-black">Rimuovi Licenze</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sei sicuro di voler rimuovere {selectedIds.length} licenza/e? Questa azione non può essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteEnrollments}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-delete"
+            >
+              Rimuovi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
