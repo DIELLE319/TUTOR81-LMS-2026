@@ -1,50 +1,57 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { User, Key, LogIn } from "lucide-react";
+import { User, Key, LogIn, ExternalLink } from "lucide-react";
+
+const OLD_PLAYER_URL = "https://avviacorso.tutor81.com/prelogin.php";
 
 export default function PlayerLogin() {
-  const [username, setUsername] = useState("");
+  const [licenseCode, setLicenseCode] = useState("");
   const [fiscalCode, setFiscalCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [, navigate] = useLocation();
   const { toast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/player/login", {
+      // Validate license code exists
+      const response = await fetch("/api/player/validate-license", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, fiscalCode }),
+        body: JSON.stringify({ licenseCode }),
       });
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        localStorage.setItem("playerUser", JSON.stringify(data.user));
-        localStorage.setItem("playerEnrollment", JSON.stringify(data.enrollment));
-        toast({ title: "Accesso effettuato", description: `Benvenuto ${data.user.firstName}!` });
-        navigate(`/player/${data.enrollment.id}`);
+      if (response.ok && data.valid) {
+        toast({ 
+          title: "Reindirizzamento al corso...", 
+          description: `Corso: ${data.enrollment.courseTitle}` 
+        });
+        
+        // Submit form to old player via POST
+        if (formRef.current) {
+          formRef.current.submit();
+        }
       } else {
         toast({ 
-          title: "Errore di accesso", 
-          description: data.error || "Credenziali non valide", 
+          title: "Codice licenza non valido", 
+          description: data.error || "Verifica il codice inserito", 
           variant: "destructive" 
         });
+        setIsLoading(false);
       }
     } catch (error) {
       toast({ 
         title: "Errore", 
-        description: "Impossibile effettuare l'accesso", 
+        description: "Impossibile verificare la licenza", 
         variant: "destructive" 
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -58,22 +65,29 @@ export default function PlayerLogin() {
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">Accedi al Corso</CardTitle>
           <CardDescription className="text-gray-600">
-            Inserisci le tue credenziali per accedere al player
+            Inserisci il codice licenza e il codice fiscale
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form 
+            ref={formRef}
+            method="POST" 
+            action={OLD_PLAYER_URL}
+            onSubmit={handleLogin} 
+            className="space-y-4"
+          >
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Username</label>
+              <label className="text-sm font-medium text-gray-700">Codice Licenza</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="es: demo.demo"
-                  className="pl-10"
-                  data-testid="input-username"
+                  name="course_code"
+                  value={licenseCode}
+                  onChange={(e) => setLicenseCode(e.target.value.toUpperCase())}
+                  placeholder="es: B8j4P"
+                  className="pl-10 uppercase"
+                  data-testid="input-license-code"
                   required
                 />
               </div>
@@ -82,13 +96,14 @@ export default function PlayerLogin() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">Codice Fiscale</label>
               <div className="relative">
-                <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   type="text"
+                  name="tax_code"
                   value={fiscalCode}
-                  onChange={(e) => setFiscalCode(e.target.value)}
-                  placeholder="es: 1"
-                  className="pl-10"
+                  onChange={(e) => setFiscalCode(e.target.value.toUpperCase())}
+                  placeholder="es: RSSMRA80A01H501U"
+                  className="pl-10 uppercase"
                   data-testid="input-fiscal-code"
                   required
                 />
@@ -101,16 +116,32 @@ export default function PlayerLogin() {
               disabled={isLoading}
               data-testid="btn-login"
             >
-              {isLoading ? "Accesso in corso..." : "Accedi"}
+              {isLoading ? (
+                <>Verifica in corso...</>
+              ) : (
+                <>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Avvia Corso
+                </>
+              )}
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-gray-100 rounded-lg">
-            <p className="text-sm text-gray-600 text-center">
-              <strong>Credenziali Demo:</strong><br />
-              Username: <code className="bg-gray-200 px-1 rounded">demo.demo</code><br />
-              Codice Fiscale: <code className="bg-gray-200 px-1 rounded">1</code>
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-gray-700 text-center">
+              <strong>Come funziona:</strong><br />
+              Il codice licenza ti è stato inviato via email.<br />
+              Inseriscilo insieme al tuo codice fiscale per accedere al corso.
             </p>
+          </div>
+
+          <div className="mt-4 text-center">
+            <a 
+              href="mailto:assistenza@tutor81.com" 
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Non hai ricevuto il codice? Contatta l'assistenza
+            </a>
           </div>
         </CardContent>
       </Card>
