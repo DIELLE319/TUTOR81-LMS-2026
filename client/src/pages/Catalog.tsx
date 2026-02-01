@@ -350,19 +350,6 @@ export default function Catalog() {
                 {cat.label}
               </button>
             ))}
-            
-            <span className="text-white/70 text-xs font-medium uppercase ml-4 mr-2">Tipo:</span>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="bg-white/10 text-white border border-white/20 rounded px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              data-testid="select-course-type"
-            >
-              <option value="TUTTI" className="bg-gray-800">Tutti</option>
-              <option value="BASE" className="bg-gray-800">Base</option>
-              <option value="AGGIORNAMENTO" className="bg-gray-800">Aggiornamento</option>
-              <option value="ND" className="bg-gray-800">Non Definito</option>
-            </select>
           </div>
         </div>
       </div>
