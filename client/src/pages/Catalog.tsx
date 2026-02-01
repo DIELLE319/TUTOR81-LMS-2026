@@ -451,12 +451,12 @@ export default function Catalog() {
                           className={`border-b border-gray-100 hover:bg-yellow-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                           data-testid={`row-course-${course.id}`}
                         >
-                          <td className="px-3 py-2.5">
+                          <td className="pl-3 pr-1 py-2.5">
                             <span className={`inline-block w-[45px] text-center py-0.5 rounded text-[11px] font-semibold text-white ${courseTypeLabel.color}`}>
                               {courseTypeLabel.label}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5">
+                          <td className="px-1 py-2.5">
                             <span className={`inline-block w-[45px] text-center py-0.5 rounded text-[11px] font-semibold text-white ${risk.color}`}>
                               {risk.label}
                             </span>
