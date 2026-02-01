@@ -452,12 +452,12 @@ export default function Catalog() {
                           data-testid={`row-course-${course.id}`}
                         >
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold text-white ${courseTypeLabel.color}`}>
+                            <span className={`inline-block w-[45px] text-center py-0.5 rounded text-[11px] font-semibold text-white ${courseTypeLabel.color}`}>
                               {courseTypeLabel.label}
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold text-white ${risk.color}`}>
+                            <span className={`inline-block w-[45px] text-center py-0.5 rounded text-[11px] font-semibold text-white ${risk.color}`}>
                               {risk.label}
                             </span>
                           </td>
