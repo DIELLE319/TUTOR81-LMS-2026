@@ -802,14 +802,16 @@ export async function registerRoutes(
     }
   });
 
-  // Search users
+  // Search users - cerca direttamente nel database
   app.get("/api/users/search", isAuthenticated, async (req, res) => {
     try {
-      const q = (req.query.q as string || '').toLowerCase().trim();
+      const q = (req.query.q as string || '').trim();
       if (q.length < 2) return res.json([]);
       
-      // Query semplice senza join - il join con companies causa problemi di tipo
-      const allUsers = await db.select({
+      const searchPattern = `%${q}%`;
+      
+      // Cerca direttamente nel database con ILIKE
+      const matchedUsers = await db.select({
         id: schema.users.id,
         firstName: schema.users.firstName,
         lastName: schema.users.lastName,
@@ -818,9 +820,17 @@ export async function registerRoutes(
         idcompany: schema.users.idcompany,
       })
       .from(schema.users)
-      .limit(1000);
+      .where(
+        or(
+          ilike(schema.users.firstName, searchPattern),
+          ilike(schema.users.lastName, searchPattern),
+          ilike(schema.users.email, searchPattern),
+          ilike(schema.users.fiscalCode, searchPattern)
+        )
+      )
+      .limit(30);
       
-      // Carica le aziende separatamente per il lookup
+      // Carica le aziende per il lookup
       const companies = await db.select({
         id: schema.companies.id,
         businessName: schema.companies.businessName,
@@ -828,20 +838,12 @@ export async function registerRoutes(
       
       const companyMap = new Map(companies.map(c => [String(c.id), c.businessName]));
       
-      const usersWithCompany = allUsers.map(u => ({
+      const usersWithCompany = matchedUsers.map(u => ({
         ...u,
         companyName: u.idcompany ? companyMap.get(String(u.idcompany)) || null : null
       }));
       
-      const filtered = usersWithCompany.filter(u => {
-        const fullName = `${u.lastName || ''} ${u.firstName || ''}`.toLowerCase();
-        const email = (u.email || '').toLowerCase();
-        const cf = (u.fiscalCode || '').toLowerCase();
-        const company = (u.companyName || '').toLowerCase();
-        return fullName.includes(q) || email.includes(q) || cf.includes(q) || company.includes(q);
-      }).slice(0, 20);
-      
-      res.json(filtered);
+      res.json(usersWithCompany);
     } catch (error) {
       console.error("Search users error:", error);
       res.json([]);

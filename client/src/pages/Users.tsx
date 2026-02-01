@@ -420,7 +420,7 @@ export default function Users() {
                     ) : (
                       userEnrollments.map((enr) => (
                         <tr key={enr.id} className="border-b border-gray-100">
-                          <td className="py-2 text-gray-700">{enr.courseTitle}</td>
+                          <td className="py-2 text-gray-700">{enr.courseTitle?.replace(/^EL\s*-\s*/, '')}</td>
                           <td className="py-2 text-center text-gray-500">
                             {enr.startDate ? new Date(enr.startDate).toLocaleDateString('it-IT') : '-'}
                           </td>
