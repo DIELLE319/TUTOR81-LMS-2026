@@ -332,47 +332,6 @@ export default function Users() {
                       data-testid="input-user-phone"
                     />
 
-                    <div className="pt-3 border-t border-gray-200">
-                      <p className="text-sm text-gray-600 mb-2">Quale ruolo ha questo utente in piattaforma?</p>
-                      <div className="space-y-2">
-                        {[
-                          { value: 0, label: 'Corsista' },
-                          { value: 2, label: 'Referente Aziendale' },
-                          { value: 1, label: 'Amministratore Ente Formativo' },
-                          { value: 1000, label: 'Superadmin' },
-                        ].map((r) => (
-                          <label key={r.value} className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="role"
-                              checked={editData.role === r.value}
-                              onChange={() => setEditData({ ...editData, role: r.value })}
-                              className="text-blue-600"
-                            />
-                            <span className="text-sm text-gray-700">{r.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-4">
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        className="bg-red-400 hover:bg-red-500"
-                        data-testid="button-delete-user"
-                      >
-                        Elimina
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="bg-orange-400 hover:bg-orange-500 text-white border-0"
-                        data-testid="button-suspend-user"
-                      >
-                        Sospendi
-                      </Button>
-                    </div>
                   </div>
                 </div>
 
@@ -392,6 +351,48 @@ export default function Users() {
                           <option key={c.id} value={c.id}>{c.businessName}</option>
                         ))}
                       </select>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <p className="text-sm text-gray-600 mb-2">Quale ruolo ha questo utente in piattaforma?</p>
+                    <div className="space-y-2">
+                      {[
+                        { value: 0, label: 'Corsista' },
+                        { value: 2, label: 'Referente Aziendale' },
+                        { value: 1, label: 'Amministratore Ente Formativo' },
+                        { value: 1000, label: 'Superadmin' },
+                      ].map((r) => (
+                        <label key={r.value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="role"
+                            checked={editData.role === r.value}
+                            onChange={() => setEditData({ ...editData, role: r.value })}
+                            className="text-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">{r.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        className="bg-red-400 hover:bg-red-500"
+                        data-testid="button-delete-user"
+                      >
+                        Elimina
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="bg-orange-400 hover:bg-orange-500 text-white border-0"
+                        data-testid="button-suspend-user"
+                      >
+                        Sospendi
+                      </Button>
                     </div>
                   </div>
                 </div>
