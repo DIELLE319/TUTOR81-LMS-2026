@@ -561,7 +561,7 @@ export default function CoursePlayerVideo() {
                 <div className="border-2 border-yellow-400 rounded h-24 mb-4"></div>
               )}
               <p className="text-sm text-gray-500 text-center">
-                Totale domande previste: {totalQuestions}
+                Totale domande previste: {totalQuestionsCount}
               </p>
             </div>
           </div>
