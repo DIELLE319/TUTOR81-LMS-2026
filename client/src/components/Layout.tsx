@@ -66,10 +66,10 @@ export default function Layout({ children }: LayoutProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleUserClick = (userId: number) => {
+  const handleUserClick = (userId: string) => {
     setShowResults(false);
     setSearchTerm('');
-    setLocation(`/users/${userId}`);
+    setLocation(`/users?userId=${userId}`);
   };
 
   const getIcon = (name: keyof typeof Icons) => {
