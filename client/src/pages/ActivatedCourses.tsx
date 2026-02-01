@@ -314,6 +314,17 @@ export default function ActivatedCourses() {
                     <CommandList>
                       <CommandEmpty className="text-gray-500 py-4 text-center">Nessuna azienda trovata</CommandEmpty>
                       <CommandGroup>
+                        <CommandItem
+                          value="tutte-le-aziende"
+                          onSelect={() => {
+                            setCompanyFilter("");
+                            setCompanySearchOpen(false);
+                          }}
+                          className="text-black hover:bg-yellow-100 cursor-pointer font-bold"
+                        >
+                          <Check className={`mr-2 h-4 w-4 ${!companyFilter ? "opacity-100" : "opacity-0"}`} />
+                          --- Tutte le Aziende ---
+                        </CommandItem>
                         {sortedCompanies.map(company => (
                           <CommandItem
                             key={company.id}
