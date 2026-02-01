@@ -1,18 +1,33 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { Search, Plus, Building, MapPin, Mail, Phone, Pause, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, Building, MapPin, Mail, Phone, Pause, Pencil, Trash2, Check } from 'lucide-react';
 import type { Tutor } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 
 export default function Tutors() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingAdmin, setEditingAdmin] = useState<{id: number, value: string} | null>(null);
   const { toast } = useToast();
 
   const { data: tutors = [], isLoading } = useQuery<Tutor[]>({
     queryKey: ['/api/tutors'],
+  });
+
+  const updateAdminMutation = useMutation({
+    mutationFn: ({ id, adminName }: { id: number, adminName: string }) => 
+      apiRequest('PUT', `/api/tutors/${id}`, { adminName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tutors'] });
+      setEditingAdmin(null);
+      toast({ title: 'Salvato', description: 'Amministratore aggiornato.' });
+    },
+    onError: () => {
+      toast({ title: 'Errore', description: 'Impossibile salvare.', variant: 'destructive' });
+    }
   });
 
   const deleteMutation = useMutation({
@@ -96,6 +111,7 @@ export default function Tutors() {
               <tr className="border-b border-zinc-800 bg-zinc-800/50">
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">ID</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Ragione Sociale</th>
+                <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Amm.re Ente</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Indirizzo</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Telefono</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Email</th>
@@ -118,6 +134,45 @@ export default function Tutors() {
                       </div>
                       <span className="font-medium text-white">{tutor.businessName}</span>
                     </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    {editingAdmin?.id === tutor.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editingAdmin.value}
+                          onChange={(e) => setEditingAdmin({ id: tutor.id, value: e.target.value })}
+                          className="h-8 bg-zinc-800 border-zinc-700 text-white text-sm w-40"
+                          placeholder="Nome admin..."
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateAdminMutation.mutate({ id: tutor.id, adminName: editingAdmin.value });
+                            }
+                            if (e.key === 'Escape') {
+                              setEditingAdmin(null);
+                            }
+                          }}
+                          data-testid={`input-admin-${tutor.id}`}
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-green-500 hover:text-green-400 h-8 w-8 p-0"
+                          onClick={() => updateAdminMutation.mutate({ id: tutor.id, adminName: editingAdmin.value })}
+                          data-testid={`button-save-admin-${tutor.id}`}
+                        >
+                          <Check size={14} />
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setEditingAdmin({ id: tutor.id, value: tutor.adminName || '' })}
+                        className="text-gray-400 text-sm hover:text-yellow-500 cursor-pointer text-left"
+                        data-testid={`button-edit-admin-${tutor.id}`}
+                      >
+                        {tutor.adminName || <span className="text-gray-600 italic">+ Aggiungi admin</span>}
+                      </button>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-gray-400 text-sm">
                     {tutor.address || '-'}

@@ -25,6 +25,7 @@ export const tutors = pgTable("tutors", {
   website: text("website"),
   regionalAuthorization: text("regional_authorization"),
   contactPerson: text("contact_person"),
+  adminName: text("admin_name"),
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
