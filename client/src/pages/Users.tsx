@@ -408,7 +408,7 @@ export default function Users() {
                     <tr className="text-left text-gray-600 border-b">
                       <th className="pb-2 font-medium w-16">ID</th>
                       <th className="pb-2 font-medium">Nome Corso</th>
-                      <th className="pb-2 font-medium text-center">Programmato</th>
+                      <th className="pb-2 font-medium text-center">Data attivazione</th>
                       <th className="pb-2 font-medium text-center">In attività</th>
                       <th className="pb-2 font-medium text-center">Completato</th>
                     </tr>
