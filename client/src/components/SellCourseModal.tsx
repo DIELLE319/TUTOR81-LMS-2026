@@ -610,67 +610,67 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
               </table>
             </div>
           ) : (
-            <div className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
-              <div className="p-3 border-b border-slate-700 flex items-center justify-between">
-                <h3 className="text-cyan-300 font-semibold flex items-center gap-2">
+            <div className="t81-panel overflow-hidden">
+              <div className="t81-panel-header flex items-center justify-between">
+                <h3 className="font-semibold flex items-center gap-2">
                   <Users size={18} />
                   Gestione Utenti Piattaforma
                 </h3>
                 <div className="flex items-center gap-2">
-                  <Search size={16} className="text-slate-400" />
+                  <Search size={16} className="text-yellow-500" />
                   <Input
                     placeholder="Cerca..."
                     value={existingUserSearch}
                     onChange={(e) => setExistingUserSearch(e.target.value)}
-                    className="h-8 w-48 text-xs bg-white border-gray-300 text-black"
+                    className="h-8 w-48 text-xs t81-input"
                     data-testid="input-search-users"
                   />
                 </div>
               </div>
               
               {!selectedCompanyId ? (
-                <div className="p-8 text-center text-slate-400">
+                <div className="p-8 text-center text-yellow-500/70">
                   Seleziona prima un'azienda per vedere gli utenti
                 </div>
               ) : companyUsers.length === 0 ? (
-                <div className="p-8 text-center text-slate-400">
+                <div className="p-8 text-center text-yellow-500/70">
                   Nessun utente trovato per questa azienda
                 </div>
               ) : (
                 <div className="max-h-64 overflow-y-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-700/50 sticky top-0">
+                  <table className="w-full t81-table">
+                    <thead className="sticky top-0">
                       <tr>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-slate-300 w-10"></th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-300">Cognome</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-300">Nome</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-300">Codice Fiscale</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-300">Funzione</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-slate-300">Email</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-slate-300">User ID</th>
+                        <th className="w-10 text-center"></th>
+                        <th>Cognome</th>
+                        <th>Nome</th>
+                        <th>Codice Fiscale</th>
+                        <th>Funzione</th>
+                        <th>Email</th>
+                        <th className="text-center">User ID</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredExistingUsers.map((user, idx) => (
                         <tr 
                           key={user.id} 
-                          className={`border-t border-slate-700 cursor-pointer ${selectedExistingUsers.has(user.id) ? 'bg-cyan-900/30' : 'hover:bg-slate-700/50'}`}
+                          className={`cursor-pointer ${selectedExistingUsers.has(user.id) ? 'bg-yellow-500/20' : ''}`}
                           onClick={() => toggleExistingUser(user.id)}
                         >
-                          <td className="px-3 py-2 text-center">
+                          <td className="text-center">
                             <Checkbox
                               checked={selectedExistingUsers.has(user.id)}
                               onCheckedChange={() => toggleExistingUser(user.id)}
-                              className="border-slate-500"
+                              className="border-yellow-500"
                               data-testid={`checkbox-user-${user.id}`}
                             />
                           </td>
-                          <td className="px-3 py-2 text-white">{user.lastName || '-'}</td>
-                          <td className="px-3 py-2 text-white">{user.firstName || '-'}</td>
-                          <td className="px-3 py-2 text-slate-300 font-mono text-xs">{user.fiscalCode || '-'}</td>
-                          <td className="px-3 py-2 text-slate-300">{getRoleLabel(user.role)}</td>
-                          <td className="px-3 py-2 text-slate-300">{user.email || '-'}</td>
-                          <td className="px-3 py-2 text-center text-slate-400">{user.id}</td>
+                          <td>{user.lastName || '-'}</td>
+                          <td>{user.firstName || '-'}</td>
+                          <td className="t81-muted font-mono text-xs">{user.fiscalCode || '-'}</td>
+                          <td>{getRoleLabel(user.role)}</td>
+                          <td>{user.email || '-'}</td>
+                          <td className="text-center text-yellow-500">{user.id}</td>
                         </tr>
                       ))}
                     </tbody>

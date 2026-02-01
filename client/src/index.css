@@ -104,3 +104,53 @@
     }
   }
 }
+
+/* Tutor81 Dark Theme - Tabelle */
+.dark .t81-table {
+  @apply bg-black border border-yellow-500/30;
+}
+
+.dark .t81-table thead {
+  @apply bg-black border-b border-yellow-500/50;
+}
+
+.dark .t81-table th {
+  @apply text-yellow-500 font-semibold py-2 px-3 text-left text-sm;
+}
+
+.dark .t81-table tbody tr {
+  @apply border-b border-yellow-500/20 hover:bg-yellow-500/10;
+}
+
+.dark .t81-table td {
+  @apply text-white py-2 px-3 text-sm;
+}
+
+.dark .t81-table td.t81-muted {
+  @apply text-yellow-500/70;
+}
+
+/* Tutor81 Modal */
+.dark .t81-modal {
+  @apply bg-black border border-yellow-500/30;
+}
+
+.dark .t81-modal-header {
+  @apply bg-black border-b border-yellow-500/50 text-yellow-500;
+}
+
+.dark .t81-panel {
+  @apply bg-black border border-yellow-500/30 rounded-lg;
+}
+
+.dark .t81-panel-header {
+  @apply text-yellow-500 font-semibold border-b border-yellow-500/30 p-3;
+}
+
+.dark .t81-input {
+  @apply bg-black border border-yellow-500/50 text-white placeholder:text-yellow-500/50;
+}
+
+.dark .t81-label {
+  @apply text-yellow-500;
+}
