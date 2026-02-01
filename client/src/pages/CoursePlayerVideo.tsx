@@ -63,8 +63,7 @@ function getLoIcon(type: string) {
 
 export default function CoursePlayerVideo() {
   const [isPaused, setIsPaused] = useState(false);
-  const [currentTime, setCurrentTime] = useState(9);
-  const [totalTime] = useState(120);
+  const [currentTime, setCurrentTime] = useState(0);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentLoIndex, setCurrentLoIndex] = useState(0);
   
@@ -73,8 +72,11 @@ export default function CoursePlayerVideo() {
   const [quizTimer, setQuizTimer] = useState(30);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [wrongAnswers, setWrongAnswers] = useState(0);
   const [totalQuestions] = useState(3);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
 
   const sampleQuestions: Question[] = [
     {
@@ -127,15 +129,37 @@ export default function CoursePlayerVideo() {
 
   const currentLesson = courseData.modules[0]?.lessons[currentLessonIndex];
   const currentLo = currentLesson?.learningObjects[currentLoIndex];
+  const loDuration = currentLo?.duration || 120;
 
+  // Timer for current learning object
   useEffect(() => {
-    if (!isPaused && currentTime < totalTime) {
+    if (!isPaused && !showQuiz && currentTime < loDuration) {
       const timer = setInterval(() => {
         setCurrentTime(prev => prev + 1);
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [isPaused, currentTime, totalTime]);
+  }, [isPaused, showQuiz, currentTime, loDuration]);
+
+  // Auto-advance to next learning object when current one ends
+  useEffect(() => {
+    if (currentTime >= loDuration && !showQuiz) {
+      const allLessons = courseData.modules.flatMap(m => m.lessons);
+      const currentLessonObj = allLessons[currentLessonIndex];
+      
+      if (currentLessonObj && currentLoIndex < currentLessonObj.learningObjects.length - 1) {
+        // Next LO in same lesson
+        setCurrentLoIndex(prev => prev + 1);
+        setCurrentTime(0);
+      } else if (currentLessonIndex < allLessons.length - 1) {
+        // Next lesson
+        setCurrentLessonIndex(prev => prev + 1);
+        setCurrentLoIndex(0);
+        setCurrentTime(0);
+      }
+      // If no more LOs/lessons, course is complete
+    }
+  }, [currentTime, loDuration, showQuiz, currentLessonIndex, currentLoIndex]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -175,11 +199,21 @@ export default function CoursePlayerVideo() {
     if (!currentQuestion || !selectedAnswer) return;
     
     const answerIndex = parseInt(selectedAnswer);
-    if (answerIndex === currentQuestion.correctAnswer) {
+    const isCorrect = answerIndex === currentQuestion.correctAnswer;
+    
+    if (isCorrect) {
       setCorrectAnswers(prev => prev + 1);
+    } else {
+      setWrongAnswers(prev => prev + 1);
     }
     
+    setLastAnswerCorrect(isCorrect);
+    setShowFeedback(true);
+  };
+
+  const handleContinueFromFeedback = () => {
     setShowQuiz(false);
+    setShowFeedback(false);
     setCurrentQuestion(null);
     setSelectedAnswer("");
   };
@@ -325,46 +359,74 @@ export default function CoursePlayerVideo() {
                       {currentQuestion.text}
                     </p>
                     
-                    <RadioGroup 
-                      value={selectedAnswer} 
-                      onValueChange={setSelectedAnswer}
-                      className="space-y-4"
-                    >
-                      {currentQuestion.options.map((option, idx) => (
-                        <div key={idx} className="flex items-center space-x-3">
-                          <RadioGroupItem 
-                            value={idx.toString()} 
-                            id={`option-${idx}`}
-                            className="border-gray-400"
-                            data-testid={`quiz-option-${idx}`}
-                          />
-                          <Label 
-                            htmlFor={`option-${idx}`}
-                            className="text-gray-700 cursor-pointer"
-                          >
-                            {option}
-                          </Label>
+                    {!showFeedback ? (
+                      /* Fase risposta */
+                      <>
+                        <RadioGroup 
+                          value={selectedAnswer} 
+                          onValueChange={setSelectedAnswer}
+                          className="space-y-4"
+                        >
+                          {currentQuestion.options.map((option, idx) => (
+                            <div key={idx} className="flex items-center space-x-3">
+                              <RadioGroupItem 
+                                value={idx.toString()} 
+                                id={`option-${idx}`}
+                                className="border-gray-400"
+                                data-testid={`quiz-option-${idx}`}
+                              />
+                              <Label 
+                                htmlFor={`option-${idx}`}
+                                className="text-gray-700 cursor-pointer"
+                              >
+                                {option}
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                        
+                        <Button
+                          onClick={handleConfirmAnswer}
+                          disabled={!selectedAnswer}
+                          className="mt-8 bg-orange-500 hover:bg-orange-600 text-white"
+                          data-testid="button-confirm-answer"
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Conferma risposta
+                        </Button>
+                      </>
+                    ) : (
+                      /* Fase feedback */
+                      <div className="space-y-4">
+                        <div className={`flex items-center gap-2 ${lastAnswerCorrect ? 'text-green-600' : 'text-green-600'}`}>
+                          <span className="text-green-600">Corretto</span>
+                          <span>- Risposta Corretta</span>
                         </div>
-                      ))}
-                    </RadioGroup>
-                    
-                    <Button
-                      onClick={handleConfirmAnswer}
-                      disabled={!selectedAnswer}
-                      className="mt-8 bg-orange-500 hover:bg-orange-600 text-white"
-                      data-testid="button-confirm-answer"
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      Conferma risposta
-                    </Button>
+                        <div className={`flex items-center gap-2 ${!lastAnswerCorrect ? 'text-red-600' : 'text-red-600'}`}>
+                          <span className="text-red-600">Non corretto</span>
+                          <span>- Risposta Errata</span>
+                        </div>
+                        
+                        <Button
+                          onClick={handleContinueFromFeedback}
+                          className="mt-4 bg-blue-500 hover:bg-blue-600 text-white"
+                          data-testid="button-continue"
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Continua
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Timer grande */}
-                  <div className="w-48 flex items-center justify-center">
-                    <div className="text-8xl font-bold text-blue-500">
-                      {quizTimer}
+                  {!showFeedback && (
+                    <div className="w-48 flex items-center justify-center">
+                      <div className="text-8xl font-bold text-blue-500">
+                        {quizTimer}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 /* Normal video mode */
@@ -401,9 +463,18 @@ export default function CoursePlayerVideo() {
             {/* Pannello verifica apprendimento */}
             <div className="w-64 bg-white border-l p-4">
               <h3 className="font-semibold text-gray-700 mb-4">Verifica apprendimento:</h3>
-              {correctAnswers > 0 ? (
-                <div className="bg-blue-500 text-white rounded h-24 mb-4 flex items-center justify-center">
-                  <span className="text-4xl font-bold">{correctAnswers}</span>
+              {(correctAnswers > 0 || wrongAnswers > 0) ? (
+                <div className="flex gap-2 h-24 mb-4">
+                  {correctAnswers > 0 && (
+                    <div className="flex-1 bg-blue-500 text-white rounded flex items-center justify-center">
+                      <span className="text-4xl font-bold">{correctAnswers}</span>
+                    </div>
+                  )}
+                  {wrongAnswers > 0 && (
+                    <div className="flex-1 bg-red-500 text-white rounded flex items-center justify-center">
+                      <span className="text-4xl font-bold">{wrongAnswers}</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="border-2 border-yellow-400 rounded h-24 mb-4"></div>
@@ -428,7 +499,7 @@ export default function CoursePlayerVideo() {
             <div className="h-6 bg-zinc-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-green-500 transition-all duration-1000"
-                style={{ width: `${(currentTime / totalTime) * 100}%` }}
+                style={{ width: `${(currentTime / loDuration) * 100}%` }}
               />
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
