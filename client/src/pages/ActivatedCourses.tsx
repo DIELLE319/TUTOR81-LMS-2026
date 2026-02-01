@@ -423,7 +423,7 @@ export default function ActivatedCourses() {
                   Progresso
                 </th>
                 <th className="text-center p-3 text-xs font-bold text-yellow-400 uppercase">
-                  Email
+                  Stato
                 </th>
                 <th className="text-center p-3 text-xs font-bold text-yellow-400 uppercase">
                   Azioni
