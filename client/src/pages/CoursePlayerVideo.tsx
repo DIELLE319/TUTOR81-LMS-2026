@@ -517,28 +517,31 @@ export default function CoursePlayerVideo() {
                 /* Normal video mode */
                 <div className="flex-1 flex items-center justify-center">
                   <div 
-                    className="bg-gradient-to-br from-yellow-400 via-yellow-500 to-blue-500 rounded-lg shadow-xl w-full max-w-2xl aspect-video flex items-center justify-center relative overflow-hidden cursor-pointer"
-                    onClick={triggerDemoQuiz}
+                    className="bg-black rounded-lg shadow-xl w-full max-w-3xl aspect-video flex items-center justify-center relative overflow-hidden"
                     data-testid="video-area"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-transparent" />
-                    <div className="relative z-10 p-8 text-left">
-                      <h2 className="text-4xl font-black text-gray-900 mb-2">
-                        DIMOSTRATIVO TUTOR81
+                    {/* Video player placeholder - sarà sostituito con vero player */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />
+                    <div className="relative z-10 text-center text-white p-8">
+                      <div className="mb-4">
+                        {currentLo?.type === "video" && <Video className="h-16 w-16 mx-auto text-yellow-500" />}
+                        {currentLo?.type === "slide" && <FileText className="h-16 w-16 mx-auto text-green-500" />}
+                        {currentLo?.type === "document" && <FileText className="h-16 w-16 mx-auto text-blue-500" />}
+                      </div>
+                      <h2 className="text-2xl font-bold mb-2">
+                        {currentLo?.title || "Caricamento..."}
                       </h2>
-                      <p className="text-lg text-gray-800 mb-4">
-                        Esempio corso per Lavoratore
+                      <p className="text-gray-400 mb-4">
+                        Oggetto {currentLoIndex + 1} di {currentLesson?.learningObjects.length || 0}
                       </p>
-                      <p className="text-gray-700">Il metodo Tutor81</p>
-                      <p className="text-xs text-gray-500 mt-4">(Clicca per testare una domanda)</p>
-                    </div>
-                    <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-blue-600 flex flex-col justify-center p-4 text-white">
-                      <h3 className="font-bold mb-4">In questo Dimostrativo:</h3>
-                      <ul className="space-y-2 text-sm">
-                        <li>Esempi da lezioni STANDARD</li>
-                        <li>Lezioni Rischio specifico</li>
-                        <li>Lezioni di comparto produttivo</li>
-                      </ul>
+                      <div className="flex items-center justify-center gap-4">
+                        <span className="text-yellow-500 text-xl font-mono">
+                          {formatTime(currentTime)} / {formatTime(loDuration)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-6">
+                        (I video verranno caricati dal server OVH)
+                      </p>
                     </div>
                   </div>
                 </div>
