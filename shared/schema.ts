@@ -217,8 +217,10 @@ export const enrollments = pgTable("enrollments", {
   daysToAlert: integer("days_to_alert").default(15),
   progress: integer("progress").default(0), // 0-100%
   status: text("status").default("active"), // 'active', 'completed', 'expired'
+  lastAccessAt: timestamp("last_access_at"), // Ultimo accesso/ingresso
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
+  legacyId: integer("legacy_id"),
 });
 
 // ============================================================

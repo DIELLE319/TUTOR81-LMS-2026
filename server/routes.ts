@@ -758,6 +758,190 @@ export async function registerRoutes(
   });
 
   // ============================================================
+  // PLAYER API - Public endpoints for course player
+  // ============================================================
+  
+  // Get course structure for player (no auth required - uses license code)
+  app.get("/api/player/course/:id/structure", async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) return res.status(400).json({ error: "Invalid course ID" });
+
+      // Get course
+      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, courseId));
+      if (!course) return res.status(404).json({ error: "Course not found" });
+
+      // Get modules for this course
+      const courseModules = await db.select({
+        id: schema.modules.id,
+        title: schema.modules.title,
+        description: schema.modules.description,
+        duration: schema.modules.duration,
+        position: schema.courseModules.position,
+      })
+        .from(schema.courseModules)
+        .innerJoin(schema.modules, eq(schema.courseModules.moduleId, schema.modules.id))
+        .where(eq(schema.courseModules.courseId, courseId))
+        .orderBy(schema.courseModules.position);
+
+      // Get lessons for each module
+      const modulesWithLessons = await Promise.all(courseModules.map(async (module) => {
+        const moduleLessons = await db.select({
+          id: schema.lessons.id,
+          title: schema.lessons.title,
+          description: schema.lessons.description,
+          duration: schema.lessons.duration,
+          position: schema.moduleLessons.position,
+        })
+          .from(schema.moduleLessons)
+          .innerJoin(schema.lessons, eq(schema.moduleLessons.lessonId, schema.lessons.id))
+          .where(eq(schema.moduleLessons.moduleId, module.id))
+          .orderBy(schema.moduleLessons.position);
+
+        // Get learning objects for each lesson
+        const lessonsWithObjects = await Promise.all(moduleLessons.map(async (lesson) => {
+          const lessonObjects = await db.select({
+            id: schema.learningObjects.id,
+            title: schema.learningObjects.title,
+            objectType: schema.learningObjects.objectType,
+            duration: schema.learningObjects.duration,
+            jwplayerCode: schema.learningObjects.jwplayerCode,
+            position: schema.lessonLearningObjects.position,
+          })
+            .from(schema.lessonLearningObjects)
+            .innerJoin(schema.learningObjects, eq(schema.lessonLearningObjects.learningObjectId, schema.learningObjects.id))
+            .where(eq(schema.lessonLearningObjects.lessonId, lesson.id))
+            .orderBy(schema.lessonLearningObjects.position);
+
+          return { ...lesson, learningObjects: lessonObjects };
+        }));
+
+        return { ...module, lessons: lessonsWithObjects };
+      }));
+
+      res.json({
+        ...course,
+        modules: modulesWithLessons,
+      });
+    } catch (error) {
+      console.error("Player course structure error:", error);
+      res.status(500).json({ error: "Failed to fetch course structure" });
+    }
+  });
+
+  // Get quiz questions for a learning object (interruption points)
+  app.get("/api/learning-objects/:id/interruptions", async (req, res) => {
+    try {
+      const loId = parseInt(req.params.id);
+      if (isNaN(loId)) return res.status(400).json({ error: "Invalid learning object ID" });
+
+      // Get quiz questions for this learning object
+      const questions = await db.select()
+        .from(schema.quizQuestions)
+        .where(eq(schema.quizQuestions.learningObjectId, loId))
+        .orderBy(schema.quizQuestions.sortOrder);
+
+      // Get answers for each question and format as interruption points
+      const interruptionPoints: { triggerTime: number; questions: any[] }[] = [];
+      
+      for (const question of questions) {
+        const answers = await db.select()
+          .from(schema.quizAnswers)
+          .where(eq(schema.quizAnswers.questionId, question.id))
+          .orderBy(schema.quizAnswers.sortOrder);
+
+        // Check if we already have an interruption at this time
+        let point = interruptionPoints.find(p => p.triggerTime === question.timeSeconds);
+        if (!point) {
+          point = { triggerTime: question.timeSeconds, questions: [] };
+          interruptionPoints.push(point);
+        }
+
+        point.questions.push({
+          id: question.id,
+          text: question.questionText,
+          answers: answers.map(a => ({
+            id: a.id,
+            text: a.answerText,
+            isCorrect: a.isCorrect,
+          })),
+        });
+      }
+
+      // Sort by trigger time
+      interruptionPoints.sort((a, b) => a.triggerTime - b.triggerTime);
+
+      res.json(interruptionPoints);
+    } catch (error) {
+      console.error("Interruptions error:", error);
+      res.status(500).json({ error: "Failed to fetch interruptions" });
+    }
+  });
+
+  // Validate license code and get enrollment info
+  app.post("/api/player/validate-license", async (req, res) => {
+    try {
+      const { licenseCode } = req.body;
+      if (!licenseCode) return res.status(400).json({ error: "License code required" });
+
+      const enrollment = await db.select({
+        id: schema.enrollments.id,
+        courseId: schema.enrollments.courseId,
+        studentId: schema.enrollments.studentId,
+        licenseCode: schema.enrollments.licenseCode,
+        progress: schema.enrollments.progress,
+        status: schema.enrollments.status,
+        studentName: schema.students.name,
+        studentSurname: schema.students.surname,
+        studentEmail: schema.students.email,
+        courseTitle: schema.courses.title,
+      })
+        .from(schema.enrollments)
+        .innerJoin(schema.students, eq(schema.enrollments.studentId, schema.students.id))
+        .innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+        .where(eq(schema.enrollments.licenseCode, licenseCode))
+        .limit(1);
+
+      if (enrollment.length === 0) {
+        return res.status(404).json({ error: "Invalid license code" });
+      }
+
+      res.json({
+        valid: true,
+        enrollment: enrollment[0],
+      });
+    } catch (error) {
+      console.error("License validation error:", error);
+      res.status(500).json({ error: "Failed to validate license" });
+    }
+  });
+
+  // Save player progress
+  app.post("/api/player/save-progress", async (req, res) => {
+    try {
+      const { enrollmentId, progress, currentLo, currentLesson } = req.body;
+      if (!enrollmentId) return res.status(400).json({ error: "Enrollment ID required" });
+
+      const status = progress >= 100 ? "completed" : "active";
+      const completedAt = progress >= 100 ? new Date() : null;
+
+      await db.update(schema.enrollments)
+        .set({ 
+          progress, 
+          status,
+          completedAt,
+          lastAccessAt: new Date(),
+        })
+        .where(eq(schema.enrollments.id, enrollmentId));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Save progress error:", error);
+      res.status(500).json({ error: "Failed to save progress" });
+    }
+  });
+
+  // ============================================================
   // EXPORT CSV - Generate from OVH database
   // ============================================================
   app.get("/api/export/tutor-gerarchia", async (req, res) => {
