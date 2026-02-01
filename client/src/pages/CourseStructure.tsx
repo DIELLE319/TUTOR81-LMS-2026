@@ -443,6 +443,32 @@ export default function CourseStructure() {
               </CardContent>
             </Card>
           )}
+
+          {structure.modules.length > 0 && (
+            <Card className="bg-zinc-800 border-zinc-700 border-t-4 border-t-yellow-500" data-testid="card-course-total">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-yellow-500 font-bold text-lg uppercase">
+                    Totale Corso
+                  </h3>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-white">
+                      {formatDurationLegacy(
+                        structure.modules.reduce((total, mod) => 
+                          total + mod.lessons.reduce((lessonTotal, lesson) => 
+                            lessonTotal + calculateLessonDuration(lesson.learningObjects), 0
+                          ), 0
+                        )
+                      ) || "0 min"}
+                    </span>
+                    <div className="text-sm text-gray-400">
+                      durata calcolata dai learning objects
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>
