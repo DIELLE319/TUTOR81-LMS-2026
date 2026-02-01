@@ -947,6 +947,112 @@ export async function registerRoutes(
     }
   });
 
+  // Player login - authenticate with username (nome.cognome) and fiscalCode
+  app.post("/api/player/login", async (req, res) => {
+    try {
+      const { username, fiscalCode } = req.body;
+      if (!username || !fiscalCode) {
+        return res.status(400).json({ error: "Username e codice fiscale richiesti" });
+      }
+
+      // Parse username (nome.cognome)
+      const parts = username.toLowerCase().split(".");
+      if (parts.length < 2) {
+        return res.status(400).json({ error: "Username deve essere nel formato nome.cognome" });
+      }
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(".");
+
+      // Find student by name and fiscal code
+      const studentResults = await db.select()
+        .from(schema.students)
+        .where(
+          and(
+            sql`LOWER(${schema.students.firstName}) = ${firstName}`,
+            sql`LOWER(${schema.students.lastName}) = ${lastName}`,
+            sql`${schema.students.fiscalCode} = ${fiscalCode}`
+          )
+        )
+        .limit(1);
+
+      if (studentResults.length === 0) {
+        return res.status(401).json({ 
+          success: false, 
+          error: "Credenziali non valide. Verifica username e codice fiscale." 
+        });
+      }
+
+      const student = studentResults[0];
+
+      // Find active enrollment for this student
+      const enrollmentResults = await db.select({
+        id: schema.enrollments.id,
+        courseId: schema.enrollments.courseId,
+        licenseCode: schema.enrollments.licenseCode,
+        progress: schema.enrollments.progress,
+        status: schema.enrollments.status,
+        startDate: schema.enrollments.startDate,
+        endDate: schema.enrollments.endDate,
+        courseTitle: schema.courses.title,
+      })
+        .from(schema.enrollments)
+        .innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+        .where(
+          and(
+            eq(schema.enrollments.studentId, student.id),
+            eq(schema.enrollments.status, "active")
+          )
+        )
+        .limit(1);
+
+      if (enrollmentResults.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Nessun corso attivo trovato per questo utente." 
+        });
+      }
+
+      const enrollment = enrollmentResults[0];
+
+      // Get company info for the student
+      const companyResults = await db.select()
+        .from(schema.companies)
+        .where(eq(schema.companies.id, student.companyId))
+        .limit(1);
+
+      const company = companyResults[0];
+
+      // Update last access
+      await db.update(schema.enrollments)
+        .set({ lastAccessAt: new Date() })
+        .where(eq(schema.enrollments.id, enrollment.id));
+
+      res.json({
+        success: true,
+        user: {
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          fiscalCode: student.fiscalCode,
+          company: company?.businessName || "",
+        },
+        enrollment: {
+          id: enrollment.id,
+          learningProjectId: enrollment.courseId,
+          courseName: enrollment.courseTitle,
+          licenseCode: enrollment.licenseCode,
+          startDate: enrollment.startDate,
+          endDate: enrollment.endDate,
+          progress: enrollment.progress || 0,
+          status: enrollment.status,
+        },
+      });
+    } catch (error) {
+      console.error("Player login error:", error);
+      res.status(500).json({ error: "Errore durante l'accesso" });
+    }
+  });
+
   // Save player progress
   app.post("/api/player/save-progress", async (req, res) => {
     try {
