@@ -880,30 +880,28 @@ export async function registerRoutes(
       const userId = req.query.userId as string;
       if (!userId) return res.json([]);
       
-      // Get user's company
-      const user = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
-      if (!user.length || !user[0].idcompany) return res.json([]);
-      
-      // Get purchases for user's company
-      const purchases = await db.select({
-        id: schema.tutorsPurchases.id,
+      // Cerca gli enrollments dell'utente dalla tabella enrollments
+      const userEnrollments = await db.select({
+        id: schema.enrollments.id,
         courseTitle: schema.learningProjects.title,
-        startDate: schema.tutorsPurchases.startDate,
-        endDate: schema.tutorsPurchases.endDate,
-        status: schema.tutorsPurchases.status,
+        startDate: schema.enrollments.startDate,
+        endDate: schema.enrollments.endDate,
+        status: schema.enrollments.status,
+        progress: schema.enrollments.progress,
       })
-        .from(schema.tutorsPurchases)
-        .leftJoin(schema.learningProjects, eq(schema.tutorsPurchases.learningProjectId, schema.learningProjects.id))
-        .where(eq(schema.tutorsPurchases.customerCompanyId, user[0].idcompany))
-        .orderBy(desc(schema.tutorsPurchases.startDate))
+        .from(schema.enrollments)
+        .leftJoin(schema.learningProjects, eq(schema.enrollments.learningProjectId, schema.learningProjects.id))
+        .where(eq(schema.enrollments.userId, userId))
+        .orderBy(desc(schema.enrollments.startDate))
         .limit(50);
       
-      const enrollments = purchases.map(p => ({
-        id: p.id,
-        courseTitle: p.courseTitle || 'Corso senza titolo',
-        startDate: p.startDate,
-        status: p.status,
-        completedAt: p.status === 'completed' ? p.endDate : null,
+      const enrollments = userEnrollments.map(e => ({
+        id: e.id,
+        courseTitle: e.courseTitle || 'Corso senza titolo',
+        startDate: e.startDate,
+        status: e.status,
+        progress: e.progress || 0,
+        completedAt: e.status === 'completed' ? e.endDate : null,
       }));
       
       res.json(enrollments);

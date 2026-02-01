@@ -23,6 +23,7 @@ interface Enrollment {
   courseTitle: string;
   startDate: string | null;
   status: string;
+  progress: number;
   completedAt: string | null;
 }
 
@@ -66,7 +67,7 @@ export default function Users() {
   const companies = companiesResponse?.data || [];
 
   const { data: userEnrollments = [] } = useQuery<Enrollment[]>({
-    queryKey: ['/api/user-enrollments', selectedUser?.id],
+    queryKey: [`/api/user-enrollments?userId=${selectedUser?.id}`],
     enabled: !!selectedUser,
   });
 
