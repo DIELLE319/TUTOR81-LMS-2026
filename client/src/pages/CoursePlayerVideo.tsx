@@ -239,14 +239,19 @@ export default function CoursePlayerVideo() {
   }, [showQuiz, quizTimer]);
 
   const handleExitCourse = () => {
-    // Reset demo progress if demo user
+    // Save progress before exiting so user can resume later
     const enrollment = localStorage.getItem("playerEnrollment");
     if (enrollment) {
       const enrollmentData = JSON.parse(enrollment);
-      fetch("/api/player/demo/reset", {
+      // Save current progress to database
+      fetch("/api/player/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enrollmentId: enrollmentData.id })
+        body: JSON.stringify({ 
+          enrollmentId: enrollmentData.id,
+          lessonId: currentLessonIndex,
+          completed: false
+        })
       });
     }
     localStorage.removeItem("playerUser");
