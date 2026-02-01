@@ -697,6 +697,44 @@ export async function registerRoutes(
   });
 
   // ============================================================
+  // VENDITE (Sales/Purchases) 
+  // ============================================================
+  app.get("/api/sales", isAuthenticated, async (req, res) => {
+    try {
+      const tutorId = req.query.tutorId;
+      
+      let query = `
+        SELECT 
+          tp.id,
+          ta.name as user,
+          c.business_name as client,
+          tp.creation_date as date,
+          tp.learning_project_id as "courseId",
+          tp.qta as qty,
+          tp.price as "listPrice",
+          t.id as "tutorId",
+          t.business_name as "tutorName"
+        FROM tutors_purchases tp
+        JOIN tutor_admins ta ON ta.id = tp.tutor_id
+        JOIN tutors t ON t.id = ta.tutor_id
+        JOIN companies c ON c.id = tp.customer_company_id
+      `;
+      
+      if (tutorId) {
+        query += ` WHERE t.id = ${tutorId} ORDER BY tp.creation_date DESC`;
+      } else {
+        query += ` ORDER BY tp.creation_date DESC LIMIT 500`;
+      }
+      
+      const result = await db.execute(sql.raw(query));
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Sales error:", error);
+      res.status(500).json({ error: "Failed to fetch sales" });
+    }
+  });
+
+  // ============================================================
   // EXPORT CSV - Generate from OVH database
   // ============================================================
   app.get("/api/export/tutor-gerarchia", async (req, res) => {
