@@ -346,42 +346,47 @@ export default function ActivatedCourses() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {selectedIds.length > 0 && (
               <>
+                <span className="text-sm text-white font-bold mr-2">{selectedIds.length} sel.</span>
                 <Button
+                  size="sm"
                   onClick={() => setShowDateDialog(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2"
                   data-testid="button-modify-date"
                 >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Modifica scadenza ({selectedIds.length})
+                  <Calendar className="h-3 w-3 mr-1" />
+                  Scadenza
                 </Button>
                 <Button
+                  size="sm"
                   onClick={handleSendEmails}
                   disabled={sendEmailsMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                  className="bg-green-600 hover:bg-green-700 text-white text-xs px-2"
                   data-testid="button-send-emails"
                 >
-                  <Send className="h-4 w-4 mr-2" />
-                  Invia avvia corso ({selectedIds.length})
+                  <Send className="h-3 w-3 mr-1" />
+                  Avvia
                 </Button>
                 <Button
+                  size="sm"
                   onClick={handleSendReminder}
                   disabled={sendReminderMutation.isPending}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                  className="bg-amber-600 hover:bg-amber-700 text-white text-xs px-2"
                   data-testid="button-send-reminder"
                 >
-                  <Bell className="h-4 w-4 mr-2" />
-                  Invia sollecito ({selectedIds.length})
+                  <Bell className="h-3 w-3 mr-1" />
+                  Sollecito
                 </Button>
                 <Button
+                  size="sm"
                   onClick={() => setShowDeleteDialog(true)}
-                  className="bg-red-600 hover:bg-red-700 text-white font-bold"
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs px-2"
                   data-testid="button-delete-enrollments"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Rimuovi licenze ({selectedIds.length})
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Rimuovi
                 </Button>
               </>
             )}
