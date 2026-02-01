@@ -367,6 +367,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] w-[1400px] bg-white border-yellow-500 border-2 text-black p-0 overflow-hidden max-h-[95vh]">
+        <form noValidate onSubmit={(e) => e.preventDefault()}>
         <DialogHeader className="bg-yellow-500 px-6 py-4">
           <DialogTitle className="text-black text-lg font-bold flex items-center gap-2">
             <Send size={20} />
@@ -712,6 +713,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
             Invia Codici
           </Button>
         </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
