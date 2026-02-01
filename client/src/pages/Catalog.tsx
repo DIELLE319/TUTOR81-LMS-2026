@@ -382,9 +382,10 @@ export default function Catalog() {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col style={{ width: '10%' }} />
+                <col style={{ width: '4%' }} />
                 <col style={{ width: '6%' }} />
-                <col style={{ width: '34%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '30%' }} />
                 <col style={{ width: '7%' }} />
                 <col style={{ width: '4%' }} />
                 <col style={{ width: '10%' }} />
@@ -394,8 +395,9 @@ export default function Catalog() {
               </colgroup>
               <thead className="bg-[#1a1a1a] text-white">
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Tipo</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">Rischio</th>
+                  <th className="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide w-12">ID</th>
+                  <th className="px-2 py-3 text-left text-xs font-semibold uppercase tracking-wide">Tipo</th>
+                  <th className="px-2 py-3 text-left text-xs font-semibold uppercase tracking-wide">Rischio</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
                     <div className="flex items-center gap-3">
                       <span>Nome Corso</span>
@@ -429,7 +431,7 @@ export default function Catalog() {
                       className="bg-[#2d2d2d] cursor-pointer hover:bg-[#3d3d3d] transition-colors"
                       onClick={() => toggleCategory(group.category)}
                     >
-                      <td colSpan={9} className="px-4 py-2.5">
+                      <td colSpan={10} className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           {effectiveExpandedCategories.has(group.category) ? (
                             <ChevronUp size={18} className="text-yellow-400" />
@@ -451,7 +453,10 @@ export default function Catalog() {
                           className={`border-b border-gray-100 hover:bg-yellow-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                           data-testid={`row-course-${course.id}`}
                         >
-                          <td className="pl-3 pr-1 py-2.5">
+                          <td className="px-2 py-2.5 text-center">
+                            <span className="text-[11px] font-medium text-gray-500">{course.id}</span>
+                          </td>
+                          <td className="pl-2 pr-1 py-2.5">
                             <span className={`inline-block w-[45px] text-center py-0.5 rounded text-[11px] font-semibold text-white ${courseTypeLabel.color}`}>
                               {courseTypeLabel.label}
                             </span>
@@ -461,7 +466,7 @@ export default function Catalog() {
                               {risk.label}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5 text-gray-800 font-medium">
+                          <td className="px-3 py-2.5 text-gray-800 font-medium max-w-[300px] truncate">
                             {formatCourseTitle(course.title)}
                           </td>
                           <td className="px-3 py-2.5 text-center">
