@@ -479,7 +479,7 @@ export default function ActivatedCourses() {
                     <td className="p-2 text-sm font-medium text-black">
                       {enrollment.userName}
                     </td>
-                    <td className="p-3 text-sm text-black max-w-xs">
+                    <td className="p-2 text-xs text-black max-w-[200px] truncate" title={enrollment.courseName?.replace(/^EL\s*-\s*/i, '')}>
                       {enrollment.courseName?.replace(/^EL\s*-\s*/i, '')}
                     </td>
                     <td className="p-3 text-sm">
