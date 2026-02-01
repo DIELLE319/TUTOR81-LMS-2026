@@ -149,13 +149,14 @@ export default function CourseEmailTemplate({
           href={courseUrl}
           style={{
             display: 'inline-block',
-            backgroundColor: '#FFFFFF',
-            color: '#000',
+            backgroundColor: '#22C55E',
+            color: '#FFFFFF',
             padding: '15px 50px',
             fontSize: '18px',
             fontWeight: 'bold',
             textDecoration: 'none',
-            border: '2px solid #FFFFFF'
+            border: '2px solid #22C55E',
+            borderRadius: '4px'
           }}
         >
           AVVIA CORSO
@@ -301,7 +302,7 @@ export function generateEmailHTML(props: CourseEmailTemplateProps): string {
         Se vuoi avviare il corso clicca qui
       </p>
       
-      <a href="${props.courseUrl || '#'}" style="display: inline-block; background-color: #FFFFFF; color: #000; padding: 15px 50px; font-size: 18px; font-weight: bold; text-decoration: none; border: 2px solid #FFFFFF;">
+      <a href="${props.courseUrl || '#'}" style="display: inline-block; background-color: #22C55E; color: #FFFFFF; padding: 15px 50px; font-size: 18px; font-weight: bold; text-decoration: none; border: 2px solid #22C55E; border-radius: 4px;">
         AVVIA CORSO
       </a>
     </div>
