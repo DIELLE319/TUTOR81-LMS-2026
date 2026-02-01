@@ -265,7 +265,92 @@ export default function Catalog() {
   };
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const sortedCourses = [...filteredCourses].sort((a, b) => {
+      const getTypeOrder = (title: string) => {
+        const type = getCourseType(title);
+        if (type === 'base') return 0;
+        if (type === 'aggiornamento') return 1;
+        return 2;
+      };
+      const typeA = getTypeOrder(a.title);
+      const typeB = getTypeOrder(b.title);
+      if (typeA !== typeB) return typeA - typeB;
+      
+      const getRiskOrder = (risk: string | null) => {
+        if (!risk) return 3;
+        const r = risk.toLowerCase();
+        if (r === 'basso') return 0;
+        if (r === 'medio') return 1;
+        if (r === 'alto') return 2;
+        return 3;
+      };
+      return getRiskOrder(a.riskLevel) - getRiskOrder(b.riskLevel);
+    });
+
+    const rows = sortedCourses.map(course => {
+      const courseType = getCourseType(course.title);
+      const typeLabel = courseType === 'base' ? 'Base' : courseType === 'aggiornamento' ? 'Agg.' : 'N/D';
+      const riskLabel = course.riskLevel ? course.riskLevel.charAt(0).toUpperCase() + course.riskLevel.slice(1).toLowerCase() : 'N/D';
+      const price = typeof course.listPrice === 'string' ? parseFloat(course.listPrice) : (course.listPrice ?? 0);
+      return `<tr>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;">${course.id}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span style="background:${courseType === 'base' ? '#3b82f6' : courseType === 'aggiornamento' ? '#f97316' : '#9ca3af'};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">${typeLabel}</span></td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;"><span style="background:${riskLabel === 'Alto' ? '#ef4444' : riskLabel === 'Medio' ? '#eab308' : riskLabel === 'Basso' ? '#06b6d4' : '#9ca3af'};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;">${riskLabel}</span></td>
+        <td style="padding:6px 10px;border:1px solid #ddd;">${course.title}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;">${course.hours || '-'}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-weight:bold;">€ ${price.toFixed(2)}</td>
+      </tr>`;
+    }).join('');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Catalogo Corsi - Tutor81</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #1a1a1a; margin-bottom: 5px; }
+          h2 { color: #666; font-weight: normal; margin-top: 0; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+          th { background: #1a1a1a; color: #fff; padding: 10px; text-align: left; }
+          tr:nth-child(even) { background: #f9f9f9; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eab308; padding-bottom: 15px; }
+          .logo { font-size: 28px; font-weight: bold; }
+          .logo span { color: #eab308; }
+          .date { color: #666; font-size: 12px; }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="logo">tutor<span>81</span></div>
+            <h1>Catalogo Corsi E-Learning</h1>
+          </div>
+          <div class="date">Stampato il ${new Date().toLocaleDateString('it-IT')}</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:5%">ID</th>
+              <th style="width:8%">Tipo</th>
+              <th style="width:8%">Rischio</th>
+              <th>Nome Corso</th>
+              <th style="width:6%">Ore</th>
+              <th style="width:10%">Prezzo</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <p style="margin-top:20px;color:#666;font-size:11px;">Totale corsi: ${sortedCourses.length}</p>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const handleExport = () => {
