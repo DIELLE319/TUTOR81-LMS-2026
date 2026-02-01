@@ -176,6 +176,59 @@ export async function registerRoutes(
   });
 
   // ============================================================
+  // CLIENTS (Aziende Clienti raggruppate per Tutor)
+  // ============================================================
+  app.get("/api/clients", isAuthenticated, async (req, res) => {
+    try {
+      // Get all companies with their tutor info
+      const companies = await db.select({
+        id: schema.companies.id,
+        businessName: schema.companies.businessName,
+        city: schema.companies.city,
+        email: schema.companies.email,
+        phone: schema.companies.phone,
+        address: schema.companies.address,
+        vatNumber: schema.companies.vatNumber,
+        tutorId: schema.companies.tutorId,
+        tutorName: schema.tutors.businessName,
+      })
+        .from(schema.companies)
+        .leftJoin(schema.tutors, eq(schema.companies.tutorId, schema.tutors.id))
+        .orderBy(schema.tutors.businessName, schema.companies.businessName);
+
+      // Group by tutor
+      const tutorGroups: { tutorId: number | null; tutorName: string; clients: any[] }[] = [];
+      const tutorMap = new Map<number | null, { tutorId: number | null; tutorName: string; clients: any[] }>();
+
+      for (const c of companies) {
+        const key = c.tutorId;
+        if (!tutorMap.has(key)) {
+          tutorMap.set(key, {
+            tutorId: c.tutorId,
+            tutorName: c.tutorName || 'Senza Ente',
+            clients: []
+          });
+        }
+        tutorMap.get(key)!.clients.push({
+          id: c.id,
+          businessName: c.businessName,
+          city: c.city,
+          email: c.email,
+          phone: c.phone,
+          address: c.address,
+          vatNumber: c.vatNumber
+        });
+      }
+
+      tutorMap.forEach(group => tutorGroups.push(group));
+      res.json(tutorGroups);
+    } catch (error) {
+      console.error("Clients error:", error);
+      res.status(500).json({ error: "Failed to fetch clients" });
+    }
+  });
+
+  // ============================================================
   // COMPANIES (Aziende Clienti)
   // ============================================================
   app.get("/api/companies", isAuthenticated, async (req, res) => {
