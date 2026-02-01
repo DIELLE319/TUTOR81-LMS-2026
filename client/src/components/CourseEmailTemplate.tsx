@@ -38,7 +38,7 @@ export default function CourseEmailTemplate({
       maxWidth: '600px', 
       margin: '0 auto',
       backgroundColor: '#FFFFFF',
-      border: '3px solid #EAB308'
+      border: '30px solid #EAB308'
     }}>
       <div style={{ 
         backgroundColor: '#000', 
@@ -242,7 +242,7 @@ export function generateEmailHTML(props: CourseEmailTemplateProps): string {
   <title>Avvia il tuo corso</title>
 </head>
 <body style="margin: 0; padding: 20px; background-color: #f5f5f5; font-family: Arial, sans-serif;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border: 3px solid #EAB308;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border: 30px solid #EAB308;">
     
     <div style="background-color: #000; padding: 20px; text-align: center;">
       ${props.tutorLogo 
