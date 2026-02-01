@@ -424,7 +424,7 @@ export default function ActivatedCourses() {
                   Email
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
-                  <div>Data</div><div>Attivazione</div>
+                  <div>Data</div><div>Vendita</div>
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   <div>Ultimo</div><div>Accesso</div>
@@ -480,7 +480,7 @@ export default function ActivatedCourses() {
                       {enrollment.userName}
                     </td>
                     <td className="p-3 text-sm text-black max-w-xs">
-                      {enrollment.courseName}
+                      {enrollment.courseName?.replace(/^EL\s*-\s*/i, '')}
                     </td>
                     <td className="p-3 text-sm">
                       <a
