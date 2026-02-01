@@ -654,7 +654,7 @@ export async function registerRoutes(
         FROM legacy_enrollments le
         LEFT JOIN legacy_users lu ON le.legacy_user_id = lu.legacy_id
         LEFT JOIN courses c ON le.legacy_course_id = c.id
-        LEFT JOIN tutors t ON le.legacy_company_id = t.id
+        LEFT JOIN tutors t ON lu.creator_id = t.id
         ORDER BY le.end_date DESC NULLS LAST
         LIMIT 1000
       `);
