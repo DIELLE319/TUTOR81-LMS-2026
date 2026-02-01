@@ -272,6 +272,19 @@ export async function registerRoutes(
     }
   });
 
+  // Endpoint per ottenere solo i tutors (enti formativi)
+  app.get("/api/companies/tutors", isAuthenticated, async (req, res) => {
+    try {
+      const tutors = await db.select()
+        .from(schema.tutors)
+        .orderBy(schema.tutors.businessName);
+      res.json(tutors);
+    } catch (error) {
+      console.error("Tutors error:", error);
+      res.status(500).json({ error: "Failed to fetch tutors" });
+    }
+  });
+
   app.get("/api/companies/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
