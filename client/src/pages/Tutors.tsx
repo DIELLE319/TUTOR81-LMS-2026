@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Search, Plus, Building, Pause, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, Building, Pause, Pencil, Trash2, Download } from 'lucide-react';
 import type { Tutor } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -131,14 +131,25 @@ export default function Tutors() {
           <h1 className="text-2xl font-bold text-white" data-testid="text-tutors-title">Enti Formativi</h1>
           <p className="text-gray-500 text-sm">{tutors.length} enti formativi registrati</p>
         </div>
-        <button 
-          onClick={openCreateModal}
-          className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-          data-testid="button-new-tutor"
-        >
-          <Plus size={18} />
+        <div className="flex gap-2">
+          <a 
+            href="/api/export/tutor-gerarchia"
+            download="tutor_gerarchia.csv"
+            className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            data-testid="button-export-csv"
+          >
+            <Download size={18} />
+            Esporta CSV
+          </a>
+          <button 
+            onClick={openCreateModal}
+            className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            data-testid="button-new-tutor"
+          >
+            <Plus size={18} />
           Nuovo Ente
         </button>
+        </div>
       </div>
 
       <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 mb-6">
