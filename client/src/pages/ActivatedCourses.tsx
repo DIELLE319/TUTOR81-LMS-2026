@@ -412,6 +412,9 @@ export default function ActivatedCourses() {
                   <div>Ente</div><div>Formativo</div>
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
+                  <div>Data</div><div>Vendita</div>
+                </th>
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   Azienda
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
@@ -422,9 +425,6 @@ export default function ActivatedCourses() {
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   Email
-                </th>
-                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
-                  <div>Data</div><div>Vendita</div>
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   <div>Ultimo</div><div>Accesso</div>
@@ -473,16 +473,19 @@ export default function ActivatedCourses() {
                     <td className="p-2 text-xs text-black max-w-[120px] truncate" title={enrollment.tutorName}>
                       {enrollment.tutorName}
                     </td>
+                    <td className="p-2 text-xs text-black">
+                      {formatDate(enrollment.emailSentAt)}
+                    </td>
                     <td className="p-2 text-xs text-black max-w-[150px] truncate" title={enrollment.companyName}>
                       {enrollment.companyName}
                     </td>
-                    <td className="p-2 text-sm font-medium text-black">
+                    <td className="p-2 text-xs font-medium text-black">
                       {enrollment.userName}
                     </td>
                     <td className="p-2 text-xs text-black max-w-[200px] truncate" title={enrollment.courseName?.replace(/^EL\s*-\s*/i, '')}>
                       {enrollment.courseName?.replace(/^EL\s*-\s*/i, '')}
                     </td>
-                    <td className="p-3 text-sm">
+                    <td className="p-2 text-xs">
                       <a
                         href={`mailto:${enrollment.userEmail}`}
                         className="text-amber-700 hover:underline font-medium"
@@ -490,9 +493,6 @@ export default function ActivatedCourses() {
                       >
                         {enrollment.userEmail}
                       </a>
-                    </td>
-                    <td className="p-3 text-sm text-black">
-                      {formatDate(enrollment.emailSentAt)}
                     </td>
                     <td className="p-3 text-sm text-black">
                       {formatDate(enrollment.lastAccessAt)}
