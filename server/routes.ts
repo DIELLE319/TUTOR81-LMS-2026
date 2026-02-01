@@ -513,6 +513,7 @@ export async function registerRoutes(
         emailSentAt: null,
         emailOpenedAt: null,
         licenseCode: e.licenseCode,
+        tutorId: e.enrollmentTutorId || null,
         tutorName: e.tutorName || '',
       }));
 

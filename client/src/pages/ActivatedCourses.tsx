@@ -56,6 +56,7 @@ interface Enrollment {
   emailSentAt: string | null;
   emailOpenedAt: string | null;
   licenseCode: string | null;
+  tutorId: number | null;
   tutorName: string;
 }
 
@@ -400,6 +401,9 @@ export default function ActivatedCourses() {
                   />
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
+                  ID
+                </th>
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   <div>Ente</div><div>Formativo</div>
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
@@ -425,9 +429,6 @@ export default function ActivatedCourses() {
                 </th>
                 <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   Progresso
-                </th>
-                <th className="text-center p-2 text-xs font-bold text-yellow-400 uppercase">
-                  Stato
                 </th>
                 <th className="text-center p-2 text-xs font-bold text-yellow-400 uppercase">
                   Azioni
@@ -460,6 +461,9 @@ export default function ActivatedCourses() {
                         onCheckedChange={(checked) => handleSelectOne(enrollment.id, checked as boolean)}
                         data-testid={`checkbox-row-${enrollment.id}`} 
                       />
+                    </td>
+                    <td className="p-2 text-sm text-black">
+                      {enrollment.tutorId}
                     </td>
                     <td className="p-2 text-sm text-black">
                       {enrollment.tutorName}
@@ -508,24 +512,6 @@ export default function ActivatedCourses() {
                           </div>
                         )}
                       </div>
-                    </td>
-                    <td className="p-3 text-center">
-                      {enrollment.emailOpenedAt ? (
-                        <div className="flex flex-col items-center" title={`Letta: ${formatDate(enrollment.emailOpenedAt)}`}>
-                          <MailOpen className="h-5 w-5 text-green-600" />
-                          <span className="text-xs text-green-600 font-medium">Letta</span>
-                        </div>
-                      ) : enrollment.emailSentAt ? (
-                        <div className="flex flex-col items-center" title={`Inviata: ${formatDate(enrollment.emailSentAt)}`}>
-                          <Mail className="h-5 w-5 text-amber-600" />
-                          <span className="text-xs text-amber-600 font-medium">Inviata</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center" title="Non inviata">
-                          <MailX className="h-5 w-5 text-gray-400" />
-                          <span className="text-xs text-gray-400">-</span>
-                        </div>
-                      )}
                     </td>
                     <td className="p-3 text-center">
                       <DropdownMenu>
