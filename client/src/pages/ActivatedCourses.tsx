@@ -188,6 +188,20 @@ export default function ActivatedCourses() {
               </Select>
             </div>
             <div className="flex items-center gap-2">
+              <span className="text-sm text-black font-medium">Cerca utente:</span>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Nome, cognome, email..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-48 h-8 text-sm bg-white text-black border-black pl-2 pr-8 rounded"
+                  data-testid="input-search-user"
+                />
+                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
               <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -273,20 +287,7 @@ export default function ActivatedCourses() {
                   Cognome Nome
                 </th>
                 <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
-                  <div className="flex items-center gap-2">
-                    <span>Corso</span>
-                    <div className="relative ml-2">
-                      <Input
-                        type="text"
-                        placeholder="Cerca..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-32 h-6 text-xs bg-white text-black border-yellow-400 pl-2 pr-6 rounded"
-                        data-testid="input-search"
-                      />
-                      <Search className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-500" />
-                    </div>
-                  </div>
+                  Corso
                 </th>
                 <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Email
