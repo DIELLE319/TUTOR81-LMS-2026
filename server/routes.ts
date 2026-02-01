@@ -1940,6 +1940,27 @@ export async function registerRoutes(
     }
   });
 
+  // Reset demo user progress when exiting player
+  app.post("/api/player/demo/reset", async (req, res) => {
+    try {
+      const { enrollmentId } = req.body;
+      
+      // Delete all progress for this enrollment
+      await db.delete(schema.progress)
+        .where(eq(schema.progress.enrollmentId, enrollmentId));
+      
+      // Reset enrollment progress to 0
+      await db.update(schema.enrollments)
+        .set({ progress: 0 })
+        .where(eq(schema.enrollments.id, enrollmentId));
+      
+      res.json({ success: true, message: "Demo progress reset" });
+    } catch (error) {
+      console.error("Reset demo progress error:", error);
+      res.status(500).json({ error: "Failed to reset demo progress" });
+    }
+  });
+
   // Get interruption points and questions for a learning object (for player)
   app.get("/api/learning-objects/:id/interruptions", async (req, res) => {
     try {
