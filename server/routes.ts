@@ -697,33 +697,55 @@ export async function registerRoutes(
   });
 
   // ============================================================
-  // EXPORT CSV DOWNLOAD
+  // EXPORT CSV - Generate from OVH database
   // ============================================================
-  app.get("/api/exports/:filename", async (req, res) => {
+  app.get("/api/export/tutor-gerarchia", async (req, res) => {
     try {
-      const { filename } = req.params;
-      const fs = await import("fs");
-      const path = await import("path");
+      const mysql = await import("mysql2/promise");
       
-      // Security: only allow .csv files from exports folder
-      if (!filename.endsWith(".csv")) {
-        return res.status(400).json({ error: "Only CSV files allowed" });
-      }
+      const connection = await mysql.createConnection({
+        host: '135.125.205.19',
+        port: 3306,
+        user: 'pro_tutor81',
+        password: 'hpm0?7C3',
+        database: 'pro_tutor81'
+      });
+
+      const [rows] = await connection.execute(`
+        SELECT 
+          tutor.id as id_ente_formativo,
+          tutor.business_name as ente_formativo,
+          admin_user.id as id_admin,
+          CONCAT(admin_user.name, ' ', admin_user.surname) as admin,
+          client.id as id_cliente,
+          client.business_name as cliente,
+          corsista.id as id_corsista,
+          CONCAT(corsista.name, ' ', corsista.surname) as corsista
+        FROM learning_project_users lpu
+        JOIN users admin_user ON admin_user.id = lpu.company_id
+        JOIN companies tutor ON tutor.id = admin_user.company_id AND tutor.is_tutor = 1
+        JOIN companies client ON client.id = lpu.id_company
+        JOIN users corsista ON corsista.id = lpu.user_id
+        GROUP BY tutor.id, tutor.business_name, admin_user.id, admin_user.name, admin_user.surname, client.id, client.business_name, corsista.id, corsista.name, corsista.surname
+        ORDER BY tutor.business_name, client.business_name, corsista.surname
+      `);
+
+      await connection.end();
+
+      // Generate CSV
+      const headers = "id_ente_formativo,ente_formativo,id_admin,admin,id_cliente,cliente,id_corsista,corsista";
+      const csvRows = (rows as any[]).map(row => 
+        `${row.id_ente_formativo},"${row.ente_formativo}",${row.id_admin},"${row.admin}",${row.id_cliente},"${row.cliente}",${row.id_corsista},"${row.corsista}"`
+      );
       
-      const filePath = path.join(process.cwd(), "exports", filename);
-      
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: "File not found" });
-      }
-      
-      res.setHeader("Content-Type", "text/csv");
-      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      const csv = headers + "\n" + csvRows.join("\n");
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", 'attachment; filename="tutor_gerarchia.csv"');
+      res.send(csv);
     } catch (error) {
-      console.error("Export download error:", error);
-      res.status(500).json({ error: "Failed to download file" });
+      console.error("Export error:", error);
+      res.status(500).json({ error: "Failed to generate export" });
     }
   });
 
