@@ -56,6 +56,7 @@ interface Enrollment {
   emailSentAt: string | null;
   emailOpenedAt: string | null;
   licenseCode: string | null;
+  tutorName: string;
 }
 
 interface Company {
@@ -398,34 +399,37 @@ export default function ActivatedCourses() {
                     data-testid="checkbox-select-all" 
                   />
                 </th>
-                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
+                  <div>Ente</div><div>Formativo</div>
+                </th>
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   Azienda
                 </th>
-                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
-                  Cognome Nome
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
+                  <div>Cognome</div><div>Nome</div>
                 </th>
-                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   Corso
                 </th>
-                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   Email
                 </th>
-                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
-                  Data Attivazione
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
+                  <div>Data</div><div>Attivazione</div>
                 </th>
-                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
-                  Ultimo Accesso
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
+                  <div>Ultimo</div><div>Accesso</div>
                 </th>
-                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
-                  Termine Programmato
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
+                  <div>Termine</div><div>Programmato</div>
                 </th>
-                <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
+                <th className="text-left p-2 text-xs font-bold text-yellow-400 uppercase">
                   Progresso
                 </th>
-                <th className="text-center p-3 text-xs font-bold text-yellow-400 uppercase">
+                <th className="text-center p-2 text-xs font-bold text-yellow-400 uppercase">
                   Stato
                 </th>
-                <th className="text-center p-3 text-xs font-bold text-yellow-400 uppercase">
+                <th className="text-center p-2 text-xs font-bold text-yellow-400 uppercase">
                   Azioni
                 </th>
               </tr>
@@ -433,13 +437,13 @@ export default function ActivatedCourses() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={11} className="text-center py-8 text-black">
+                  <td colSpan={12} className="text-center py-8 text-black">
                     Caricamento...
                   </td>
                 </tr>
               ) : displayedEnrollments.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="text-center py-8 text-black">
+                  <td colSpan={12} className="text-center py-8 text-black">
                     Nessun corso attivato trovato
                   </td>
                 </tr>
@@ -457,10 +461,13 @@ export default function ActivatedCourses() {
                         data-testid={`checkbox-row-${enrollment.id}`} 
                       />
                     </td>
-                    <td className="p-3 text-sm text-black">
+                    <td className="p-2 text-sm text-black">
+                      {enrollment.tutorName}
+                    </td>
+                    <td className="p-2 text-sm text-black">
                       {enrollment.companyName}
                     </td>
-                    <td className="p-3 text-sm font-medium text-black">
+                    <td className="p-2 text-sm font-medium text-black">
                       {enrollment.userName}
                     </td>
                     <td className="p-3 text-sm text-black max-w-xs">

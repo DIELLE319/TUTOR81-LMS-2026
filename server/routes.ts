@@ -473,6 +473,8 @@ export async function registerRoutes(
         status: schema.enrollments.status,
         createdAt: schema.enrollments.createdAt,
         completedAt: schema.enrollments.completedAt,
+        lastAccessAt: schema.enrollments.lastAccessAt,
+        enrollmentTutorId: schema.enrollments.tutorId,
         studentEmail: schema.students.email,
         studentFirstName: schema.students.firstName,
         studentLastName: schema.students.lastName,
@@ -480,11 +482,13 @@ export async function registerRoutes(
         companyName: schema.companies.businessName,
         tutorId: schema.companies.tutorId,
         courseTitle: schema.courses.title,
+        tutorName: schema.tutors.businessName,
       })
         .from(schema.enrollments)
         .leftJoin(schema.students, eq(schema.enrollments.studentId, schema.students.id))
         .leftJoin(schema.companies, eq(schema.students.companyId, schema.companies.id))
         .leftJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+        .leftJoin(schema.tutors, eq(schema.enrollments.tutorId, schema.tutors.id))
         .orderBy(desc(schema.enrollments.createdAt));
 
       let filtered = enrollmentsRaw;
@@ -503,12 +507,13 @@ export async function registerRoutes(
         courseName: e.courseTitle || '',
         startDate: e.startDate,
         endDate: e.endDate,
-        lastAccessAt: e.completedAt,
+        lastAccessAt: e.lastAccessAt,
         progress: e.progress || 0,
         status: e.status || 'active',
         emailSentAt: null,
         emailOpenedAt: null,
         licenseCode: e.licenseCode,
+        tutorName: e.tutorName || '',
       }));
 
       res.json(enrollments);

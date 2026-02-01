@@ -211,13 +211,14 @@ export const enrollments = pgTable("enrollments", {
   id: serial("id").primaryKey(),
   studentId: integer("student_id").references(() => students.id).notNull(),
   courseId: integer("course_id").references(() => courses.id).notNull(),
-  licenseCode: text("license_code").notNull(), // Codice univoco per accesso player
+  tutorId: integer("tutor_id").references(() => tutors.id),
+  licenseCode: text("license_code").notNull(),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
   daysToAlert: integer("days_to_alert").default(15),
-  progress: integer("progress").default(0), // 0-100%
-  status: text("status").default("active"), // 'active', 'completed', 'expired'
-  lastAccessAt: timestamp("last_access_at"), // Ultimo accesso/ingresso
+  progress: integer("progress").default(0),
+  status: text("status").default("active"),
+  lastAccessAt: timestamp("last_access_at"),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   legacyId: integer("legacy_id"),
