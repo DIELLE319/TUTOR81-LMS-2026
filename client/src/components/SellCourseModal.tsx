@@ -505,7 +505,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                     <tr key={idx} className="border-t border-yellow-300">
                       <td className="px-2 py-2">
                         <Input
-                          type="email"
+                          type="text"
                           value={row.email}
                           onChange={(e) => updateRow(idx, 'email', e.target.value)}
                           placeholder="E-mail *"
