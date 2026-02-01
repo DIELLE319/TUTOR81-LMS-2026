@@ -88,6 +88,7 @@ export default function CoursePlayerVideo() {
   const [currentQuestion, setCurrentQuestion] = useState<QuestionData | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [lastAnswerCorrect, setLastAnswerCorrect] = useState(false);
+  const [showTimeoutPopup, setShowTimeoutPopup] = useState(false);
   
   // Interruption points from database
   const [interruptionPoints, setInterruptionPoints] = useState<InterruptionPoint[]>([]);
@@ -231,12 +232,27 @@ export default function CoursePlayerVideo() {
       }, 1000);
       return () => clearInterval(timer);
     } else if (showQuiz && quizTimer === 0) {
-      // Time expired, mark as wrong and close quiz
-      setWrongAnswers(prev => prev + 1);
+      // Time expired - show timeout popup (user must exit)
       setShowQuiz(false);
-      setCurrentQuestion(null);
+      setShowTimeoutPopup(true);
     }
   }, [showQuiz, quizTimer]);
+
+  const handleExitCourse = () => {
+    // Reset demo progress if demo user
+    const enrollment = localStorage.getItem("playerEnrollment");
+    if (enrollment) {
+      const enrollmentData = JSON.parse(enrollment);
+      fetch("/api/player/demo/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollmentId: enrollmentData.id })
+      });
+    }
+    localStorage.removeItem("playerUser");
+    localStorage.removeItem("playerEnrollment");
+    window.location.href = "/player-login";
+  };
 
   const handleConfirmAnswer = () => {
     if (!currentQuestion || !selectedAnswer) return;
@@ -572,6 +588,40 @@ export default function CoursePlayerVideo() {
           )}
         </button>
       </div>
+
+      {/* Popup timeout forzato */}
+      {showTimeoutPopup && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+            <div className="bg-yellow-500 px-6 py-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                Attenzione: interruzione del corso
+              </h2>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Vuoi interrompere la lezione in corso? E' sempre consigliabile non interrompere volontariamente la lezione ma attendere la sua fine.
+              </p>
+              <p className="text-gray-700 mb-4">
+                Quando ti riconnetterai DOVRAI ATTENDERE affinché il sistema carichi l'ultimo punto utile.
+              </p>
+              <p className="font-semibold text-gray-900 mb-6">
+                Confermi di voler interrompere il corso?
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="text-6xl font-bold text-gray-400">00</div>
+                <Button 
+                  onClick={handleExitCourse}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-6"
+                  data-testid="btn-exit-timeout"
+                >
+                  Interrompi
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
