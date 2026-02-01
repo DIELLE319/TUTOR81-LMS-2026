@@ -78,7 +78,7 @@ export default function ActivatedCourses() {
   const { toast } = useToast();
 
   const { data: enrollments = [], isLoading } = useQuery<Enrollment[]>({
-    queryKey: ["/api/enrollments", statusFilter, search],
+    queryKey: ["/api/enrollments"],
   });
 
   const { data: companies = [] } = useQuery<Company[]>({
