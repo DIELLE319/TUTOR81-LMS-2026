@@ -1886,6 +1886,68 @@ export async function registerRoutes(
     }
   });
 
+  // Player login with username and fiscal code
+  app.post("/api/player/login", async (req, res) => {
+    try {
+      const { username, fiscalCode } = req.body;
+      
+      // Parse username (format: firstname.lastname)
+      const [firstName, lastName] = username.split(".");
+      
+      // Find user by name parts and fiscal code
+      const users = await db.select()
+        .from(schema.users)
+        .where(
+          and(
+            ilike(schema.users.firstName, firstName || ""),
+            ilike(schema.users.lastName, lastName || ""),
+            eq(schema.users.fiscalCode, fiscalCode)
+          )
+        );
+      
+      if (users.length === 0) {
+        return res.status(401).json({ error: "Credenziali non valide" });
+      }
+      
+      const user = users[0];
+      
+      // Find active enrollment for this user
+      const enrollments = await db.select()
+        .from(schema.enrollments)
+        .where(eq(schema.enrollments.userId, user.id));
+      
+      if (enrollments.length === 0) {
+        return res.status(404).json({ error: "Nessun corso attivo trovato" });
+      }
+      
+      const enrollment = enrollments[0];
+      
+      // Get course info
+      const [course] = await db.select()
+        .from(schema.learningProjects)
+        .where(eq(schema.learningProjects.id, enrollment.learningProjectId!));
+      
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email
+        },
+        enrollment: {
+          id: enrollment.id,
+          courseId: enrollment.learningProjectId,
+          courseTitle: course?.title || "Corso",
+          progress: enrollment.progress || 0
+        }
+      });
+    } catch (error) {
+      console.error("Player login error:", error);
+      res.status(500).json({ error: "Errore durante l'accesso" });
+    }
+  });
+
   // Save player progress
   app.post("/api/player/progress", async (req, res) => {
     try {
