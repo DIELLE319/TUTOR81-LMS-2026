@@ -6,34 +6,77 @@ import { relations, sql } from "drizzle-orm";
 export * from "./models/auth";
 import { users } from "./models/auth";
 
-export const companies = pgTable("companies", {
+// ============================================================
+// TABELLA 1: ENTI FORMATIVI (TUTOR)
+// Chi eroga i corsi e vende alle aziende clienti
+// ============================================================
+export const tutors = pgTable("tutors", {
   id: serial("id").primaryKey(),
   businessName: text("business_name").notNull(),
+  vatNumber: text("vat_number"),
+  fiscalCode: text("fiscal_code"),
   address: text("address"),
   city: text("city"),
   cap: text("cap"),
   province: text("province"),
-  vatNumber: text("vat_number"),
-  fiscalCode: text("fiscal_code"),
   phone: text("phone"),
   email: text("email"),
   pec: text("pec"),
   website: text("website"),
   regionalAuthorization: text("regional_authorization"),
-  licenseType: text("license_type"),
-  isTutor: boolean("is_tutor").default(false),
-  ownerUserId: varchar("owner_user_id").references(() => users.id),
-  parentCompanyId: integer("parent_company_id"),
   contactPerson: text("contact_person"),
   notes: text("notes"),
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const learningProjects = pgTable("learning_projects", {
+// ============================================================
+// TABELLA 2: AZIENDE CLIENTI
+// Aziende che comprano corsi per i loro dipendenti
+// ============================================================
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  tutorId: integer("tutor_id").references(() => tutors.id).notNull(), // CHI HA VENDUTO
+  businessName: text("business_name").notNull(),
+  vatNumber: text("vat_number"),
+  fiscalCode: text("fiscal_code"),
+  address: text("address"),
+  city: text("city"),
+  cap: text("cap"),
+  province: text("province"),
+  phone: text("phone"),
+  email: text("email"),
+  pec: text("pec"),
+  contactPerson: text("contact_person"),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================================
+// TABELLA 3: UTENTI (Studenti/Dipendenti)
+// ============================================================
+export const students = pgTable("students", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companies.id).notNull(), // DOVE LAVORA
+  email: text("email").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  fiscalCode: text("fiscal_code"),
+  phone: text("phone"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================================
+// TABELLA 4: CORSI (Learning Projects)
+// ============================================================
+export const courses = pgTable("courses", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
   category: text("category"),
+  subcategory: text("subcategory"),
   riskLevel: text("risk_level"),
   sector: text("sector"),
   language: text("language").default("IT"),
@@ -41,310 +84,193 @@ export const learningProjects = pgTable("learning_projects", {
   modality: text("modality"),
   listPrice: decimal("list_price", { precision: 10, scale: 2 }).default("0"),
   tutorCost: decimal("tutor_cost", { precision: 10, scale: 2 }).default("0"),
-  isPublished: boolean("is_published").default(true),
-  isPublishedInEcommerce: integer("is_published_in_ecommerce").default(0), // 0=non pubblicato, 1=attivo, 2=sospeso
-  reservedTo: integer("reserved_to").references(() => companies.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  thumbnailUrl: text("thumbnail_url"),
-  sortOrder: integer("sort_order").default(0),
-  subcategory: text("subcategory"),
-  courseType: text("course_type"),
-  destinatario: text("destinatario"),
-  destination: text("destination"),
   courseValidity: text("course_validity"),
-  externalIntegration: text("external_integration"),
   lawReference: text("law_reference"),
-  totalElearning: integer("total_elearning").default(0),
-  vdHours: integer("vd_hours").default(0),
   maxExecutionTime: integer("max_execution_time").default(90),
   percentageToPass: integer("percentage_to_pass").default(80),
-  producers: text("producers"),
-  professors: text("professors"),
-  didactics: text("didactics"),
   objectives: text("objectives"),
   targetAudience: text("target_audience"),
   prerequisites: text("prerequisites"),
   courseProgram: text("course_program"),
-  profiliCompetenze: text("profili_competenze"),
-  relatoriDocenti: text("relatori_docenti"),
-  verificaApprendimento: text("verifica_apprendimento"),
-  caratteristicheTecniche: text("caratteristiche_tecniche"),
-  ownerUserId: integer("owner_user_id"),
-});
-
-export const tutorsPurchases = pgTable("tutors_purchases", {
-  id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  tutorId: integer("tutor_id").references(() => companies.id),
-  customerCompanyId: integer("customer_company_id").references(() => companies.id),
-  userCompanyRef: varchar("user_company_ref").references(() => users.id),
-  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
-  qta: integer("qta").default(1),
-  price: decimal("price", { precision: 10, scale: 2 }).default("0"),
-  startDate: timestamp("start_date"),
-  endDate: timestamp("end_date"),
-  notifyDays: integer("notify_days").default(15),
-  status: text("status").default("active"),
-  createdAt: timestamp("creation_date").defaultNow(),
-});
-
-export const companyUsers = pgTable("company_users", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  companyId: integer("company_id").notNull().references(() => companies.id),
-  role: integer("role").default(0),
+  thumbnailUrl: text("thumbnail_url"),
+  isPublished: boolean("is_published").default(true),
+  sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const certificates = pgTable("certificates", {
-  id: serial("id").primaryKey(),
-  purchaseId: integer("purchase_id").references(() => tutorsPurchases.id),
-  userId: varchar("user_id").references(() => users.id),
-  courseTitle: text("course_title"),
-  completedAt: timestamp("completed_at"),
-  certificateUrl: text("certificate_url"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const enrollments = pgTable("enrollments", {
-  id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  purchaseId: integer("purchase_id").references(() => tutorsPurchases.id),
-  userId: varchar("user_id").references(() => users.id),
-  legacyUserId: integer("legacy_user_id"),
-  companyId: integer("company_id").references(() => companies.id),
-  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
-  licenseCode: text("license_code"),
-  startDate: timestamp("start_date"),
-  endDate: timestamp("end_date"),
-  lastAccessAt: timestamp("last_access_at"),
-  progress: integer("progress").default(0),
-  status: text("status").default("active"),
-  accreditationCode: text("accreditation_code"),
-  daysToAlert: integer("days_to_alert").default(15),
-  emailSentAt: timestamp("email_sent_at"),
-  emailOpenedAt: timestamp("email_opened_at"),
-  emailTrackingId: text("email_tracking_id"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
-  purchase: one(tutorsPurchases, {
-    fields: [enrollments.purchaseId],
-    references: [tutorsPurchases.id],
-  }),
-  user: one(users, {
-    fields: [enrollments.userId],
-    references: [users.id],
-  }),
-  company: one(companies, {
-    fields: [enrollments.companyId],
-    references: [companies.id],
-  }),
-  learningProject: one(learningProjects, {
-    fields: [enrollments.learningProjectId],
-    references: [learningProjects.id],
-  }),
-}));
-
-export const companiesRelations = relations(companies, ({ one, many }) => ({
-  owner: one(users, {
-    fields: [companies.ownerUserId],
-    references: [users.id],
-  }),
-  parentCompany: one(companies, {
-    fields: [companies.parentCompanyId],
-    references: [companies.id],
-  }),
-  companyUsers: many(companyUsers),
-  tutorPurchases: many(tutorsPurchases, { relationName: "tutorPurchases" }),
-  clientPurchases: many(tutorsPurchases, { relationName: "clientPurchases" }),
-}));
-
-export const learningProjectsRelations = relations(learningProjects, ({ many }) => ({
-  purchases: many(tutorsPurchases),
-}));
-
-export const tutorsPurchasesRelations = relations(tutorsPurchases, ({ one }) => ({
-  tutor: one(companies, {
-    fields: [tutorsPurchases.tutorId],
-    references: [companies.id],
-    relationName: "tutorPurchases",
-  }),
-  customer: one(companies, {
-    fields: [tutorsPurchases.customerCompanyId],
-    references: [companies.id],
-    relationName: "clientPurchases",
-  }),
-  user: one(users, {
-    fields: [tutorsPurchases.userCompanyRef],
-    references: [users.id],
-  }),
-  learningProject: one(learningProjects, {
-    fields: [tutorsPurchases.learningProjectId],
-    references: [learningProjects.id],
-  }),
-}));
-
-export const companyUsersRelations = relations(companyUsers, ({ one }) => ({
-  user: one(users, {
-    fields: [companyUsers.userId],
-    references: [users.id],
-  }),
-  company: one(companies, {
-    fields: [companyUsers.companyId],
-    references: [companies.id],
-  }),
-}));
-
-// Content Management Tables
+// ============================================================
+// TABELLA 5: MODULI (dentro i corsi)
+// ============================================================
 export const modules = pgTable("modules", {
   id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
   title: text("title").notNull(),
   description: text("description"),
   duration: integer("duration").default(0),
-  maxExecutionTime: integer("max_execution_time").default(0),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ============================================================
+// TABELLA 6: LEZIONI (dentro i moduli)
+// ============================================================
 export const lessons = pgTable("lessons", {
   id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
   title: text("title").notNull(),
   description: text("description"),
   duration: integer("duration").default(0),
-  percentageToPass: integer("percentage_to_pass").default(60),
-  code: text("code"),
-  ownerUserId: integer("owner_user_id"),
-  suspended: boolean("suspended").default(false),
-  closed: boolean("closed").default(false),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Relazioni many-to-many
+// ============================================================
+// TABELLA 7: LEARNING OBJECTS (video, slide, documenti)
+// ============================================================
+export const learningObjects = pgTable("learning_objects", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  objectType: text("object_type").default("video"), // 'video', 'slide', 'document'
+  jwplayerCode: text("jwplayer_code"),
+  videoFilename: text("video_filename"),
+  slideFilename: text("slide_filename"),
+  documentFilename: text("document_filename"),
+  duration: integer("duration").default(0), // in minuti
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================================
+// TABELLE DI RELAZIONE (Many-to-Many)
+// ============================================================
 export const courseModules = pgTable("course_modules", {
   id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
-  moduleId: integer("module_id").references(() => modules.id),
+  courseId: integer("course_id").references(() => courses.id).notNull(),
+  moduleId: integer("module_id").references(() => modules.id).notNull(),
   position: integer("position").default(0),
 });
 
 export const moduleLessons = pgTable("module_lessons", {
   id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  moduleId: integer("module_id").references(() => modules.id),
-  lessonId: integer("lesson_id").references(() => lessons.id),
+  moduleId: integer("module_id").references(() => modules.id).notNull(),
+  lessonId: integer("lesson_id").references(() => lessons.id).notNull(),
   position: integer("position").default(0),
 });
 
 export const lessonLearningObjects = pgTable("lesson_learning_objects", {
   id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  lessonId: integer("lesson_id").references(() => lessons.id),
-  learningObjectId: integer("learning_object_id").references(() => learningObjects.id),
+  lessonId: integer("lesson_id").references(() => lessons.id).notNull(),
+  learningObjectId: integer("learning_object_id").references(() => learningObjects.id).notNull(),
   position: integer("position").default(0),
 });
 
-export const learningObjects = pgTable("learning_objects", {
+// ============================================================
+// TABELLA 8: ISCRIZIONI (Enrollments)
+// Uno studente iscritto a un corso
+// ============================================================
+export const enrollments = pgTable("enrollments", {
   id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  title: text("title").notNull(),
-  objectType: integer("object_type").default(1), // 1=video, 2=slide, 3=document
-  jwplayerCode: text("jwplayer_code"),
-  videoFilename: text("video_filename"),
-  slideFilename: text("slide_filename"),
-  documentFilename: text("document_filename"),
-  duration: integer("duration").default(0), // in minutes
-  percentageToPass: integer("percentage_to_pass").default(70),
-  argumentId: integer("argument_id").default(0),
-  languageId: integer("language_id").default(1),
-  ownerUserId: integer("owner_user_id"),
-  suspended: boolean("suspended").default(false),
-  inUse: boolean("in_use").default(true), // calculated: is this object used in active courses?
+  studentId: integer("student_id").references(() => students.id).notNull(),
+  courseId: integer("course_id").references(() => courses.id).notNull(),
+  licenseCode: text("license_code").notNull(), // Codice univoco per accesso player
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  daysToAlert: integer("days_to_alert").default(15),
+  progress: integer("progress").default(0), // 0-100%
+  status: text("status").default("active"), // 'active', 'completed', 'expired'
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Video Test System - interruption points and questions
-export const videoTestInterruptionPoints = pgTable("video_test_interruption_points", {
+// ============================================================
+// TABELLA 9: PROGRESSO DETTAGLIATO
+// Traccia quale learning object è stato completato
+// ============================================================
+export const enrollmentProgress = pgTable("enrollment_progress", {
   id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  learningObjectId: integer("learning_object_id").references(() => learningObjects.id),
-  time: integer("time").notNull(), // milliseconds into video
-});
-
-export const questionSentences = pgTable("question_sentences", {
-  id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  text: text("text").notNull(),
-});
-
-export const interruptionQuestions = pgTable("interruption_questions", {
-  id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  interruptionPointId: integer("interruption_point_id").references(() => videoTestInterruptionPoints.id),
-  questionSentenceId: integer("question_sentence_id").references(() => questionSentences.id),
-});
-
-export const questionAnswers = pgTable("question_answers", {
-  id: serial("id").primaryKey(),
-  legacyId: integer("legacy_id"),
-  questionSentenceId: integer("question_sentence_id").references(() => questionSentences.id),
-  text: text("text").notNull(),
-  isCorrect: boolean("is_correct").default(false),
-  code: text("code"),
-});
-
-export const progress = pgTable("progress", {
-  id: serial("id").primaryKey(),
-  enrollmentId: integer("enrollment_id").references(() => enrollments.id),
-  lessonId: integer("lesson_id").references(() => lessons.id),
+  enrollmentId: integer("enrollment_id").references(() => enrollments.id).notNull(),
+  learningObjectId: integer("learning_object_id").references(() => learningObjects.id).notNull(),
+  watchedSeconds: integer("watched_seconds").default(0),
   completed: boolean("completed").default(false),
   completedAt: timestamp("completed_at"),
 });
 
-export const tests = pgTable("tests", {
+// ============================================================
+// TABELLA 10: ATTESTATI (Certificati)
+// ============================================================
+export const certificates = pgTable("certificates", {
   id: serial("id").primaryKey(),
-  learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
-  moduleId: integer("module_id").references(() => modules.id),
-  title: text("title").notNull(),
-  description: text("description"),
-  passingScore: integer("passing_score").default(60),
-  timeLimit: integer("time_limit"), // in minutes
-  maxAttempts: integer("max_attempts").default(3),
-  shuffleQuestions: boolean("shuffle_questions").default(true),
-  isPublished: boolean("is_published").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+  enrollmentId: integer("enrollment_id").references(() => enrollments.id).notNull(),
+  certificateNumber: text("certificate_number"),
+  issuedAt: timestamp("issued_at").defaultNow(),
+  pdfUrl: text("pdf_url"),
 });
 
-export const questions = pgTable("questions", {
+// ============================================================
+// TABELLA 11: QUIZ/TEST (opzionale, per interruzioni video)
+// ============================================================
+export const quizQuestions = pgTable("quiz_questions", {
   id: serial("id").primaryKey(),
-  testId: integer("test_id").notNull().references(() => tests.id),
+  learningObjectId: integer("learning_object_id").references(() => learningObjects.id).notNull(),
+  timeSeconds: integer("time_seconds").notNull(), // A che secondo del video appare
   questionText: text("question_text").notNull(),
-  questionType: text("question_type").default("single"), // single, multiple, true_false
-  points: integer("points").default(1),
   sortOrder: integer("sort_order").default(0),
-  explanation: text("explanation"),
-  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const answers = pgTable("answers", {
+export const quizAnswers = pgTable("quiz_answers", {
   id: serial("id").primaryKey(),
-  questionId: integer("question_id").notNull().references(() => questions.id),
+  questionId: integer("question_id").references(() => quizQuestions.id).notNull(),
   answerText: text("answer_text").notNull(),
   isCorrect: boolean("is_correct").default(false),
   sortOrder: integer("sort_order").default(0),
 });
 
-// Relations for Content Management
+// ============================================================
+// TABELLA 12: ADMIN USERS (per accesso al sistema)
+// ============================================================
+export const adminUsers = pgTable("admin_users", {
+  id: serial("id").primaryKey(),
+  replitUserId: varchar("replit_user_id").references(() => users.id),
+  email: text("email").notNull(),
+  role: text("role").default("tutor_admin"), // 'super_admin', 'tutor_admin', 'company_admin'
+  tutorId: integer("tutor_id").references(() => tutors.id), // NULL se super_admin
+  companyId: integer("company_id").references(() => companies.id), // NULL se tutor_admin o super_admin
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================================
+// RELATIONS
+// ============================================================
+export const tutorsRelations = relations(tutors, ({ many }) => ({
+  companies: many(companies),
+  adminUsers: many(adminUsers),
+}));
+
+export const companiesRelations = relations(companies, ({ one, many }) => ({
+  tutor: one(tutors, {
+    fields: [companies.tutorId],
+    references: [tutors.id],
+  }),
+  students: many(students),
+  adminUsers: many(adminUsers),
+}));
+
+export const studentsRelations = relations(students, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [students.companyId],
+    references: [companies.id],
+  }),
+  enrollments: many(enrollments),
+}));
+
+export const coursesRelations = relations(courses, ({ many }) => ({
+  courseModules: many(courseModules),
+  enrollments: many(enrollments),
+}));
+
 export const modulesRelations = relations(modules, ({ many }) => ({
   courseModules: many(courseModules),
   moduleLessons: many(moduleLessons),
-  tests: many(tests),
 }));
 
 export const lessonsRelations = relations(lessons, ({ many }) => ({
@@ -352,10 +278,16 @@ export const lessonsRelations = relations(lessons, ({ many }) => ({
   lessonLearningObjects: many(lessonLearningObjects),
 }));
 
+export const learningObjectsRelations = relations(learningObjects, ({ many }) => ({
+  lessonLearningObjects: many(lessonLearningObjects),
+  quizQuestions: many(quizQuestions),
+  enrollmentProgress: many(enrollmentProgress),
+}));
+
 export const courseModulesRelations = relations(courseModules, ({ one }) => ({
-  learningProject: one(learningProjects, {
-    fields: [courseModules.learningProjectId],
-    references: [learningProjects.id],
+  course: one(courses, {
+    fields: [courseModules.courseId],
+    references: [courses.id],
   }),
   module: one(modules, {
     fields: [courseModules.moduleId],
@@ -385,63 +317,92 @@ export const lessonLearningObjectsRelations = relations(lessonLearningObjects, (
   }),
 }));
 
-export const testsRelations = relations(tests, ({ one, many }) => ({
-  learningProject: one(learningProjects, {
-    fields: [tests.learningProjectId],
-    references: [learningProjects.id],
+export const enrollmentsRelations = relations(enrollments, ({ one, many }) => ({
+  student: one(students, {
+    fields: [enrollments.studentId],
+    references: [students.id],
   }),
-  module: one(modules, {
-    fields: [tests.moduleId],
-    references: [modules.id],
+  course: one(courses, {
+    fields: [enrollments.courseId],
+    references: [courses.id],
   }),
-  questions: many(questions),
+  progress: many(enrollmentProgress),
+  certificate: one(certificates),
 }));
 
-export const questionsRelations = relations(questions, ({ one, many }) => ({
-  test: one(tests, {
-    fields: [questions.testId],
-    references: [tests.id],
+export const enrollmentProgressRelations = relations(enrollmentProgress, ({ one }) => ({
+  enrollment: one(enrollments, {
+    fields: [enrollmentProgress.enrollmentId],
+    references: [enrollments.id],
   }),
-  answers: many(answers),
-}));
-
-export const answersRelations = relations(answers, ({ one }) => ({
-  question: one(questions, {
-    fields: [answers.questionId],
-    references: [questions.id],
+  learningObject: one(learningObjects, {
+    fields: [enrollmentProgress.learningObjectId],
+    references: [learningObjects.id],
   }),
 }));
 
+export const certificatesRelations = relations(certificates, ({ one }) => ({
+  enrollment: one(enrollments, {
+    fields: [certificates.enrollmentId],
+    references: [enrollments.id],
+  }),
+}));
+
+export const quizQuestionsRelations = relations(quizQuestions, ({ one, many }) => ({
+  learningObject: one(learningObjects, {
+    fields: [quizQuestions.learningObjectId],
+    references: [learningObjects.id],
+  }),
+  answers: many(quizAnswers),
+}));
+
+export const quizAnswersRelations = relations(quizAnswers, ({ one }) => ({
+  question: one(quizQuestions, {
+    fields: [quizAnswers.questionId],
+    references: [quizQuestions.id],
+  }),
+}));
+
+export const adminUsersRelations = relations(adminUsers, ({ one }) => ({
+  replitUser: one(users, {
+    fields: [adminUsers.replitUserId],
+    references: [users.id],
+  }),
+  tutor: one(tutors, {
+    fields: [adminUsers.tutorId],
+    references: [tutors.id],
+  }),
+  company: one(companies, {
+    fields: [adminUsers.companyId],
+    references: [companies.id],
+  }),
+}));
+
+// ============================================================
+// INSERT SCHEMAS & TYPES
+// ============================================================
+export const insertTutorSchema = createInsertSchema(tutors).omit({ id: true, createdAt: true });
 export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true });
-export const insertLearningProjectSchema = createInsertSchema(learningProjects).omit({ id: true, createdAt: true });
-export const insertTutorsPurchaseSchema = createInsertSchema(tutorsPurchases).omit({ id: true, createdAt: true });
-export const insertCompanyUserSchema = createInsertSchema(companyUsers).omit({ id: true, createdAt: true });
-export const insertCertificateSchema = createInsertSchema(certificates).omit({ id: true, createdAt: true });
+export const insertStudentSchema = createInsertSchema(students).omit({ id: true, createdAt: true });
+export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertModuleSchema = createInsertSchema(modules).omit({ id: true, createdAt: true });
 export const insertLessonSchema = createInsertSchema(lessons).omit({ id: true, createdAt: true });
 export const insertLearningObjectSchema = createInsertSchema(learningObjects).omit({ id: true, createdAt: true });
-export const insertTestSchema = createInsertSchema(tests).omit({ id: true, createdAt: true });
-export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true, createdAt: true });
-export const insertAnswerSchema = createInsertSchema(answers).omit({ id: true });
 export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({ id: true, createdAt: true });
+export const insertCertificateSchema = createInsertSchema(certificates).omit({ id: true, issuedAt: true });
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({ id: true, createdAt: true });
 
-export type Enrollment = typeof enrollments.$inferSelect;
-export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
+export type Tutor = typeof tutors.$inferSelect;
+export type InsertTutor = z.infer<typeof insertTutorSchema>;
 
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 
-export type LearningProject = typeof learningProjects.$inferSelect;
-export type InsertLearningProject = z.infer<typeof insertLearningProjectSchema>;
+export type Student = typeof students.$inferSelect;
+export type InsertStudent = z.infer<typeof insertStudentSchema>;
 
-export type TutorsPurchase = typeof tutorsPurchases.$inferSelect;
-export type InsertTutorsPurchase = z.infer<typeof insertTutorsPurchaseSchema>;
-
-export type CompanyUser = typeof companyUsers.$inferSelect;
-export type InsertCompanyUser = z.infer<typeof insertCompanyUserSchema>;
-
-export type Certificate = typeof certificates.$inferSelect;
-export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
+export type Course = typeof courses.$inferSelect;
+export type InsertCourse = z.infer<typeof insertCourseSchema>;
 
 export type Module = typeof modules.$inferSelect;
 export type InsertModule = z.infer<typeof insertModuleSchema>;
@@ -452,28 +413,11 @@ export type InsertLesson = z.infer<typeof insertLessonSchema>;
 export type LearningObject = typeof learningObjects.$inferSelect;
 export type InsertLearningObject = z.infer<typeof insertLearningObjectSchema>;
 
-export type Test = typeof tests.$inferSelect;
-export type InsertTest = z.infer<typeof insertTestSchema>;
+export type Enrollment = typeof enrollments.$inferSelect;
+export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
 
-export type Question = typeof questions.$inferSelect;
-export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
+export type Certificate = typeof certificates.$inferSelect;
+export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
 
-export type Answer = typeof answers.$inferSelect;
-export type InsertAnswer = z.infer<typeof insertAnswerSchema>;
-
-// Invoices archive
-export const invoices = pgTable("invoices", {
-  id: serial("id").primaryKey(),
-  tutorId: integer("tutor_id").references(() => companies.id),
-  tutorName: text("tutor_name").notNull(),
-  month: integer("month").notNull(),
-  year: integer("year").notNull(),
-  orderIds: text("order_ids").notNull(),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  invoiceNumber: text("invoice_number"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true });
-export type Invoice = typeof invoices.$inferSelect;
-export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
