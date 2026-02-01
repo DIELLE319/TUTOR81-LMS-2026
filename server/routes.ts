@@ -609,7 +609,7 @@ export async function registerRoutes(
 
       const tutorId = company[0].tutorId;
       let created = 0;
-      const results: { studentId: number; licenseCode: string; email: string }[] = [];
+      const results: { studentId: number; licenseCode: string; email: string; firstName: string; lastName: string; fiscalCode: string }[] = [];
 
       for (const corsista of corsisti) {
         const { lastName, firstName, fiscalCode, startDate, endDate, daysToAlert } = corsista;
@@ -657,45 +657,23 @@ export async function registerRoutes(
           status: "active",
         }).returning();
 
-        results.push({ studentId, licenseCode, email });
+        const student = await db.select().from(schema.students).where(eq(schema.students.id, studentId)).limit(1);
+        results.push({ 
+          studentId, 
+          licenseCode, 
+          email,
+          firstName: student[0]?.firstName || firstName,
+          lastName: student[0]?.lastName || lastName,
+          fiscalCode: student[0]?.fiscalCode || fiscalCode,
+        });
         created++;
-      }
-
-      if (process.env.RESEND_API_KEY) {
-        try {
-          const { Resend } = await import('resend');
-          const resend = new Resend(process.env.RESEND_API_KEY);
-
-          for (const result of results) {
-            const student = await db.select().from(schema.students).where(eq(schema.students.id, result.studentId)).limit(1);
-            if (student.length > 0) {
-              await resend.emails.send({
-                from: 'Tutor81 <noreply@tutor81.com>',
-                to: [student[0].email],
-                subject: `Credenziali corso: ${course[0].title}`,
-                html: `
-                  <h2>Benvenuto su Tutor81!</h2>
-                  <p>Sei stato iscritto al corso: <strong>${course[0].title}</strong></p>
-                  <p>Le tue credenziali per accedere sono:</p>
-                  <ul>
-                    <li><strong>Codice corso:</strong> ${result.licenseCode}</li>
-                    <li><strong>Codice fiscale:</strong> ${student[0].fiscalCode}</li>
-                  </ul>
-                  <p>Accedi a: <a href="https://accedi.tutor81.com/player">accedi.tutor81.com/player</a></p>
-                  <p>Buon corso!</p>
-                `,
-              });
-            }
-          }
-        } catch (emailError) {
-          console.error("Email sending error:", emailError);
-        }
       }
 
       res.json({ 
         success: true, 
         created, 
         message: `${created} iscrizioni create con successo`,
+        courseTitle: course[0].title,
         enrollments: results 
       });
     } catch (error) {

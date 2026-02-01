@@ -101,7 +101,17 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const [selectedExistingUsers, setSelectedExistingUsers] = useState<Set<string>>(new Set());
   const [existingUserSearch, setExistingUserSearch] = useState('');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successData, setSuccessData] = useState<{
+    created: number;
+    courseTitle: string;
+    enrollments: Array<{
+      studentId: number;
+      licenseCode: string;
+      firstName: string;
+      lastName: string;
+      fiscalCode: string;
+    }>;
+  } | null>(null);
   
   // Get tutorId from logged-in user (super admins see all companies)
   const isSuperAdmin = user?.role === 1000;
@@ -113,7 +123,11 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
       return response.json();
     },
     onSuccess: (data) => {
-      setSuccessMessage(`${data.created || 0} iscrizioni create con successo!\nLe email sono state inviate.`);
+      setSuccessData({
+        created: data.created,
+        courseTitle: data.courseTitle,
+        enrollments: data.enrollments,
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/enrollments'] });
     },
     onError: (error: Error) => {
@@ -170,7 +184,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
       setErrors({});
       setSelectedExistingUsers(new Set());
       setExistingUserSearch('');
-      setSuccessMessage(null);
+      setSuccessData(null);
     }
   }, [isOpen]);
 
@@ -341,23 +355,62 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   if (!course) return null;
 
-  if (successMessage) {
+  if (successData) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-lg bg-white border-yellow-500 border-4 text-black p-0 overflow-hidden">
-          <div className="flex flex-col items-center justify-center p-12 text-center">
-            <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-6">
-              <Check size={48} className="text-white" />
+        <DialogContent className="max-w-3xl bg-white border-yellow-500 border-4 text-black p-0 overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
+                <Check size={32} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-green-600">Iscrizioni Create!</h2>
+                <p className="text-gray-600">{successData.created} corsist{successData.created === 1 ? 'a' : 'i'} iscritt{successData.created === 1 ? 'o' : 'i'}</p>
+              </div>
             </div>
-            <h2 className="text-3xl font-bold text-green-600 mb-4">Invio Completato!</h2>
-            <p className="text-xl text-gray-700 whitespace-pre-line mb-8">{successMessage}</p>
-            <Button 
-              onClick={onClose}
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 py-3 text-lg"
-              data-testid="button-close-success"
-            >
-              Chiudi
-            </Button>
+            
+            <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-6">
+              <h3 className="font-bold text-black mb-3">Credenziali di Accesso</h3>
+              <p className="text-sm text-gray-600 mb-3">Corso: <strong>{successData.courseTitle}</strong></p>
+              
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-yellow-500 text-black">
+                    <th className="p-2 text-left border border-yellow-600">Corsista</th>
+                    <th className="p-2 text-left border border-yellow-600">Codice Fiscale</th>
+                    <th className="p-2 text-left border border-yellow-600">Codice Licenza</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {successData.enrollments.map((e, idx) => (
+                    <tr key={idx} className="border border-yellow-300">
+                      <td className="p-2 border border-yellow-300">{e.lastName} {e.firstName}</td>
+                      <td className="p-2 border border-yellow-300 font-mono">{e.fiscalCode}</td>
+                      <td className="p-2 border border-yellow-300 font-mono font-bold text-green-700">{e.licenseCode}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="bg-gray-100 rounded-lg p-4 mb-6">
+              <p className="text-sm text-gray-700">
+                <strong>Per accedere al corso:</strong><br />
+                1. Vai su <code className="bg-yellow-200 px-1">accedi.tutor81.com/player</code><br />
+                2. Inserisci il <strong>Codice Licenza</strong> e il <strong>Codice Fiscale</strong>
+              </p>
+            </div>
+            
+            <div className="flex justify-end">
+              <Button 
+                onClick={onClose}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 py-3"
+                data-testid="button-close-success"
+              >
+                Chiudi
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
