@@ -1,21 +1,33 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, Play, HelpCircle, Mail } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { AlertCircle, Play, HelpCircle, Mail, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Step = "username" | "verify" | "courses" | "playing";
 
+interface UserData {
+  nominativo: string;
+  codiceFiscale: string;
+  natoIl: string;
+  datoreLavoro: string;
+}
+
 interface UserCourse {
   id: number;
   title: string;
+  duration: string;
+  startDate: string;
+  endDate: string;
   progress: number;
-  status: string;
+  status: "active" | "completed" | "not_started";
+  completedDate?: string;
 }
 
 export default function CoursePlayer() {
@@ -25,7 +37,8 @@ export default function CoursePlayer() {
   const [birthMonth, setBirthMonth] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [verificationError, setVerificationError] = useState("");
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
   const { toast } = useToast();
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -43,9 +56,6 @@ export default function CoursePlayer() {
       toast({ title: "Errore", description: "Devi accettare i termini e condizioni", variant: "destructive" });
       return;
     }
-    
-    // TODO: Verificare username nel DB
-    // Per ora simuliamo il passaggio alla verifica
     setStep("verify");
   };
 
@@ -55,22 +65,49 @@ export default function CoursePlayer() {
       return;
     }
     
-    // TODO: Verificare con il CF dell'utente
-    // Per ora simuliamo il passaggio alla lista corsi
+    // Simula dati utente (in produzione verrà da API)
+    setUserData({
+      nominativo: "PATERNO LUIGI PTRLGU80A01A944A",
+      codiceFiscale: "PTRLGU80A01A944A",
+      natoIl: "",
+      datoreLavoro: "AZIENDA DIMOSTRATIVA SPA"
+    });
+    
+    setUserCourses([
+      {
+        id: 1,
+        title: "CORSO DIMOSTRATIVO TUTOR81 2022",
+        duration: "1 ore",
+        startDate: "01/02/2026",
+        endDate: "01/05/2026",
+        progress: 0,
+        status: "not_started"
+      }
+    ]);
+    
     setStep("courses");
+  };
+
+  const handleStartCourse = (courseId: number) => {
+    // TODO: Avvia il corso
+    setStep("playing");
   };
 
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-200 py-4">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 flex items-center justify-between">
           <div className="text-3xl font-bold">
             <span className="text-gray-800">tutor</span>
             <span className="text-yellow-500">81</span>
           </div>
           <nav className="flex items-center gap-6 text-sm text-gray-600">
-            <a href="#" className="hover:text-gray-900">Requisiti tecnici</a>
-            <a href="#" className="hover:text-gray-900">Come si avvia il corso</a>
+            {step === "username" && (
+              <>
+                <a href="#" className="hover:text-gray-900">Requisiti tecnici</a>
+                <a href="#" className="hover:text-gray-900">Come si avvia il corso</a>
+              </>
+            )}
             <a href="#" className="hover:text-gray-900 flex items-center gap-1">
               Assistenza <Mail className="h-4 w-4" />
             </a>
@@ -78,14 +115,14 @@ export default function CoursePlayer() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-12">
+      <main className="max-w-5xl mx-auto px-4 py-8">
         {step === "username" && (
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-900 mb-8">AVVIA IL TUO CORSO</h1>
             
             <div className="max-w-md mx-auto mb-8">
               <p className="text-lg text-gray-700 mb-2">Inserisci qui il tuo nome utente</p>
-              <p className="text-sm text-gray-500 mb-4">non ricordo il mio nome utente</p>
+              <p className="text-sm text-gray-500 mb-4 cursor-pointer hover:underline">non ricordo il mio nome utente</p>
               
               <div className="relative mb-4">
                 <Input
@@ -219,39 +256,115 @@ export default function CoursePlayer() {
           </div>
         )}
 
-        {step === "courses" && (
+        {step === "courses" && userData && (
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">I TUOI CORSI</h1>
-            <p className="text-gray-600 mb-8 text-center">
-              Benvenuto <strong>{username}</strong> - Seleziona il corso da avviare
-            </p>
-            
-            <div className="space-y-4">
-              <Card className="border-2 border-gray-200 hover:border-yellow-400 transition-colors">
-                <CardContent className="py-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">EL - LAVORATORE - FORMAZIONE GENERALE - 4 ORE</h3>
-                    <p className="text-sm text-gray-500">Progresso: 0%</p>
-                  </div>
-                  <Button className="bg-green-500 hover:bg-green-600 text-white" data-testid="button-play-course">
-                    <Play className="h-5 w-5 mr-2" />
-                    PLAY
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-2 border-gray-200 bg-gray-50">
-                <CardContent className="py-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-700">EL - RLS - AGGIORNAMENTO - 4 ORE</h3>
-                    <p className="text-sm text-green-600">Completato il 15/01/2026</p>
-                  </div>
-                  <Button variant="outline" className="text-gray-500">
-                    Attestato
-                  </Button>
-                </CardContent>
-              </Card>
+            <div className="flex items-start gap-6 mb-10">
+              <div className="w-20 h-20 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="h-12 w-12 text-blue-500" />
+              </div>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                <span className="text-gray-500">Nominativo:</span>
+                <span className="font-bold text-gray-900">{userData.nominativo}</span>
+                <span className="text-gray-500">Codice fiscale:</span>
+                <span className="font-bold text-gray-900">{userData.codiceFiscale}</span>
+                <span className="text-gray-500">Nato il:</span>
+                <span className="font-bold text-gray-900">{userData.natoIl || "-"}</span>
+                <span className="text-gray-500">Datore di lavoro:</span>
+                <span className="font-bold text-gray-900">{userData.datoreLavoro}</span>
+              </div>
             </div>
+
+            <h2 className="text-2xl italic text-gray-700 mb-6">
+              Questi sono i corsi che attualmente stai svolgendo
+            </h2>
+            
+            {userCourses.filter(c => c.status !== "completed").map((course) => (
+              <div key={course.id} className="border-2 border-yellow-400 mb-8" data-testid={`course-card-${course.id}`}>
+                <div className="grid grid-cols-2">
+                  <div className="bg-yellow-400 text-center py-2 font-semibold text-gray-800">
+                    Il corso
+                  </div>
+                  <div className="bg-yellow-400 text-center py-2 font-semibold text-gray-800">
+                    La tua attività
+                  </div>
+                </div>
+                <div className="grid grid-cols-2">
+                  <div className="p-4 border-r border-yellow-400">
+                    <p className="text-sm text-gray-500">Titolo del corso:</p>
+                    <p className="font-bold text-gray-900 mb-4">{course.title}</p>
+                    
+                    <p className="text-sm text-gray-500">Durata:</p>
+                    <p className="font-bold text-gray-900 mb-4">{course.duration}</p>
+                    
+                    <p className="text-sm text-gray-500">Programmato/avviato:</p>
+                    <p className="font-bold text-gray-900 mb-4">{course.startDate}</p>
+                    
+                    <p className="text-sm text-gray-500">Da terminare entro:</p>
+                    <p className="font-bold text-gray-900">{course.endDate}</p>
+                  </div>
+                  <div className="p-4 flex flex-col items-center justify-center">
+                    <div className="w-full max-w-xs mb-2">
+                      <Progress value={course.progress} className="h-4" />
+                    </div>
+                    <p className="text-gray-600 mb-2">
+                      Hai svolto lo {course.progress}% del corso
+                    </p>
+                    <p className="text-gray-500 text-sm mb-6">
+                      {course.progress === 0 ? "Corso non ancora avviato" : "In corso"}
+                    </p>
+                    
+                    <div className="text-center">
+                      <p className="text-xl font-bold text-gray-700 mb-2">AVVIA CORSO</p>
+                      <button 
+                        onClick={() => handleStartCourse(course.id)}
+                        className="w-20 h-20 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105"
+                        data-testid={`button-play-${course.id}`}
+                      >
+                        <Play className="h-10 w-10 text-white ml-1" fill="white" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <h2 className="text-2xl italic text-gray-700 mb-4 mt-12">
+              Questi sono i corsi che hai già completato
+            </h2>
+            
+            {userCourses.filter(c => c.status === "completed").length === 0 ? (
+              <p className="text-gray-500">
+                Nessun corso e-learning è stato concluso in questa piattaforma
+              </p>
+            ) : (
+              userCourses.filter(c => c.status === "completed").map((course) => (
+                <Card key={course.id} className="border-gray-200 mb-4">
+                  <CardContent className="py-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{course.title}</h3>
+                      <p className="text-sm text-green-600">Completato il {course.completedDate}</p>
+                    </div>
+                    <Button variant="outline">
+                      Scarica Attestato
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {step === "playing" && (
+          <div className="text-center py-20">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Player del corso</h1>
+            <p className="text-gray-600">Il player video verrà implementato qui...</p>
+            <Button 
+              variant="outline" 
+              className="mt-8"
+              onClick={() => setStep("courses")}
+            >
+              Torna ai corsi
+            </Button>
           </div>
         )}
       </main>
