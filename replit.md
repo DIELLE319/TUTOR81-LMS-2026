@@ -91,6 +91,13 @@ The platform supports multiple user roles including administrators, tutors, and 
 
 Preferred communication style: Simple, everyday language.
 
+**UI/UX Style Preferences:**
+- Tema scuro (dark mode) con accento giallo (#EAB308)
+- Stile tabelle: sfondo scuro, bordi sottili, hover evidenziato
+- Badge colorati per stati (giallo=attivo, verde=completato, grigio=pending)
+- Layout pulito con spacing consistente
+- Questo stile va applicato OVUNQUE nell'applicazione
+
 ## System Architecture
 
 ### Frontend Architecture

@@ -891,8 +891,8 @@ export async function registerRoutes(
         licenseCode: schema.enrollments.licenseCode,
         progress: schema.enrollments.progress,
         status: schema.enrollments.status,
-        studentName: schema.students.name,
-        studentSurname: schema.students.surname,
+        studentName: schema.students.firstName,
+        studentSurname: schema.students.lastName,
         studentEmail: schema.students.email,
         courseTitle: schema.courses.title,
       })
