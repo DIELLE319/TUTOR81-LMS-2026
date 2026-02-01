@@ -145,9 +145,10 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
     },
   });
 
-  const { data: companies = [] } = useQuery<Company[]>({
+  const { data: companiesData } = useQuery<{ data: Company[] }>({
     queryKey: ['/api/companies'],
   });
+  const companies = companiesData?.data || [];
 
   const { data: companyUsers = [] } = useQuery<CompanyUser[]>({
     queryKey: ['/api/companies', selectedCompanyId, 'users'],
