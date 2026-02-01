@@ -393,8 +393,8 @@ export default function ActivatedCourses() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg border-2 border-black overflow-hidden">
-          <table className="w-full" data-testid="table-enrollments">
+        <div className="bg-white rounded-lg shadow-lg border-2 border-black overflow-x-auto">
+          <table className="w-full min-w-[1200px]" data-testid="table-enrollments">
             <thead className="bg-black">
               <tr>
                 <th className="w-10 p-3">
