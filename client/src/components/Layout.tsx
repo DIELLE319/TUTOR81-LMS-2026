@@ -213,10 +213,10 @@ export default function Layout({ children }: LayoutProps) {
 
       <div className='flex-1 flex flex-col overflow-hidden bg-black'>
         
-        <header className='h-16 border-b border-yellow-600 flex justify-between items-center px-6 bg-yellow-500'>
+        <header className='h-16 border-b border-gray-800 flex justify-between items-center px-6 bg-black'>
           
           <div className="relative w-96" ref={searchRef}>
-            <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 z-10" size={16} />
+            <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 z-10" size={16} />
             <input 
               type="text" 
               placeholder="Cerca Utente.." 
@@ -226,7 +226,7 @@ export default function Layout({ children }: LayoutProps) {
                 setShowResults(true);
               }}
               onFocus={() => setShowResults(true)}
-              className="w-full bg-white border border-gray-300 rounded-md py-2 pl-10 pr-4 text-sm text-black focus:outline-none focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
+              className="w-full bg-[#1e1e1e] border border-gray-700 rounded-md py-2 pl-10 pr-4 text-sm text-gray-300 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
               data-testid="input-search"
             />
             {showResults && searchTerm.length >= 2 && (
@@ -251,8 +251,8 @@ export default function Layout({ children }: LayoutProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-4 text-sm font-medium text-black">
-            <div className="flex items-center gap-2 cursor-pointer hover:text-gray-700">
+          <div className="flex items-center gap-4 text-sm font-medium text-gray-400">
+            <div className="flex items-center gap-2 cursor-pointer hover:text-white">
               <Icons.HelpCircle size={16} />
               <span>Assistenza</span>
             </div>
