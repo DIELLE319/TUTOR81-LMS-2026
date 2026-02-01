@@ -465,10 +465,12 @@ export default function ActivatedCourses() {
                   </td>
                 </tr>
               ) : (
-                displayedEnrollments.map((enrollment, idx) => (
+                displayedEnrollments.map((enrollment, idx) => {
+                  const isExpired = enrollment.endDate && new Date(enrollment.endDate) < new Date();
+                  return (
                   <tr
                     key={enrollment.id}
-                    className={idx % 2 === 0 ? "bg-white" : "bg-yellow-50"}
+                    className={isExpired ? "bg-red-100" : "bg-white"}
                     data-testid={`row-enrollment-${enrollment.id}`}
                   >
                     <td className="p-3">
@@ -574,7 +576,7 @@ export default function ActivatedCourses() {
                       </DropdownMenu>
                     </td>
                   </tr>
-                ))
+                );})
               )}
             </tbody>
           </table>
