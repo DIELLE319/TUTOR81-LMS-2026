@@ -80,9 +80,14 @@ export default function Catalog() {
 
   const filteredCourses = useMemo(() => {
     return publishedCourses.filter(c => {
-      const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'TUTTI' || getCourseCategory(c.title) === selectedCategory;
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        c.title.toLowerCase().includes(searchLower) ||
+        c.description?.toLowerCase().includes(searchLower);
+      
+      // Se c'è un termine di ricerca, cerca in tutte le categorie
+      const matchesCategory = searchTerm.length > 0 || selectedCategory === 'TUTTI' || getCourseCategory(c.title) === selectedCategory;
+      
       const matchesType = selectedType === 'TUTTI' || 
         (selectedType === 'BASE' && c.courseType?.toLowerCase() === 'base') ||
         (selectedType === 'AGGIORNAMENTO' && c.courseType?.toLowerCase() === 'aggiornamento') ||
