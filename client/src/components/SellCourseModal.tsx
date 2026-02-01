@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Company {
   id: number;
@@ -118,6 +119,7 @@ const createEmptyRow = (): CorsistaRow => {
 
 export default function SellCourseModal({ isOpen, onClose, course }: SellCourseModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
   const [userMode, setUserMode] = useState<'new' | 'existing'>('new');
@@ -126,6 +128,9 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const [existingUserSearch, setExistingUserSearch] = useState('');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Get tutorId from logged-in user
+  const tutorId = user?.idcompany;
 
   const enrollMutation = useMutation({
     mutationFn: async (data: { courseId: number; companyId: number; corsisti: CorsistaRow[] }) => {
@@ -145,10 +150,15 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
     },
   });
 
-  const { data: companiesData } = useQuery<{ data: Company[] }>({
-    queryKey: ['/api/companies'],
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ['/api/companies', { tutorId }],
+    queryFn: async () => {
+      const url = tutorId ? `/api/companies?tutorId=${tutorId}` : '/api/companies';
+      const res = await fetch(url);
+      return res.json();
+    },
+    enabled: isOpen,
   });
-  const companies = companiesData?.data || [];
 
   const { data: companyUsers = [] } = useQuery<CompanyUser[]>({
     queryKey: ['/api/companies', selectedCompanyId, 'users'],
@@ -157,7 +167,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   const filteredCompanies = useMemo(() => {
     return companies
-      .filter(c => c.businessName && !c.businessName.toLowerCase().includes('tutor'))
+      .filter(c => c.businessName)
       .sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''));
   }, [companies]);
 
