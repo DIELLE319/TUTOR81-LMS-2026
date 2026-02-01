@@ -720,32 +720,25 @@ export async function registerRoutes(
           client.id as id_cliente,
           client.business_name as cliente,
           corsista.id as id_corsista,
-          CONCAT(corsista.name, ' ', corsista.surname) as corsista,
-          tp.id as id_acquisto,
-          tp.learning_project_id as id_corso,
-          tp.qta as quantita,
-          tp.price as prezzo,
-          tp.code as codice_acquisto,
-          tp.creation_date as data_acquisto
+          CONCAT(corsista.name, ' ', corsista.surname) as corsista
         FROM learning_project_users lpu
         JOIN users admin_user ON admin_user.id = lpu.company_id
         JOIN companies tutor ON tutor.id = admin_user.company_id AND tutor.is_tutor = 1
         JOIN companies client ON client.id = lpu.id_company
         JOIN users corsista ON corsista.id = lpu.user_id
-        LEFT JOIN tutors_purchases tp ON tp.user_company_ref = admin_user.id AND tp.customer_company_id = client.id
         WHERE tutor.business_name NOT LIKE '%MIROGLIO%'
           AND tutor.business_name NOT LIKE '%SINTEX%'
           AND tutor.business_name NOT LIKE '%ADECCO%'
-        GROUP BY tutor.id, tutor.business_name, admin_user.id, admin_user.name, admin_user.surname, client.id, client.business_name, corsista.id, corsista.name, corsista.surname, tp.id, tp.learning_project_id, tp.qta, tp.price, tp.code, tp.creation_date
+        GROUP BY tutor.id, tutor.business_name, admin_user.id, admin_user.name, admin_user.surname, client.id, client.business_name, corsista.id, corsista.name, corsista.surname
         ORDER BY tutor.business_name, client.business_name, corsista.surname
       `);
 
       await connection.end();
 
       // Generate CSV for Numbers (Mac)
-      const headers = "id_ente_formativo,ente_formativo,id_admin,admin,id_cliente,cliente,id_corsista,corsista,id_acquisto,id_corso,quantita,prezzo,codice_acquisto,data_acquisto";
+      const headers = "id_ente_formativo,ente_formativo,id_admin,admin,id_cliente,cliente,id_corsista,corsista";
       const csvRows = (rows as any[]).map(row => 
-        `${row.id_ente_formativo},"${(row.ente_formativo || '').replace(/"/g, '""')}",${row.id_admin},"${(row.admin || '').replace(/"/g, '""')}",${row.id_cliente},"${(row.cliente || '').replace(/"/g, '""')}",${row.id_corsista},"${(row.corsista || '').replace(/"/g, '""')}",${row.id_acquisto || ''},${row.id_corso || ''},${row.quantita || ''},${row.prezzo || ''},"${(row.codice_acquisto || '').replace(/"/g, '""')}","${row.data_acquisto || ''}"`
+        `${row.id_ente_formativo},"${(row.ente_formativo || '').replace(/"/g, '""')}",${row.id_admin},"${(row.admin || '').replace(/"/g, '""')}",${row.id_cliente},"${(row.cliente || '').replace(/"/g, '""')}",${row.id_corsista},"${(row.corsista || '').replace(/"/g, '""')}"`
       );
       
       const csv = headers + "\n" + csvRows.join("\n");
