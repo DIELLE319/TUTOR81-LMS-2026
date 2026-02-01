@@ -1079,6 +1079,246 @@ export async function registerRoutes(
   });
 
   // ============================================================
+  // ATTESTATI (Certificati) - Generate PDF
+  // ============================================================
+  
+  // Generate certificate PDF for a completed enrollment
+  app.get("/api/attestato/:enrollmentId/generate", async (req, res) => {
+    try {
+      const enrollmentId = parseInt(req.params.enrollmentId);
+      if (isNaN(enrollmentId)) return res.status(400).json({ error: "Invalid enrollment ID" });
+
+      // Get enrollment with all related data
+      const enrollmentData = await db.select({
+        id: schema.enrollments.id,
+        licenseCode: schema.enrollments.licenseCode,
+        startDate: schema.enrollments.startDate,
+        endDate: schema.enrollments.endDate,
+        completedAt: schema.enrollments.completedAt,
+        progress: schema.enrollments.progress,
+        status: schema.enrollments.status,
+        studentId: schema.students.id,
+        studentFirstName: schema.students.firstName,
+        studentLastName: schema.students.lastName,
+        studentFiscalCode: schema.students.fiscalCode,
+        companyId: schema.companies.id,
+        companyName: schema.companies.businessName,
+        courseId: schema.courses.id,
+        courseTitle: schema.courses.title,
+        courseHours: schema.courses.hours,
+        courseLawReference: schema.courses.lawReference,
+        courseValidity: schema.courses.courseValidity,
+        courseTargetAudience: schema.courses.targetAudience,
+      })
+        .from(schema.enrollments)
+        .innerJoin(schema.students, eq(schema.enrollments.studentId, schema.students.id))
+        .innerJoin(schema.companies, eq(schema.students.companyId, schema.companies.id))
+        .innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+        .where(eq(schema.enrollments.id, enrollmentId))
+        .limit(1);
+
+      if (enrollmentData.length === 0) {
+        return res.status(404).json({ error: "Enrollment not found" });
+      }
+
+      const enrollment = enrollmentData[0];
+
+      // Check if course is completed
+      if (enrollment.status !== "completed" && enrollment.progress < 100) {
+        return res.status(400).json({ error: "Il corso non è ancora completato" });
+      }
+
+      // Get tutor info from company
+      const tutorData = await db.select()
+        .from(schema.tutors)
+        .where(eq(schema.tutors.id, enrollment.companyId))
+        .limit(1);
+
+      const tutor = tutorData[0] || { businessName: "Tutor81", regionalAuthorization: "" };
+
+      // Get course modules
+      const courseModules = await db.select({
+        id: schema.modules.id,
+        title: schema.modules.title,
+        duration: schema.modules.duration,
+      })
+        .from(schema.courseModules)
+        .innerJoin(schema.modules, eq(schema.courseModules.moduleId, schema.modules.id))
+        .where(eq(schema.courseModules.courseId, enrollment.courseId))
+        .orderBy(schema.courseModules.position);
+
+      // Generate certificate number
+      const certificateNumber = `T81-${enrollment.id}-${new Date().getFullYear()}`;
+
+      // Check if certificate already exists
+      const existingCert = await db.select()
+        .from(schema.certificates)
+        .where(eq(schema.certificates.enrollmentId, enrollmentId))
+        .limit(1);
+
+      let certificateId: number;
+      if (existingCert.length > 0) {
+        certificateId = existingCert[0].id;
+      } else {
+        // Create certificate record
+        const [newCert] = await db.insert(schema.certificates)
+          .values({
+            enrollmentId,
+            certificateNumber,
+            issuedAt: new Date(),
+          })
+          .returning({ id: schema.certificates.id });
+        certificateId = newCert.id;
+      }
+
+      // Generate PDF using PDFKit
+      const PDFDocument = (await import("pdfkit")).default;
+      const doc = new PDFDocument({ 
+        size: "A4", 
+        margin: 50,
+        info: {
+          Title: "Attestato di Formazione",
+          Author: "Tutor81 LMS",
+          Subject: `Attestato corso: ${enrollment.courseTitle}`,
+        }
+      });
+
+      // Set response headers for PDF
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="attestato_${enrollment.licenseCode}.pdf"`);
+      
+      doc.pipe(res);
+
+      // Header
+      doc.fontSize(24).fillColor("#1a1a1a").text("tutor", 50, 50, { continued: true });
+      doc.fillColor("#eab308").text("81");
+      
+      doc.moveDown(0.5);
+      doc.fontSize(10).fillColor("#666666").text(`TRACCIATO N° ${certificateNumber}`, { align: "center" });
+      
+      doc.moveDown(1);
+      doc.fontSize(16).fillColor("#1a1a1a").text("ATTESTATO DI AVVENUTA FORMAZIONE IN E-LEARNING", { align: "center" });
+      
+      doc.moveDown(1);
+      doc.fontSize(10).fillColor("#333333").text(
+        "L'infrastruttura tecnologica TUTOR81 LMS certifica il completamento del corso in e-learning da parte di:",
+        { align: "center" }
+      );
+
+      // Student info box
+      doc.moveDown(1.5);
+      const boxY = doc.y;
+      doc.rect(50, boxY, 495, 120).stroke("#cccccc");
+      
+      doc.fontSize(11).fillColor("#1a1a1a");
+      const labelX = 60;
+      const valueX = 200;
+      let currentY = boxY + 15;
+
+      doc.text("Nominativo:", labelX, currentY);
+      doc.font("Helvetica-Bold").text(`${enrollment.studentFirstName || ""} ${enrollment.studentLastName || ""}`.toUpperCase(), valueX, currentY);
+      doc.font("Helvetica");
+      
+      currentY += 22;
+      doc.text("Codice Fiscale:", labelX, currentY);
+      doc.font("Helvetica-Bold").text((enrollment.studentFiscalCode || "").toUpperCase(), valueX, currentY);
+      doc.font("Helvetica");
+
+      currentY += 22;
+      doc.text("Organizzatore:", labelX, currentY);
+      doc.text((enrollment.companyName || "").toUpperCase(), valueX, currentY);
+
+      currentY += 22;
+      doc.text("Ente Formatore:", labelX, currentY);
+      doc.text((tutor.businessName || "Tutor81").toUpperCase(), valueX, currentY);
+
+      // Course details
+      doc.moveDown(4);
+      doc.fontSize(14).fillColor("#1a1a1a").text("Scheda Progettuale del Corso", { align: "center" });
+      
+      doc.moveDown(1);
+      doc.fontSize(10).fillColor("#333333");
+
+      const courseInfoY = doc.y;
+      doc.text("Titolo del corso:", labelX, courseInfoY);
+      doc.font("Helvetica-Bold").text(enrollment.courseTitle || "", valueX, courseInfoY, { width: 340 });
+      doc.font("Helvetica");
+
+      doc.moveDown(1.5);
+      doc.text("Durata:", labelX, doc.y);
+      doc.text(`${enrollment.courseHours || 0} ore`, valueX, doc.y - 12);
+
+      doc.moveDown(0.5);
+      doc.text("Riferimento normativo:", labelX, doc.y);
+      doc.text(enrollment.courseLawReference || "D.Lgs. 81/2008", valueX, doc.y - 12, { width: 340 });
+
+      doc.moveDown(0.5);
+      doc.text("Validità corso:", labelX, doc.y);
+      doc.text(enrollment.courseValidity || "5 anni", valueX, doc.y - 12);
+
+      // Modules
+      if (courseModules.length > 0) {
+        doc.moveDown(1.5);
+        doc.fontSize(12).fillColor("#1a1a1a").text("Moduli completati:", labelX);
+        doc.moveDown(0.5);
+        doc.fontSize(10).fillColor("#333333");
+        
+        courseModules.forEach((module, idx) => {
+          doc.text(`${idx + 1}. ${module.title} (${module.duration || 0} min)`, labelX + 10);
+        });
+      }
+
+      // Dates
+      doc.moveDown(2);
+      doc.fontSize(10);
+      const startDateStr = enrollment.startDate ? new Date(enrollment.startDate).toLocaleDateString("it-IT") : "-";
+      const endDateStr = enrollment.completedAt ? new Date(enrollment.completedAt).toLocaleDateString("it-IT") : "-";
+      
+      doc.text(`Data inizio: ${startDateStr}`, labelX);
+      doc.text(`Data completamento: ${endDateStr}`, labelX);
+
+      // Footer with signature area
+      doc.moveDown(3);
+      doc.fontSize(10).fillColor("#666666").text(
+        `Documento generato automaticamente il ${new Date().toLocaleDateString("it-IT")}`,
+        { align: "center" }
+      );
+      
+      doc.moveDown(1);
+      doc.text("Il presente attestato certifica l'avvenuta formazione secondo quanto previsto dalla normativa vigente.", { align: "center" });
+
+      // Finalize PDF
+      doc.end();
+
+    } catch (error) {
+      console.error("Certificate generation error:", error);
+      res.status(500).json({ error: "Failed to generate certificate" });
+    }
+  });
+
+  // Get certificate info for an enrollment
+  app.get("/api/attestato/:enrollmentId", async (req, res) => {
+    try {
+      const enrollmentId = parseInt(req.params.enrollmentId);
+      if (isNaN(enrollmentId)) return res.status(400).json({ error: "Invalid enrollment ID" });
+
+      const certData = await db.select()
+        .from(schema.certificates)
+        .where(eq(schema.certificates.enrollmentId, enrollmentId))
+        .limit(1);
+
+      if (certData.length === 0) {
+        return res.status(404).json({ error: "Certificate not found", exists: false });
+      }
+
+      res.json({ exists: true, certificate: certData[0] });
+    } catch (error) {
+      console.error("Certificate fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch certificate" });
+    }
+  });
+
+  // ============================================================
   // EXPORT CSV - Generate from OVH database
   // ============================================================
   app.get("/api/export/tutor-gerarchia", async (req, res) => {
