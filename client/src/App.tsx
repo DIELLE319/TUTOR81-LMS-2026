@@ -21,6 +21,7 @@ import EmailPreview from "@/pages/EmailPreview";
 import LearningObjects from "@/pages/LearningObjects";
 import LearningObjectDetail from "@/pages/LearningObjectDetail";
 import CourseStructure from "@/pages/CourseStructure";
+import CoursePlayer from "@/pages/CoursePlayer";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -183,6 +184,10 @@ function Router() {
 
       <Route path="/email-preview">
         <EmailPreview />
+      </Route>
+
+      <Route path="/player">
+        <CoursePlayer />
       </Route>
 
       <Route path="/">
