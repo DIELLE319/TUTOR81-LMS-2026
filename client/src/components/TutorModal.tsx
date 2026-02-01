@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,17 +45,23 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
   const [form, setForm] = useState({
     businessName: '',
     vatNumber: '',
-    city: '',
     address: '',
+    cap: '',
+    city: '',
     province: '',
     phone: '',
     email: '',
     hasRegionalAuth: false,
     regionalAuthorization: '',
-    authorizedTrainer: '',
     atecoCode: '',
+    iban: '',
     subscriptionType: 'NESSUNO',
     subscriptionStart: '',
+    // Admin fields
+    adminFirstName: '',
+    adminLastName: '',
+    adminFiscalCode: '',
+    adminEmail: '',
   });
 
   useEffect(() => {
@@ -63,43 +69,64 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
       setForm({
         businessName: tutor.businessName || '',
         vatNumber: tutor.vatNumber || '',
-        city: tutor.city || '',
         address: tutor.address || '',
+        cap: tutor.cap || '',
+        city: tutor.city || '',
         province: tutor.province || '',
         phone: tutor.phone || '',
         email: tutor.email || '',
         hasRegionalAuth: !!tutor.regionalAuthorization,
         regionalAuthorization: tutor.regionalAuthorization || '',
-        authorizedTrainer: tutor.notes || '',
         atecoCode: '',
+        iban: '',
         subscriptionType: tutor.subscriptionType || 'NESSUNO',
         subscriptionStart: tutor.subscriptionStart || '',
+        adminFirstName: '',
+        adminLastName: '',
+        adminFiscalCode: '',
+        adminEmail: '',
       });
     } else {
       setForm({
         businessName: '',
         vatNumber: '',
-        city: '',
         address: '',
+        cap: '',
+        city: '',
         province: '',
         phone: '',
         email: '',
         hasRegionalAuth: false,
         regionalAuthorization: '',
-        authorizedTrainer: '',
         atecoCode: '',
+        iban: '',
         subscriptionType: 'NESSUNO',
         subscriptionStart: '',
+        adminFirstName: '',
+        adminLastName: '',
+        adminFiscalCode: '',
+        adminEmail: '',
       });
     }
   }, [tutor, open]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: any) => {
+    mutationFn: async (data: any) => {
       if (isEdit) {
         return apiRequest('PUT', `/api/tutors/${tutor.id}`, data);
       } else {
-        return apiRequest('POST', '/api/tutors', data);
+        // Create tutor first
+        const response = await apiRequest('POST', '/api/tutors', data.tutor);
+        const newTutor = await response.json();
+        
+        // Then create admin if provided
+        if (data.admin && data.admin.name) {
+          await apiRequest('POST', `/api/tutors/${newTutor.id}/admins`, {
+            name: data.admin.name,
+            email: data.admin.email,
+          });
+        }
+        return newTutor;
       }
     },
     onSuccess: () => {
@@ -115,20 +142,45 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const subscriptionOption = SUBSCRIPTION_OPTIONS.find(o => o.value === form.subscriptionType);
-    saveMutation.mutate({
-      businessName: form.businessName,
-      vatNumber: form.vatNumber,
-      city: form.city,
-      address: form.address,
-      province: form.province,
-      phone: form.phone,
-      email: form.email,
-      regionalAuthorization: form.hasRegionalAuth ? form.regionalAuthorization : null,
-      notes: form.authorizedTrainer,
-      subscriptionType: form.subscriptionType,
-      discountPercentage: subscriptionOption?.discount || 0,
-      subscriptionStart: form.subscriptionStart || null,
-    });
+    
+    if (isEdit) {
+      saveMutation.mutate({
+        businessName: form.businessName,
+        vatNumber: form.vatNumber,
+        address: form.address,
+        cap: form.cap,
+        city: form.city,
+        province: form.province,
+        phone: form.phone,
+        email: form.email,
+        regionalAuthorization: form.hasRegionalAuth ? form.regionalAuthorization : null,
+        subscriptionType: form.subscriptionType,
+        discountPercentage: subscriptionOption?.discount || 0,
+        subscriptionStart: form.subscriptionStart || null,
+      });
+    } else {
+      const adminName = `${form.adminFirstName} ${form.adminLastName}`.trim();
+      saveMutation.mutate({
+        tutor: {
+          businessName: form.businessName,
+          vatNumber: form.vatNumber,
+          address: form.address,
+          cap: form.cap,
+          city: form.city,
+          province: form.province,
+          phone: form.phone,
+          email: form.email,
+          regionalAuthorization: form.hasRegionalAuth ? form.regionalAuthorization : null,
+          subscriptionType: form.subscriptionType,
+          discountPercentage: subscriptionOption?.discount || 0,
+          subscriptionStart: form.subscriptionStart || null,
+        },
+        admin: adminName ? {
+          name: adminName,
+          email: form.adminEmail,
+        } : null,
+      });
+    }
   };
 
   const selectedPlan = SUBSCRIPTION_OPTIONS.find(o => o.value === form.subscriptionType);
@@ -138,7 +190,7 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-900 border-zinc-800">
         <DialogHeader>
           <DialogTitle className="text-white text-xl">
-            {isEdit ? 'Modifica Ente Formativo' : 'Nuovo Ente Formativo'}
+            {isEdit ? 'Modifica Ente Formativo' : 'Crea nuovo Ente Formativo'}
           </DialogTitle>
         </DialogHeader>
 
@@ -150,6 +202,7 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
                 value={form.businessName}
                 onChange={(e) => setForm({ ...form, businessName: e.target.value })}
                 className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                placeholder="Ragione sociale"
                 required
                 data-testid="input-business-name"
               />
@@ -161,30 +214,45 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
                 value={form.vatNumber}
                 onChange={(e) => setForm({ ...form, vatNumber: e.target.value })}
                 className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                placeholder="P.IVA"
                 required
                 data-testid="input-vat"
               />
             </div>
 
             <div>
-              <Label className="text-gray-400">Località *</Label>
-              <Input
-                value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="bg-zinc-800 border-zinc-700 text-white mt-1"
-                required
-                data-testid="input-city"
-              />
-            </div>
-
-            <div className="col-span-2">
               <Label className="text-gray-400">Indirizzo *</Label>
               <Input
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                placeholder="Indirizzo"
                 required
                 data-testid="input-address"
+              />
+            </div>
+
+            <div>
+              <Label className="text-gray-400">CAP *</Label>
+              <Input
+                value={form.cap}
+                onChange={(e) => setForm({ ...form, cap: e.target.value })}
+                className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                placeholder="CAP"
+                required
+                data-testid="input-cap"
+              />
+            </div>
+
+            <div>
+              <Label className="text-gray-400">Città *</Label>
+              <Input
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                placeholder="Città"
+                required
+                data-testid="input-city"
               />
             </div>
 
@@ -192,7 +260,7 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
               <Label className="text-gray-400">Provincia *</Label>
               <Select value={form.province} onValueChange={(v) => setForm({ ...form, province: v })}>
                 <SelectTrigger className="bg-zinc-800 border-zinc-700 text-white mt-1" data-testid="select-province">
-                  <SelectValue placeholder="Seleziona provincia" />
+                  <SelectValue placeholder="Seleziona una provincia" />
                 </SelectTrigger>
                 <SelectContent>
                   {PROVINCE.map(p => (
@@ -208,6 +276,7 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                placeholder="Telefono"
                 data-testid="input-phone"
               />
             </div>
@@ -219,6 +288,7 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                placeholder="Email"
                 required
                 data-testid="input-email"
               />
@@ -226,14 +296,14 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
           </div>
 
           <div className="border-t border-zinc-800 pt-4 mt-4">
-            <div className="flex items-center gap-4 mb-3">
-              <Label className="text-gray-400">Autorizzazione regionale</Label>
+            <div className="flex items-center gap-4 mb-4">
+              <Label className="text-gray-400 min-w-40">Autorizzazione regionale</Label>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 text-gray-300">
                   <input
                     type="radio"
                     checked={!form.hasRegionalAuth}
-                    onChange={() => setForm({ ...form, hasRegionalAuth: false })}
+                    onChange={() => setForm({ ...form, hasRegionalAuth: false, regionalAuthorization: '' })}
                     className="accent-yellow-500"
                   />
                   No
@@ -259,16 +329,61 @@ export function TutorModal({ open, onClose, tutor }: TutorModalProps) {
               )}
             </div>
 
-            <div>
-              <Label className="text-gray-400">Soggetto formatore autorizzato</Label>
-              <Textarea
-                value={form.authorizedTrainer}
-                onChange={(e) => setForm({ ...form, authorizedTrainer: e.target.value })}
-                className="bg-zinc-800 border-zinc-700 text-white mt-1 min-h-20"
-                data-testid="input-authorized-trainer"
-              />
-            </div>
           </div>
+
+          {!isEdit && (
+            <div className="border-t border-zinc-800 pt-4 mt-4">
+              <h3 className="text-lg font-bold text-white mb-4">Amministratore Ente formativo</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-400">Nome *</Label>
+                  <Input
+                    value={form.adminFirstName}
+                    onChange={(e) => setForm({ ...form, adminFirstName: e.target.value })}
+                    className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                    placeholder="Nome"
+                    required
+                    data-testid="input-admin-firstname"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-400">Cognome *</Label>
+                  <Input
+                    value={form.adminLastName}
+                    onChange={(e) => setForm({ ...form, adminLastName: e.target.value })}
+                    className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                    placeholder="Cognome"
+                    required
+                    data-testid="input-admin-lastname"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-400">Codice Fiscale *</Label>
+                  <Input
+                    value={form.adminFiscalCode}
+                    onChange={(e) => setForm({ ...form, adminFiscalCode: e.target.value })}
+                    className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                    placeholder="Codice fiscale"
+                    required
+                    data-testid="input-admin-cf"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-400">Email *</Label>
+                  <Input
+                    type="email"
+                    value={form.adminEmail}
+                    onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
+                    className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                    placeholder="Email"
+                    required
+                    data-testid="input-admin-email"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-zinc-800 pt-4 mt-4">
             <h3 className="text-lg font-bold text-yellow-500 mb-4">PIANO DI ABBONAMENTO</h3>
