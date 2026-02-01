@@ -696,5 +696,36 @@ export async function registerRoutes(
     }
   });
 
+  // ============================================================
+  // EXPORT CSV DOWNLOAD
+  // ============================================================
+  app.get("/api/exports/:filename", isAuthenticated, async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const fs = await import("fs");
+      const path = await import("path");
+      
+      // Security: only allow .csv files from exports folder
+      if (!filename.endsWith(".csv")) {
+        return res.status(400).json({ error: "Only CSV files allowed" });
+      }
+      
+      const filePath = path.join(process.cwd(), "exports", filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Export download error:", error);
+      res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
   return httpServer;
 }
