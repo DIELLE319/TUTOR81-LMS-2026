@@ -60,16 +60,16 @@ export function TutorAdmins({ tutorId }: Props) {
       {admins.map(admin => (
         <span 
           key={admin.id} 
-          className="inline-flex items-center gap-1 bg-zinc-800 text-yellow-500 text-xs px-2 py-1 rounded group"
+          className="inline-flex items-center gap-1 bg-zinc-800 text-yellow-500 text-xs px-2 py-1 rounded"
         >
           <User size={10} className="text-gray-500" />
           {admin.name}
           <button 
             onClick={() => deleteMutation.mutate(admin.id)}
-            className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="text-gray-500 hover:text-red-500 ml-1"
             data-testid={`button-remove-admin-${admin.id}`}
           >
-            <X size={10} />
+            <X size={12} />
           </button>
         </span>
       ))}
