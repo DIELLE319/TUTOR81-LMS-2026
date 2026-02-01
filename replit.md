@@ -6,7 +6,32 @@ This is a full-stack e-learning management platform for Tutor81/TutorItalia, bui
 
 The platform supports multiple user roles including administrators, tutors, and client companies, with features for course catalog management, sales tracking, user management, and certificate generation.
 
-## Recent Changes (January 31, 2026)
+## Recent Changes (February 1, 2026)
+
+- **Complete Data Import from OVH**:
+  - **14 Enti formativi (tutors)** - IDs aligned with OVH
+  - **30 Admin** - IDs aligned with OVH (tutor_admins table)
+  - **2077 Aziende clienti (companies)** 
+  - **14039 Corsisti (students)**
+  - **7699 Vendite (tutors_purchases)**
+
+- **OVH Database Structure CONFIRMED**:
+  - `users.company_id` = Cliente dell'ente formativo (NOT tutor)
+  - `users.creator_id` = Admin che ha creato l'utente
+  - `users.code` = Licenza del corso venduto
+  - `users.role` = Ruolo (0=corsista, 1=admin tutor, 2=referente aziendale, 1000=super admin)
+  - `learning_project_users.company_id` = Admin user ID (who created enrollment)
+  - `learning_project_users.id_company` = Client company ID
+  - `learning_project_users.user_id` = Corsista (student)
+
+- **tutors_purchases Table Structure**:
+  - `tutor_id` = Admin ID (chi effettua l'acquisto)
+  - `user_company_ref` = Tutor di riferimento
+  - `customer_company_id` = Cliente
+  - `learning_project_id` = Corso
+  - `qta`, `price`, `creation_date` = Dettagli vendita
+
+## Previous Changes (January 31, 2026)
 
 - **CRITICAL FIX: LP → Course → Module Mapping Corrected**
   - **Root Cause**: OVH has separate tables: `learning_project` → `unities_lo` → `course` → `course_course_modules` → `modules`
