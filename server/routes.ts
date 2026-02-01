@@ -726,6 +726,9 @@ export async function registerRoutes(
         JOIN companies tutor ON tutor.id = admin_user.company_id AND tutor.is_tutor = 1
         JOIN companies client ON client.id = lpu.id_company
         JOIN users corsista ON corsista.id = lpu.user_id
+        WHERE tutor.business_name NOT LIKE '%MIROGLIO%'
+          AND tutor.business_name NOT LIKE '%SINTEX%'
+          AND tutor.business_name NOT LIKE '%ADECCO%'
         GROUP BY tutor.id, tutor.business_name, admin_user.id, admin_user.name, admin_user.surname, client.id, client.business_name, corsista.id, corsista.name, corsista.surname
         ORDER BY tutor.business_name, client.business_name, corsista.surname
       `);
