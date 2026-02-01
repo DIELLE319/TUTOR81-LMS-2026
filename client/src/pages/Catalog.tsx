@@ -97,16 +97,39 @@ export default function Catalog() {
   }, [publishedCourses, searchTerm, selectedCategory, selectedType]);
 
   const formatCourseTitle = (title: string) => {
+    let cleanTitle = title;
     const dashIndex = title.indexOf(' - ');
     if (dashIndex > 0 && dashIndex < 30) {
-      return title.substring(dashIndex + 3).trim();
+      cleanTitle = title.substring(dashIndex + 3).trim();
+    } else {
+      cleanTitle = title
+        .replace(/^EL\d*[a-zA-Z]*\s*-\s*/i, '')
+        .replace(/^EL\s*-\s*/i, '')
+        .replace(/^st\d*[a-zA-Z]*\s*-\s*/i, '')
+        .replace(/^var\d*[a-zA-Z]*\s*-\s*/i, '')
+        .trim();
     }
-    return title
-      .replace(/^EL\d*[a-zA-Z]*\s*-\s*/i, '')
-      .replace(/^EL\s*-\s*/i, '')
-      .replace(/^st\d*[a-zA-Z]*\s*-\s*/i, '')
-      .replace(/^var\d*[a-zA-Z]*\s*-\s*/i, '')
-      .trim();
+    
+    // Figure professionali da mantenere in maiuscolo
+    const figureKeywords = [
+      'LAVORATORE', 'LAVORATORI', 'PREPOSTO', 'PREPOSTI', 'DIRIGENTE', 'DIRIGENTI',
+      'RSPP', 'ASPP', 'RLS', 'DATORE DI LAVORO', 'DDL', 'HSE', 'CSE', 'CSP',
+      'ADDETTO', 'ADDETTI', 'RESPONSABILE', 'COORDINATORE'
+    ];
+    
+    // Converti tutto in minuscolo prima
+    let result = cleanTitle.toLowerCase();
+    
+    // Rimetti in maiuscolo le figure professionali
+    figureKeywords.forEach(keyword => {
+      const regex = new RegExp(`\\b${keyword.toLowerCase()}\\b`, 'gi');
+      result = result.replace(regex, keyword);
+    });
+    
+    // Prima lettera maiuscola
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+    
+    return result;
   };
 
   const getSubcategoryLabel = (subcategory: string | null) => {
