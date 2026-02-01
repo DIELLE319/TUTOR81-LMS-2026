@@ -24,6 +24,7 @@ interface LearningObject {
   type: "video" | "slide" | "document";
   duration: number;
   completed: boolean;
+  jwplayerCode?: string | null;
 }
 
 interface Lesson {
@@ -570,35 +571,67 @@ export default function CoursePlayerVideo() {
                   )}
                 </div>
               ) : (
-                /* Normal video mode */
-                <div className="flex-1 flex items-center justify-center">
+                /* Normal content mode - video, slide, document */
+                <div className="flex-1 flex items-center justify-center p-4">
                   <div 
-                    className="bg-black rounded-lg shadow-xl w-full max-w-3xl aspect-video flex items-center justify-center relative overflow-hidden"
+                    className="bg-black rounded-lg shadow-xl w-full max-w-4xl aspect-video flex items-center justify-center relative overflow-hidden"
                     data-testid="video-area"
                   >
-                    {/* Video player placeholder - sarà sostituito con vero player */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900" />
-                    <div className="relative z-10 text-center text-white p-8">
-                      <div className="mb-4">
-                        {currentLo?.type === "video" && <Video className="h-16 w-16 mx-auto text-yellow-500" />}
-                        {currentLo?.type === "slide" && <FileText className="h-16 w-16 mx-auto text-green-500" />}
-                        {currentLo?.type === "document" && <FileText className="h-16 w-16 mx-auto text-blue-500" />}
+                    {/* Video with JWPlayer */}
+                    {currentLo?.type === "video" && currentLo?.jwplayerCode ? (
+                      <iframe
+                        key={currentLo.jwplayerCode}
+                        src={`https://cdn.jwplayer.com/players/${currentLo.jwplayerCode}.html`}
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        scrolling="auto"
+                        title={currentLo.title}
+                        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0"
+                        data-testid="jwplayer-iframe"
+                      />
+                    ) : currentLo?.type === "slide" ? (
+                      /* Slide content */
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-800 to-green-900 flex items-center justify-center">
+                        <div className="text-center text-white p-8">
+                          <FileText className="h-20 w-20 mx-auto text-green-400 mb-4" />
+                          <h2 className="text-2xl font-bold mb-2">{currentLo?.title}</h2>
+                          <p className="text-green-300 mb-4">Slide - Oggetto {currentLoIndex + 1} di {currentLesson?.learningObjects.length || 0}</p>
+                          <div className="text-yellow-400 text-2xl font-mono mb-4">
+                            {formatTime(currentTime)} / {formatTime(loDuration)}
+                          </div>
+                          <p className="text-sm text-green-200">Le slide verranno caricate dal sistema OVH</p>
+                        </div>
                       </div>
-                      <h2 className="text-2xl font-bold mb-2">
-                        {currentLo?.title || "Caricamento..."}
-                      </h2>
-                      <p className="text-gray-400 mb-4">
-                        Oggetto {currentLoIndex + 1} di {currentLesson?.learningObjects.length || 0}
-                      </p>
-                      <div className="flex items-center justify-center gap-4">
-                        <span className="text-yellow-500 text-xl font-mono">
-                          {formatTime(currentTime)} / {formatTime(loDuration)}
-                        </span>
+                    ) : currentLo?.type === "document" ? (
+                      /* Document content */
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center">
+                        <div className="text-center text-white p-8">
+                          <FileText className="h-20 w-20 mx-auto text-blue-400 mb-4" />
+                          <h2 className="text-2xl font-bold mb-2">{currentLo?.title}</h2>
+                          <p className="text-blue-300 mb-4">Documento - Oggetto {currentLoIndex + 1} di {currentLesson?.learningObjects.length || 0}</p>
+                          <div className="text-yellow-400 text-2xl font-mono mb-4">
+                            {formatTime(currentTime)} / {formatTime(loDuration)}
+                          </div>
+                          <p className="text-sm text-blue-200">I documenti verranno caricati dal sistema OVH</p>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-6">
-                        (I video verranno caricati dal server OVH)
-                      </p>
-                    </div>
+                    ) : (
+                      /* Fallback - video without JWPlayer code */
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                        <div className="text-center text-white p-8">
+                          <Video className="h-20 w-20 mx-auto text-yellow-500 mb-4" />
+                          <h2 className="text-2xl font-bold mb-2">{currentLo?.title || "Caricamento..."}</h2>
+                          <p className="text-gray-400 mb-4">Oggetto {currentLoIndex + 1} di {currentLesson?.learningObjects.length || 0}</p>
+                          <div className="text-yellow-500 text-2xl font-mono mb-4">
+                            {formatTime(currentTime)} / {formatTime(loDuration)}
+                          </div>
+                          <p className="text-sm text-gray-500">Video in caricamento...</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
