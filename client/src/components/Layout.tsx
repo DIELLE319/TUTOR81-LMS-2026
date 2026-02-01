@@ -182,7 +182,7 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* CORSI LMS - Tutti vedono */}
             <SectionHeader title="CORSI (LMS)" />
-            <MenuItem to="/courses/active" label="Attivati" iconName="Activity" />
+            <MenuItem to="/courses/active" label="In attività" iconName="Activity" />
             <MenuItem to="/certificates" label="Attestati" iconName="CheckCircle" />
             <MenuItem to="/courses/expiring" label="Da Ripetere" iconName="Clock" />
 
