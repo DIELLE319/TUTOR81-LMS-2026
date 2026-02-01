@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
 import type { LearningProject } from '@shared/schema';
@@ -201,6 +201,14 @@ export default function Catalog() {
         })
       }));
   }, [filteredCourses]);
+
+  // Espandi automaticamente tutte le categorie quando c'è un termine di ricerca
+  useEffect(() => {
+    if (searchTerm.length > 0) {
+      const allCategories = groupedCourses.map(g => g.category);
+      setExpandedCategories(new Set(allCategories));
+    }
+  }, [searchTerm, groupedCourses]);
 
   const toggleCategory = (category: string) => {
     const newExpanded = new Set(expandedCategories);
