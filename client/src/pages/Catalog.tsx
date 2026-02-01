@@ -158,7 +158,7 @@ export default function Catalog() {
 
   const getCourseTypeLabel = (courseType: string) => {
     if (courseType === 'aggiornamento') {
-      return { label: 'Aggiornamento', color: 'bg-orange-500' };
+      return { label: 'Agg.', color: 'bg-orange-500' };
     }
     if (courseType === 'base') {
       return { label: 'Base', color: 'bg-blue-500' };
