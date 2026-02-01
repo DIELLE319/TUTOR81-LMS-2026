@@ -121,6 +121,61 @@ export async function registerRoutes(
   });
 
   // ============================================================
+  // TUTOR ADMINS (Amministratori Enti Formativi)
+  // ============================================================
+  app.get("/api/tutors/:tutorId/admins", isAuthenticated, async (req, res) => {
+    try {
+      const tutorId = parseInt(req.params.tutorId as string);
+      if (isNaN(tutorId)) return res.status(400).json({ error: "Invalid tutor ID" });
+
+      const admins = await db.select()
+        .from(schema.tutorAdmins)
+        .where(eq(schema.tutorAdmins.tutorId, tutorId))
+        .orderBy(schema.tutorAdmins.name);
+
+      res.json(admins);
+    } catch (error) {
+      console.error("Tutor admins error:", error);
+      res.status(500).json({ error: "Failed to fetch tutor admins" });
+    }
+  });
+
+  app.post("/api/tutors/:tutorId/admins", isAuthenticated, async (req, res) => {
+    try {
+      const tutorId = parseInt(req.params.tutorId as string);
+      if (isNaN(tutorId)) return res.status(400).json({ error: "Invalid tutor ID" });
+
+      const { name, email, phone } = req.body;
+      if (!name) return res.status(400).json({ error: "Name is required" });
+
+      const [newAdmin] = await db.insert(schema.tutorAdmins).values({
+        tutorId,
+        name,
+        email: email || null,
+        phone: phone || null,
+      }).returning();
+
+      res.status(201).json(newAdmin);
+    } catch (error) {
+      console.error("Create tutor admin error:", error);
+      res.status(500).json({ error: "Failed to create tutor admin" });
+    }
+  });
+
+  app.delete("/api/tutor-admins/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid admin ID" });
+
+      await db.delete(schema.tutorAdmins).where(eq(schema.tutorAdmins.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete tutor admin error:", error);
+      res.status(500).json({ error: "Failed to delete tutor admin" });
+    }
+  });
+
+  // ============================================================
   // COMPANIES (Aziende Clienti)
   // ============================================================
   app.get("/api/companies", isAuthenticated, async (req, res) => {

@@ -34,6 +34,19 @@ export const tutors = pgTable("tutors", {
 });
 
 // ============================================================
+// TABELLA 1B: ADMIN DEGLI ENTI FORMATIVI
+// Ogni ente può avere più amministratori
+// ============================================================
+export const tutorAdmins = pgTable("tutor_admins", {
+  id: serial("id").primaryKey(),
+  tutorId: integer("tutor_id").references(() => tutors.id).notNull(),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================================
 // TABELLA 2: AZIENDE CLIENTI
 // Aziende che comprano corsi per i loro dipendenti
 // ============================================================

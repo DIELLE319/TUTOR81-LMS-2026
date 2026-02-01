@@ -1,0 +1,114 @@
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Plus, X, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+
+interface TutorAdmin {
+  id: number;
+  tutorId: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+}
+
+interface Props {
+  tutorId: number;
+}
+
+export function TutorAdmins({ tutorId }: Props) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const { toast } = useToast();
+
+  const { data: admins = [] } = useQuery<TutorAdmin[]>({
+    queryKey: ['/api/tutors', tutorId, 'admins'],
+    queryFn: () => fetch(`/api/tutors/${tutorId}/admins`, { credentials: 'include' }).then(r => r.json()),
+  });
+
+  const addMutation = useMutation({
+    mutationFn: (name: string) => apiRequest('POST', `/api/tutors/${tutorId}/admins`, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tutors', tutorId, 'admins'] });
+      setNewName('');
+      setIsAdding(false);
+      toast({ title: 'Admin aggiunto' });
+    },
+    onError: () => {
+      toast({ title: 'Errore', variant: 'destructive' });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/tutor-admins/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tutors', tutorId, 'admins'] });
+      toast({ title: 'Admin rimosso' });
+    },
+  });
+
+  const handleAdd = () => {
+    if (newName.trim()) {
+      addMutation.mutate(newName.trim());
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {admins.map(admin => (
+        <span 
+          key={admin.id} 
+          className="inline-flex items-center gap-1 bg-zinc-800 text-gray-300 text-xs px-2 py-1 rounded group"
+        >
+          <User size={10} className="text-gray-500" />
+          {admin.name}
+          <button 
+            onClick={() => deleteMutation.mutate(admin.id)}
+            className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+            data-testid={`button-remove-admin-${admin.id}`}
+          >
+            <X size={10} />
+          </button>
+        </span>
+      ))}
+      
+      {isAdding ? (
+        <div className="inline-flex items-center gap-1">
+          <Input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Nome admin"
+            className="h-6 w-24 text-xs bg-zinc-800 border-zinc-700"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAdd();
+              if (e.key === 'Escape') { setIsAdding(false); setNewName(''); }
+            }}
+            data-testid={`input-new-admin-${tutorId}`}
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0 text-green-500"
+            onClick={handleAdd}
+            disabled={addMutation.isPending}
+          >
+            <Plus size={12} />
+          </Button>
+        </div>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 w-6 p-0 text-gray-500 hover:text-yellow-500"
+          onClick={() => setIsAdding(true)}
+          data-testid={`button-add-admin-${tutorId}`}
+        >
+          <Plus size={14} />
+        </Button>
+      )}
+    </div>
+  );
+}
