@@ -79,8 +79,8 @@ export function TutorAdmins({ tutorId }: Props) {
           <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nome admin"
-            className="h-6 w-24 text-xs bg-zinc-800 border-zinc-700"
+            placeholder="Nome amm.re"
+            className="h-6 w-28 text-xs bg-zinc-800 border-zinc-700"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleAdd();
@@ -99,15 +99,14 @@ export function TutorAdmins({ tutorId }: Props) {
           </Button>
         </div>
       ) : (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-6 w-6 p-0 text-gray-500 hover:text-yellow-500"
+        <button
+          className="inline-flex items-center gap-1 text-gray-500 hover:text-yellow-500 text-xs"
           onClick={() => setIsAdding(true)}
           data-testid={`button-add-admin-${tutorId}`}
         >
-          <Plus size={14} />
-        </Button>
+          <Plus size={12} />
+          <span>{admins.length === 0 ? 'Aggiungi amm.re' : ''}</span>
+        </button>
       )}
     </div>
   );
