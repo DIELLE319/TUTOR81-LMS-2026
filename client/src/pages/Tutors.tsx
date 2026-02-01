@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Link } from 'wouter';
-import { Search, Plus, Building, MapPin, Mail, Phone, Pause, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, Building, Pause, Pencil, Trash2 } from 'lucide-react';
 import type { Tutor } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -9,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TutorAdmins } from '@/components/TutorAdmins';
+import { TutorModal } from '@/components/TutorModal';
 
 const SUBSCRIPTION_OPTIONS = [
   { value: 'NESSUNO', label: 'Nessun abbonamento', discount: 0 },
@@ -19,7 +19,19 @@ const SUBSCRIPTION_OPTIONS = [
 
 export default function Tutors() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTutor, setEditingTutor] = useState<Tutor | null>(null);
   const { toast } = useToast();
+
+  const openCreateModal = () => {
+    setEditingTutor(null);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (tutor: Tutor) => {
+    setEditingTutor(tutor);
+    setModalOpen(true);
+  };
 
   const { data: tutors = [], isLoading } = useQuery<Tutor[]>({
     queryKey: ['/api/tutors'],
@@ -119,15 +131,14 @@ export default function Tutors() {
           <h1 className="text-2xl font-bold text-white" data-testid="text-tutors-title">Enti Formativi</h1>
           <p className="text-gray-500 text-sm">{tutors.length} enti formativi registrati</p>
         </div>
-        <Link href="/tutors/new">
-          <button 
-            className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-            data-testid="button-new-tutor"
-          >
-            <Plus size={18} />
-            Nuovo Ente
-          </button>
-        </Link>
+        <button 
+          onClick={openCreateModal}
+          className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          data-testid="button-new-tutor"
+        >
+          <Plus size={18} />
+          Nuovo Ente
+        </button>
       </div>
 
       <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4 mb-6">
@@ -250,16 +261,15 @@ export default function Tutors() {
                       >
                         <Pause size={14} />
                       </Button>
-                      <Link href={`/tutors/${tutor.id}/edit`}>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-gray-400 hover:text-blue-500"
-                          data-testid={`button-edit-tutor-${tutor.id}`}
-                        >
-                          <Pencil size={14} />
-                        </Button>
-                      </Link>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-400 hover:text-blue-500"
+                        onClick={() => openEditModal(tutor)}
+                        data-testid={`button-edit-tutor-${tutor.id}`}
+                      >
+                        <Pencil size={14} />
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -277,6 +287,11 @@ export default function Tutors() {
           </table>
         </div>
       )}
+      <TutorModal 
+        open={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        tutor={editingTutor} 
+      />
     </div>
   );
 }
