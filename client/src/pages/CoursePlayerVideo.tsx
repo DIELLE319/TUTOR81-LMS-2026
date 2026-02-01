@@ -115,13 +115,13 @@ export default function CoursePlayerVideo() {
             id: 1,
             title: "Demo T81 - Lezioni dimostrative",
             learningObjects: [
-              { id: 1, title: "Demo T81 - Es. 1 - Diritti e doveri", type: "video", duration: 120, completed: false },
-              { id: 2, title: "Demo T81 - Es.2 - Introduzione al Decreto 81", type: "slide", duration: 90, completed: false },
-              { id: 3, title: "Demo T81 - Es. 3 - Introduzione Decreto 81 parte 2", type: "slide", duration: 60, completed: false },
-              { id: 4, title: "Demo T81 - Es. 4 - La costituzione", type: "video", duration: 45, completed: false },
-              { id: 5, title: "Demo T81 - Es. 5 - Rischio MMC", type: "video", duration: 80, completed: false },
-              { id: 6, title: "Demo T81 - Es. 6 - Rischio di mansione", type: "slide", duration: 55, completed: false },
-              { id: 7, title: "Demo T81 - Es. 7 - Lezione personalizzata Azienda", type: "document", duration: 30, completed: false },
+              { id: 1, title: "Demo T81 - Es. 1 - Diritti e doveri", type: "video", duration: 10, completed: false },
+              { id: 2, title: "Demo T81 - Es.2 - Introduzione al Decreto 81", type: "slide", duration: 8, completed: false },
+              { id: 3, title: "Demo T81 - Es. 3 - Introduzione Decreto 81 parte 2", type: "slide", duration: 8, completed: false },
+              { id: 4, title: "Demo T81 - Es. 4 - La costituzione", type: "video", duration: 8, completed: false },
+              { id: 5, title: "Demo T81 - Es. 5 - Rischio MMC", type: "video", duration: 8, completed: false },
+              { id: 6, title: "Demo T81 - Es. 6 - Rischio di mansione", type: "slide", duration: 8, completed: false },
+              { id: 7, title: "Demo T81 - Es. 7 - Lezione personalizzata Azienda", type: "document", duration: 8, completed: false },
             ]
           }
         ]
