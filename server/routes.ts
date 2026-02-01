@@ -462,7 +462,7 @@ export async function registerRoutes(
       const tutorId = req.query.tutorId ? parseInt(req.query.tutorId as string) : null;
       const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
 
-      const enrollments = await db.select({
+      const enrollmentsRaw = await db.select({
         id: schema.enrollments.id,
         studentId: schema.enrollments.studentId,
         courseId: schema.enrollments.courseId,
@@ -472,6 +472,7 @@ export async function registerRoutes(
         progress: schema.enrollments.progress,
         status: schema.enrollments.status,
         createdAt: schema.enrollments.createdAt,
+        completedAt: schema.enrollments.completedAt,
         studentEmail: schema.students.email,
         studentFirstName: schema.students.firstName,
         studentLastName: schema.students.lastName,
@@ -486,7 +487,7 @@ export async function registerRoutes(
         .leftJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
         .orderBy(desc(schema.enrollments.createdAt));
 
-      let filtered = enrollments;
+      let filtered = enrollmentsRaw;
       if (tutorId) {
         filtered = filtered.filter(e => e.tutorId === tutorId);
       }
@@ -494,7 +495,23 @@ export async function registerRoutes(
         filtered = filtered.filter(e => e.companyId === companyId);
       }
 
-      res.json(filtered);
+      const enrollments = filtered.map(e => ({
+        id: e.id,
+        companyName: e.companyName || '',
+        userName: `${e.studentLastName || ''} ${e.studentFirstName || ''}`.trim(),
+        userEmail: e.studentEmail || '',
+        courseName: e.courseTitle || '',
+        startDate: e.startDate,
+        endDate: e.endDate,
+        lastAccessAt: e.completedAt,
+        progress: e.progress || 0,
+        status: e.status || 'active',
+        emailSentAt: null,
+        emailOpenedAt: null,
+        licenseCode: e.licenseCode,
+      }));
+
+      res.json(enrollments);
     } catch (error) {
       console.error("Enrollments error:", error);
       res.status(500).json({ error: "Failed to fetch enrollments" });
