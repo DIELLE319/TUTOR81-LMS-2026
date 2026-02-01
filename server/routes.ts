@@ -629,5 +629,79 @@ export async function registerRoutes(
     }
   });
 
+  // ============================================================
+  // ATTESTATI FTP (Legacy Certificates from Vultr)
+  // ============================================================
+  app.get("/api/attestati", isAuthenticated, async (req, res) => {
+    const ftp = require("basic-ftp");
+    const client = new ftp.Client();
+    
+    try {
+      await client.access({
+        host: "95.179.207.157",
+        user: process.env.FTP_USERNAME,
+        password: process.env.FTP_PASSWORD,
+        secure: false,
+      });
+      
+      await client.cd("/media/media/attestati");
+      const files = await client.list();
+      
+      // Extract legacy_id from filename: attestato_licenza_{legacy_id}.pdf
+      const attestati = files
+        .filter((f: any) => f.name.endsWith(".pdf"))
+        .map((f: any) => {
+          const match = f.name.match(/attestato_licenza_(\d+)\.pdf/);
+          return {
+            filename: f.name,
+            legacyId: match ? parseInt(match[1]) : null,
+            size: f.size,
+            date: f.modifiedAt,
+          };
+        })
+        .filter((a: any) => a.legacyId !== null);
+      
+      res.json({
+        total: attestati.length,
+        attestati: attestati.slice(0, 100), // First 100 for preview
+      });
+    } catch (error) {
+      console.error("FTP attestati error:", error);
+      res.status(500).json({ error: "Failed to fetch attestati from FTP" });
+    } finally {
+      client.close();
+    }
+  });
+
+  // Download specific attestato
+  app.get("/api/attestato/:legacyId/download", isAuthenticated, async (req, res) => {
+    const ftp = require("basic-ftp");
+    const { Writable } = require("stream");
+    const client = new ftp.Client();
+    const legacyId = req.params.legacyId;
+    
+    try {
+      await client.access({
+        host: "95.179.207.157",
+        user: process.env.FTP_USERNAME,
+        password: process.env.FTP_PASSWORD,
+        secure: false,
+      });
+      
+      const filename = `attestato_licenza_${legacyId}.pdf`;
+      const remotePath = `/media/media/attestati/${filename}`;
+      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      
+      await client.downloadTo(res, remotePath);
+    } catch (error) {
+      console.error("FTP download error:", error);
+      res.status(500).json({ error: "Failed to download attestato" });
+    } finally {
+      client.close();
+    }
+  });
+
   return httpServer;
 }
