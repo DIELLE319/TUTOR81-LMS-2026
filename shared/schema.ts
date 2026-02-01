@@ -48,6 +48,29 @@ export const tutorAdmins = pgTable("tutor_admins", {
 });
 
 // ============================================================
+// TABELLA 1C: VENDITE/ACQUISTI CORSI
+// Vendite fatte dagli admin ai clienti
+// ============================================================
+export const tutorsPurchases = pgTable("tutors_purchases", {
+  id: serial("id").primaryKey(),
+  tutorId: integer("tutor_id").references(() => tutors.id).notNull(),
+  customerCompanyId: integer("customer_company_id").notNull(), // Client company
+  userCompanyRef: integer("user_company_ref").notNull(), // Admin who made the sale
+  learningProjectId: integer("learning_project_id").notNull(),
+  qta: integer("qta").notNull().default(1),
+  price: decimal("price", { precision: 6, scale: 2 }).notNull().default("0.00"),
+  creationDate: timestamp("creation_date").defaultNow(),
+  code: varchar("code", { length: 40 }),
+  executed: boolean("executed").default(false),
+  nota: varchar("nota", { length: 255 }),
+  invoiced: boolean("invoiced").default(false),
+  invoiceDate: date("invoice_date"),
+  extPoNumber: varchar("ext_po_number", { length: 30 }),
+  costCentreId: integer("cost_centre_id"),
+  packPurchaseId: integer("pack_purchase_id"),
+});
+
+// ============================================================
 // TABELLA 2: AZIENDE CLIENTI
 // Aziende che comprano corsi per i loro dipendenti
 // ============================================================
