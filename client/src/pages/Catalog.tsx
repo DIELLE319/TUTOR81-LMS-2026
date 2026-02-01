@@ -72,7 +72,7 @@ export default function Catalog() {
   // Filtra solo corsi pubblicati, non test, non riservati
   const publishedCourses = useMemo(() => {
     return projects.filter(c => 
-      c.isPublishedInEcommerce === 1 && 
+      c.isPublished === true && 
       !isTestCourse(c.title) && 
       !(c.reservedTo && c.reservedTo > 0)
     );
