@@ -129,8 +129,9 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
-  // Get tutorId from logged-in user
-  const tutorId = user?.idcompany;
+  // Get tutorId from logged-in user (super admins see all companies)
+  const isSuperAdmin = user?.role === 1000;
+  const tutorId = isSuperAdmin ? null : user?.idcompany;
 
   const enrollMutation = useMutation({
     mutationFn: async (data: { courseId: number; companyId: number; corsisti: CorsistaRow[] }) => {
