@@ -78,6 +78,8 @@ export default function CoursePlayerVideo() {
   const [currentTime, setCurrentTime] = useState(0);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentLoIndex, setCurrentLoIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [courseData, setCourseData] = useState<CourseData | null>(null);
   
   // Quiz state
   const [showQuiz, setShowQuiz] = useState(false);
@@ -95,43 +97,69 @@ export default function CoursePlayerVideo() {
   const [triggeredPoints, setTriggeredPoints] = useState<Set<number>>(new Set());
   const [totalQuestionsCount, setTotalQuestionsCount] = useState(0);
 
-  // Mock data - in produzione verrà da API
-  const userData = {
-    name: "Luigiptrlgu80a01",
-    surname: "a944a Paterno",
-    company: "AZIENDA DIMOSTRATIVA SPA",
-    loginTime: "13:39 01-02-2026",
-    ip: "87.4.37.9"
-  };
-
-  const courseData: CourseData = {
-    title: "CORSO DIMOSTRATIVO TUTOR81 2022",
-    modules: [
-      {
-        id: 1,
-        title: "Modulo 1",
-        lessons: [
-          {
-            id: 1,
-            title: "Demo T81 - Lezioni dimostrative",
-            learningObjects: [
-              { id: 1, title: "Demo T81 - Es. 1 - Diritti e doveri", type: "video", duration: 10, completed: false },
-              { id: 2, title: "Demo T81 - Es.2 - Introduzione al Decreto 81", type: "slide", duration: 8, completed: false },
-              { id: 3, title: "Demo T81 - Es. 3 - Introduzione Decreto 81 parte 2", type: "slide", duration: 8, completed: false },
-              { id: 4, title: "Demo T81 - Es. 4 - La costituzione", type: "video", duration: 8, completed: false },
-              { id: 5, title: "Demo T81 - Es. 5 - Rischio MMC", type: "video", duration: 8, completed: false },
-              { id: 6, title: "Demo T81 - Es. 6 - Rischio di mansione", type: "slide", duration: 8, completed: false },
-              { id: 7, title: "Demo T81 - Es. 7 - Lezione personalizzata Azienda", type: "document", duration: 8, completed: false },
-            ]
-          }
-        ]
+  // Load course structure from API
+  useEffect(() => {
+    const loadCourseStructure = async () => {
+      const enrollment = localStorage.getItem("playerEnrollment");
+      if (!enrollment) {
+        window.location.href = "/player-login";
+        return;
       }
-    ]
+
+      try {
+        const enrollmentData = JSON.parse(enrollment);
+        const courseId = enrollmentData.learningProjectId || enrollmentData.courseId;
+        
+        const response = await fetch(`/api/player/course/${courseId}/structure`);
+        if (!response.ok) throw new Error("Failed to load course");
+        
+        const data = await response.json();
+        
+        // Transform API data to component format
+        const transformedModules = data.modules.map((module: any) => ({
+          id: module.id,
+          title: module.title,
+          lessons: module.lessons.map((lesson: any) => ({
+            id: lesson.id,
+            title: lesson.title,
+            learningObjects: lesson.learningObjects.map((lo: any) => ({
+              id: lo.id,
+              title: lo.title,
+              type: lo.type || "video",
+              duration: lo.duration || 60,
+              completed: false,
+              jwplayerCode: lo.jwplayerCode
+            }))
+          }))
+        }));
+
+        setCourseData({
+          title: data.title,
+          modules: transformedModules
+        });
+      } catch (error) {
+        console.error("Failed to load course structure:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCourseStructure();
+  }, []);
+
+  // Get user data from localStorage
+  const storedUser = localStorage.getItem("playerUser");
+  const userData = storedUser ? JSON.parse(storedUser) : {
+    firstName: "Utente",
+    lastName: "",
+    company: ""
   };
 
-  const currentLesson = courseData.modules[0]?.lessons[currentLessonIndex];
+  // Get all lessons flat
+  const allLessons = courseData?.modules.flatMap(m => m.lessons) || [];
+  const currentLesson = allLessons[currentLessonIndex];
   const currentLo = currentLesson?.learningObjects[currentLoIndex];
-  const loDuration = currentLo?.duration || 120;
+  const loDuration = currentLo?.duration || 60;
 
   // Timer for current learning object
   useEffect(() => {
@@ -145,23 +173,23 @@ export default function CoursePlayerVideo() {
 
   // Auto-advance to next learning object when current one ends
   useEffect(() => {
-    if (currentTime >= loDuration && !showQuiz) {
-      const allLessons = courseData.modules.flatMap(m => m.lessons);
-      const currentLessonObj = allLessons[currentLessonIndex];
-      
-      if (currentLessonObj && currentLoIndex < currentLessonObj.learningObjects.length - 1) {
-        // Next LO in same lesson
-        setCurrentLoIndex(prev => prev + 1);
-        setCurrentTime(0);
-      } else if (currentLessonIndex < allLessons.length - 1) {
-        // Next lesson
-        setCurrentLessonIndex(prev => prev + 1);
-        setCurrentLoIndex(0);
-        setCurrentTime(0);
-      }
-      // If no more LOs/lessons, course is complete
+    if (!courseData || currentTime < loDuration || showQuiz) return;
+    
+    const lessons = courseData.modules.flatMap(m => m.lessons);
+    const currentLessonObj = lessons[currentLessonIndex];
+    
+    if (currentLessonObj && currentLoIndex < currentLessonObj.learningObjects.length - 1) {
+      // Next LO in same lesson
+      setCurrentLoIndex(prev => prev + 1);
+      setCurrentTime(0);
+    } else if (currentLessonIndex < lessons.length - 1) {
+      // Next lesson
+      setCurrentLessonIndex(prev => prev + 1);
+      setCurrentLoIndex(0);
+      setCurrentTime(0);
     }
-  }, [currentTime, loDuration, showQuiz, currentLessonIndex, currentLoIndex]);
+    // If no more LOs/lessons, course is complete
+  }, [currentTime, loDuration, showQuiz, currentLessonIndex, currentLoIndex, courseData]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -313,6 +341,32 @@ export default function CoursePlayerVideo() {
       }
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Caricamento corso...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no course data
+  if (!courseData || courseData.modules.length === 0) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <p className="text-red-600 text-xl mb-4">Nessun contenuto disponibile per questo corso</p>
+          <Button onClick={() => window.location.href = "/player"}>
+            Torna ai corsi
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
@@ -483,14 +537,16 @@ export default function CoursePlayerVideo() {
                     ) : (
                       /* Fase feedback */
                       <div className="space-y-4">
-                        <div className={`flex items-center gap-2 ${lastAnswerCorrect ? 'text-green-600' : 'text-green-600'}`}>
-                          <span className="text-green-600">Corretto</span>
-                          <span>- Risposta Corretta</span>
-                        </div>
-                        <div className={`flex items-center gap-2 ${!lastAnswerCorrect ? 'text-red-600' : 'text-red-600'}`}>
-                          <span className="text-red-600">Non corretto</span>
-                          <span>- Risposta Errata</span>
-                        </div>
+                        {lastAnswerCorrect ? (
+                          <div className="flex items-center gap-2 text-green-600 text-xl">
+                            <Check className="h-6 w-6" />
+                            <span className="font-bold">Risposta Corretta!</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-red-600 text-xl">
+                            <span className="font-bold">Risposta Errata</span>
+                          </div>
+                        )}
                         
                         <Button
                           onClick={handleContinueFromFeedback}
