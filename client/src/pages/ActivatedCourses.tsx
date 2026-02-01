@@ -240,8 +240,8 @@ export default function ActivatedCourses() {
             <Button
               variant={statusFilter === "active" ? "default" : "outline"}
               className={statusFilter === "active" 
-                ? "bg-yellow-500 hover:bg-yellow-400 text-black font-bold" 
-                : "bg-transparent text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-black"
+                ? "bg-green-600 hover:bg-green-700 text-white font-bold" 
+                : "bg-transparent text-green-400 border-green-400 hover:bg-green-500 hover:text-white"
               }
               onClick={() => setStatusFilter(statusFilter === "active" ? "all" : "active")}
               data-testid="button-filter-active"
