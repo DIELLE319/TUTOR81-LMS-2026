@@ -128,7 +128,6 @@ export default function Tutors() {
               <tr className="border-b border-zinc-800 bg-zinc-800/50">
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">ID</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Ragione Sociale</th>
-                <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Amm.re Ente</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Indirizzo</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Telefono</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Email</th>
@@ -149,11 +148,13 @@ export default function Tutors() {
                       <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
                         <Building size={18} className="text-yellow-500" />
                       </div>
-                      <span className="font-medium text-white">{tutor.businessName}</span>
+                      <div>
+                        <span className="font-medium text-white block">{tutor.businessName}</span>
+                        <div className="mt-1">
+                          <TutorAdmins tutorId={tutor.id} />
+                        </div>
+                      </div>
                     </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <TutorAdmins tutorId={tutor.id} />
                   </td>
                   <td className="py-3 px-4 text-gray-400 text-sm">
                     {tutor.address || '-'}
