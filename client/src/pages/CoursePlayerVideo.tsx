@@ -301,12 +301,16 @@ export default function CoursePlayerVideo() {
 
   // Demo: trigger quiz manually for testing
   const triggerDemoQuiz = () => {
-    if (!showQuiz && sampleQuestions.length > 0) {
-      const randomQ = sampleQuestions[Math.floor(Math.random() * sampleQuestions.length)];
-      setCurrentQuestion(randomQ);
-      setShowQuiz(true);
-      setQuizTimer(30);
-      setSelectedAnswer("");
+    if (!showQuiz && interruptionPoints.length > 0) {
+      // Pick a random question from any interruption point
+      const allQuestions = interruptionPoints.flatMap(p => p.questions);
+      if (allQuestions.length > 0) {
+        const randomQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+        setCurrentQuestion(randomQ);
+        setShowQuiz(true);
+        setQuizTimer(30);
+        setSelectedAnswer("");
+      }
     }
   };
 
@@ -448,19 +452,19 @@ export default function CoursePlayerVideo() {
                           onValueChange={setSelectedAnswer}
                           className="space-y-4"
                         >
-                          {(currentQuestion.options || []).map((option, idx) => (
-                            <div key={idx} className="flex items-center space-x-3">
+                          {(currentQuestion.answers || []).map((answer) => (
+                            <div key={answer.id} className="flex items-center space-x-3">
                               <RadioGroupItem 
-                                value={idx.toString()} 
-                                id={`option-${idx}`}
+                                value={answer.id.toString()} 
+                                id={`option-${answer.id}`}
                                 className="border-gray-400"
-                                data-testid={`quiz-option-${idx}`}
+                                data-testid={`quiz-option-${answer.id}`}
                               />
                               <Label 
-                                htmlFor={`option-${idx}`}
+                                htmlFor={`option-${answer.id}`}
                                 className="text-gray-700 cursor-pointer"
                               >
-                                {option}
+                                {answer.text}
                               </Label>
                             </div>
                           ))}
