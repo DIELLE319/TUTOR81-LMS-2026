@@ -397,7 +397,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
             <div className="bg-gray-100 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-700">
                 <strong>Per accedere al corso:</strong><br />
-                1. Vai su <code className="bg-yellow-200 px-1">accedi.tutor81.com/player</code><br />
+                1. Vai su <code className="bg-yellow-200 px-1">accedi.tutor81.com</code><br />
                 2. Inserisci il <strong>Codice Licenza</strong> e il <strong>Codice Fiscale</strong>
               </p>
             </div>
