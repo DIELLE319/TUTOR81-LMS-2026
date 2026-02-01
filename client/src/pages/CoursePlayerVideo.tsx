@@ -548,12 +548,12 @@ export default function CoursePlayerVideo() {
             {/* Pannello verifica apprendimento */}
             <div className="w-64 bg-white border-l p-4">
               <h3 className="font-semibold text-gray-700 mb-4">Verifica apprendimento:</h3>
-              <div className="flex gap-2 h-24 mb-4">
-                <div className="flex-1 bg-green-500 text-white rounded flex items-center justify-center">
-                  <span className="text-4xl font-bold">{correctAnswers}</span>
+              <div className="flex flex-col gap-2 mb-4">
+                <div className="h-16 bg-green-500 text-white rounded flex items-center justify-center">
+                  <span className="text-3xl font-bold">{correctAnswers}</span>
                 </div>
-                <div className="flex-1 bg-red-500 text-white rounded flex items-center justify-center">
-                  <span className="text-4xl font-bold">{wrongAnswers}</span>
+                <div className="h-16 bg-red-500 text-white rounded flex items-center justify-center">
+                  <span className="text-3xl font-bold">{wrongAnswers}</span>
                 </div>
               </div>
               <p className="text-sm text-gray-500 text-center">
