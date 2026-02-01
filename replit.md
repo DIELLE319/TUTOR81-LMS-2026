@@ -11,6 +11,10 @@ This is a full-stack e-learning management platform for Tutor81/TutorItalia, bui
 admin6d05a9d5@amm.tutor81.com:~/git/amm.tutor81.com.git
 ```
 
+**Credenziali SSH OVH:**
+- Username: admin6d05a9d5
+- Password: Q3MxD!WMp@4n
+
 **Database OVH:**
 - Host: 135.125.205.19:3306
 - Database: pro_tutor81
