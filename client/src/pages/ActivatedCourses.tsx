@@ -55,6 +55,7 @@ interface Enrollment {
   status: string;
   emailSentAt: string | null;
   emailOpenedAt: string | null;
+  licenseCode: string | null;
 }
 
 interface Company {
@@ -96,11 +97,7 @@ export default function ActivatedCourses() {
 
   const sendEmailsMutation = useMutation({
     mutationFn: async (enrollmentIds: number[]) => {
-      return apiRequest("/api/enrollments/send-emails", {
-        method: "POST",
-        body: JSON.stringify({ enrollmentIds }),
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiRequest("POST", "/api/enrollments/send-emails", { enrollmentIds });
     },
     onSuccess: () => {
       toast({ title: "Email inviate con successo!" });
@@ -114,11 +111,7 @@ export default function ActivatedCourses() {
 
   const updateEndDateMutation = useMutation({
     mutationFn: async ({ enrollmentIds, endDate }: { enrollmentIds: number[]; endDate: string }) => {
-      return apiRequest("/api/enrollments/update-end-date", {
-        method: "POST",
-        body: JSON.stringify({ enrollmentIds, endDate }),
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiRequest("POST", "/api/enrollments/update-end-date", { enrollmentIds, endDate });
     },
     onSuccess: () => {
       toast({ title: "Scadenza aggiornata con successo!" });
@@ -134,11 +127,7 @@ export default function ActivatedCourses() {
 
   const deleteEnrollmentsMutation = useMutation({
     mutationFn: async (enrollmentIds: number[]) => {
-      return apiRequest("/api/enrollments/delete", {
-        method: "POST",
-        body: JSON.stringify({ enrollmentIds }),
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiRequest("POST", "/api/enrollments/delete", { enrollmentIds });
     },
     onSuccess: () => {
       toast({ title: "Licenze rimosse con successo!" });
@@ -153,11 +142,7 @@ export default function ActivatedCourses() {
 
   const sendReminderMutation = useMutation({
     mutationFn: async (enrollmentIds: number[]) => {
-      return apiRequest("/api/enrollments/send-reminder", {
-        method: "POST",
-        body: JSON.stringify({ enrollmentIds }),
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiRequest("POST", "/api/enrollments/send-reminder", { enrollmentIds });
     },
     onSuccess: () => {
       toast({ title: "Solleciti inviati con successo!" });
@@ -185,7 +170,11 @@ export default function ActivatedCourses() {
   };
 
   const handleLaunchCourse = (enrollment: Enrollment) => {
-    const playerUrl = `https://avviacorso.tutor81.com/player.php?enrollment_id=${enrollment.id}`;
+    if (!enrollment.licenseCode) {
+      toast({ title: "Codice licenza mancante", variant: "destructive" });
+      return;
+    }
+    const playerUrl = `https://avviacorso.tutor81.com/player.php?course=${enrollment.licenseCode}`;
     window.open(playerUrl, '_blank');
   };
 

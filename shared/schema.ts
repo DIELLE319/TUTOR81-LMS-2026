@@ -115,6 +115,7 @@ export const enrollments = pgTable("enrollments", {
   legacyUserId: integer("legacy_user_id"),
   companyId: integer("company_id").references(() => companies.id),
   learningProjectId: integer("learning_project_id").references(() => learningProjects.id),
+  licenseCode: text("license_code"),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
   lastAccessAt: timestamp("last_access_at"),

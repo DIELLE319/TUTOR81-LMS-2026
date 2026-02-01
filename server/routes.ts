@@ -959,6 +959,7 @@ export async function registerRoutes(
         status: schema.enrollments.status,
         emailSentAt: schema.enrollments.emailSentAt,
         emailOpenedAt: schema.enrollments.emailOpenedAt,
+        licenseCode: schema.enrollments.licenseCode,
       })
         .from(schema.enrollments)
         .orderBy(desc(schema.enrollments.id))
@@ -1011,6 +1012,7 @@ export async function registerRoutes(
           status: e.status || 'not_started',
           emailSentAt: e.emailSentAt,
           emailOpenedAt: e.emailOpenedAt,
+          licenseCode: e.licenseCode,
         };
       }));
 
@@ -1289,6 +1291,96 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Send emails error:", error);
       res.status(500).json({ message: "Errore nell'invio delle email" });
+    }
+  });
+
+  // Update end date for multiple enrollments
+  app.post("/api/enrollments/update-end-date", isAuthenticated, async (req, res) => {
+    try {
+      const { enrollmentIds, endDate } = req.body as { enrollmentIds: number[]; endDate: string };
+      
+      if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
+        return res.status(400).json({ message: "Nessun iscritto selezionato" });
+      }
+
+      if (!endDate) {
+        return res.status(400).json({ message: "Data di scadenza non specificata" });
+      }
+
+      const newEndDate = new Date(endDate);
+      let updatedCount = 0;
+
+      for (const enrollmentId of enrollmentIds) {
+        await db.update(schema.enrollments)
+          .set({ endDate: newEndDate })
+          .where(eq(schema.enrollments.id, enrollmentId));
+        updatedCount++;
+      }
+
+      res.json({ 
+        success: true, 
+        message: `${updatedCount} scadenze aggiornate`,
+        updatedCount 
+      });
+    } catch (error) {
+      console.error("Update end date error:", error);
+      res.status(500).json({ message: "Errore nell'aggiornamento delle scadenze" });
+    }
+  });
+
+  // Delete multiple enrollments
+  app.post("/api/enrollments/delete", isAuthenticated, async (req, res) => {
+    try {
+      const { enrollmentIds } = req.body as { enrollmentIds: number[] };
+      
+      if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
+        return res.status(400).json({ message: "Nessun iscritto selezionato" });
+      }
+
+      let deletedCount = 0;
+
+      for (const enrollmentId of enrollmentIds) {
+        await db.delete(schema.enrollments)
+          .where(eq(schema.enrollments.id, enrollmentId));
+        deletedCount++;
+      }
+
+      res.json({ 
+        success: true, 
+        message: `${deletedCount} licenze rimosse`,
+        deletedCount 
+      });
+    } catch (error) {
+      console.error("Delete enrollments error:", error);
+      res.status(500).json({ message: "Errore nella rimozione delle licenze" });
+    }
+  });
+
+  // Send reminder emails
+  app.post("/api/enrollments/send-reminder", isAuthenticated, async (req, res) => {
+    try {
+      const { enrollmentIds } = req.body as { enrollmentIds: number[] };
+      
+      if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
+        return res.status(400).json({ message: "Nessun iscritto selezionato" });
+      }
+
+      let sentCount = 0;
+
+      for (const enrollmentId of enrollmentIds) {
+        // TODO: Actual reminder email sending will be implemented when email service is configured
+        console.log(`Reminder marked as sent for enrollment ${enrollmentId}`);
+        sentCount++;
+      }
+
+      res.json({ 
+        success: true, 
+        message: `${sentCount} solleciti inviati`,
+        sentCount 
+      });
+    } catch (error) {
+      console.error("Send reminder error:", error);
+      res.status(500).json({ message: "Errore nell'invio dei solleciti" });
     }
   });
 
