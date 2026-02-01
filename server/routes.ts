@@ -633,43 +633,36 @@ export async function registerRoutes(
   // ATTESTATI FTP (Legacy Certificates from Vultr)
   // ============================================================
   app.get("/api/attestati", isAuthenticated, async (req, res) => {
-    const ftp = require("basic-ftp");
-    const client = new ftp.Client();
-    
     try {
-      await client.access({
-        host: "95.179.207.157",
-        user: process.env.FTP_USERNAME,
-        password: process.env.FTP_PASSWORD,
-        secure: false,
-      });
+      // Query attestati from legacy tables with all joins
+      const attestati = await db.execute(sql`
+        SELECT 
+          le.id,
+          le.legacy_id,
+          le.legacy_user_id,
+          le.license_code,
+          le.start_date,
+          le.end_date,
+          le.accreditation_code,
+          lu.first_name as user_first_name,
+          lu.last_name as user_last_name,
+          lu.email as user_email,
+          lu.fiscal_code as user_fiscal_code,
+          c.title as course_title,
+          c.hours as course_hours,
+          t.business_name as tutor_name
+        FROM legacy_enrollments le
+        LEFT JOIN legacy_users lu ON le.legacy_user_id = lu.legacy_id
+        LEFT JOIN courses c ON le.legacy_course_id = c.id
+        LEFT JOIN tutors t ON le.legacy_company_id = t.id
+        ORDER BY le.end_date DESC NULLS LAST
+        LIMIT 1000
+      `);
       
-      await client.cd("/media/media/attestati");
-      const files = await client.list();
-      
-      // Extract legacy_id from filename: attestato_licenza_{legacy_id}.pdf
-      const attestati = files
-        .filter((f: any) => f.name.endsWith(".pdf"))
-        .map((f: any) => {
-          const match = f.name.match(/attestato_licenza_(\d+)\.pdf/);
-          return {
-            filename: f.name,
-            legacyId: match ? parseInt(match[1]) : null,
-            size: f.size,
-            date: f.modifiedAt,
-          };
-        })
-        .filter((a: any) => a.legacyId !== null);
-      
-      res.json({
-        total: attestati.length,
-        attestati: attestati.slice(0, 100), // First 100 for preview
-      });
+      res.json(attestati.rows);
     } catch (error) {
-      console.error("FTP attestati error:", error);
-      res.status(500).json({ error: "Failed to fetch attestati from FTP" });
-    } finally {
-      client.close();
+      console.error("Attestati error:", error);
+      res.status(500).json({ error: "Failed to fetch attestati" });
     }
   });
 
