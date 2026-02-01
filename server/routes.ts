@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, desc, sql, ilike, or } from "drizzle-orm";
+import { eq, and, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -489,7 +489,8 @@ export async function registerRoutes(
         .leftJoin(schema.companies, eq(schema.students.companyId, schema.companies.id))
         .leftJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
         .leftJoin(schema.tutors, eq(schema.enrollments.tutorId, schema.tutors.id))
-        .orderBy(desc(schema.enrollments.createdAt));
+        .where(isNotNull(schema.enrollments.tutorId))
+        .orderBy(desc(schema.enrollments.startDate));
 
       let filtered = enrollmentsRaw;
       if (tutorId) {
