@@ -251,20 +251,6 @@ export default function ActivatedCourses() {
                 Invia Email ({selectedIds.length})
               </Button>
             )}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-black font-medium">Search:</span>
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Cerca..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-48 bg-white border-black pr-8"
-                  data-testid="input-search"
-                />
-                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-black" />
-              </div>
-            </div>
           </div>
         </div>
 
@@ -287,7 +273,20 @@ export default function ActivatedCourses() {
                   Cognome Nome
                 </th>
                 <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
-                  Corso
+                  <div className="flex items-center gap-2">
+                    <span>Corso</span>
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        placeholder="Cerca..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-32 h-6 text-xs bg-white text-black border-yellow-400 pr-6"
+                        data-testid="input-search"
+                      />
+                      <Search className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-black" />
+                    </div>
+                  </div>
                 </th>
                 <th className="text-left p-3 text-xs font-bold text-yellow-400 uppercase">
                   Email
