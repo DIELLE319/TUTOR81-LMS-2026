@@ -300,6 +300,31 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/companies/:id/users", isAuthenticated, async (req, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      if (isNaN(companyId)) return res.status(400).json({ error: "Invalid company ID" });
+
+      const students = await db.select({
+        id: schema.students.id,
+        firstName: schema.students.firstName,
+        lastName: schema.students.lastName,
+        email: schema.students.email,
+        fiscalCode: schema.students.fiscalCode,
+        companyId: schema.students.companyId,
+        isActive: schema.students.isActive,
+      })
+        .from(schema.students)
+        .where(eq(schema.students.companyId, companyId))
+        .orderBy(schema.students.lastName, schema.students.firstName);
+
+      res.json(students);
+    } catch (error) {
+      console.error("Company users error:", error);
+      res.status(500).json({ error: "Failed to fetch company users" });
+    }
+  });
+
   app.post("/api/companies", isAuthenticated, async (req, res) => {
     try {
       const result = schema.insertCompanySchema.safeParse(req.body);
@@ -561,6 +586,121 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create enrollment error:", error);
       res.status(500).json({ error: "Failed to create enrollment" });
+    }
+  });
+
+  app.post("/api/enrollments/activate", isAuthenticated, async (req, res) => {
+    try {
+      const { courseId, companyId, corsisti } = req.body;
+      
+      if (!courseId || !companyId || !corsisti || !Array.isArray(corsisti) || corsisti.length === 0) {
+        return res.status(400).json({ error: "Dati mancanti: courseId, companyId e corsisti sono obbligatori" });
+      }
+
+      const company = await db.select().from(schema.companies).where(eq(schema.companies.id, companyId)).limit(1);
+      if (!company.length) {
+        return res.status(404).json({ error: "Azienda non trovata" });
+      }
+
+      const course = await db.select().from(schema.courses).where(eq(schema.courses.id, courseId)).limit(1);
+      if (!course.length) {
+        return res.status(404).json({ error: "Corso non trovato" });
+      }
+
+      const tutorId = company[0].tutorId;
+      let created = 0;
+      const results: { studentId: number; licenseCode: string; email: string }[] = [];
+
+      for (const corsista of corsisti) {
+        const { lastName, firstName, fiscalCode, startDate, endDate, daysToAlert } = corsista;
+        
+        if (!lastName || !firstName || !fiscalCode) {
+          continue;
+        }
+
+        const email = `${fiscalCode.toLowerCase()}@corsista.tutor81.com`;
+        
+        let studentId: number;
+        const existingStudent = await db.select()
+          .from(schema.students)
+          .where(and(
+            eq(schema.students.fiscalCode, fiscalCode),
+            eq(schema.students.companyId, companyId)
+          ))
+          .limit(1);
+
+        if (existingStudent.length > 0) {
+          studentId = existingStudent[0].id;
+        } else {
+          const [newStudent] = await db.insert(schema.students).values({
+            companyId,
+            email,
+            firstName,
+            lastName,
+            fiscalCode,
+            isActive: true,
+          }).returning();
+          studentId = newStudent.id;
+        }
+
+        const licenseCode = `${courseId}-${studentId}-${Date.now().toString(36).toUpperCase()}`;
+
+        const [enrollment] = await db.insert(schema.enrollments).values({
+          studentId,
+          courseId,
+          tutorId,
+          licenseCode,
+          startDate: startDate ? new Date(startDate) : new Date(),
+          endDate: endDate ? new Date(endDate) : null,
+          daysToAlert: daysToAlert || 15,
+          progress: 0,
+          status: "active",
+        }).returning();
+
+        results.push({ studentId, licenseCode, email });
+        created++;
+      }
+
+      if (process.env.RESEND_API_KEY) {
+        try {
+          const { Resend } = await import('resend');
+          const resend = new Resend(process.env.RESEND_API_KEY);
+
+          for (const result of results) {
+            const student = await db.select().from(schema.students).where(eq(schema.students.id, result.studentId)).limit(1);
+            if (student.length > 0) {
+              await resend.emails.send({
+                from: 'Tutor81 <noreply@tutor81.com>',
+                to: [student[0].email],
+                subject: `Credenziali corso: ${course[0].title}`,
+                html: `
+                  <h2>Benvenuto su Tutor81!</h2>
+                  <p>Sei stato iscritto al corso: <strong>${course[0].title}</strong></p>
+                  <p>Le tue credenziali per accedere sono:</p>
+                  <ul>
+                    <li><strong>Codice corso:</strong> ${result.licenseCode}</li>
+                    <li><strong>Codice fiscale:</strong> ${student[0].fiscalCode}</li>
+                  </ul>
+                  <p>Accedi a: <a href="https://accedi.tutor81.com/player">accedi.tutor81.com/player</a></p>
+                  <p>Buon corso!</p>
+                `,
+              });
+            }
+          }
+        } catch (emailError) {
+          console.error("Email sending error:", emailError);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        created, 
+        message: `${created} iscrizioni create con successo`,
+        enrollments: results 
+      });
+    } catch (error) {
+      console.error("Activate enrollments error:", error);
+      res.status(500).json({ error: "Errore durante la creazione delle iscrizioni" });
     }
   });
 
