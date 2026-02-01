@@ -470,7 +470,7 @@ export default function ActivatedCourses() {
                     <td className="p-2 text-sm text-black">
                       {enrollment.tutorId}
                     </td>
-                    <td className="p-2 text-sm text-black">
+                    <td className="p-2 text-xs text-black max-w-[120px] truncate" title={enrollment.tutorName}>
                       {enrollment.tutorName}
                     </td>
                     <td className="p-2 text-xs text-black max-w-[150px] truncate" title={enrollment.companyName}>
