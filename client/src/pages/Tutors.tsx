@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const SUBSCRIPTION_OPTIONS = [
+  { value: 'CONSULENTI 500', label: 'Consulenti 500', discount: 60 },
+  { value: 'CONSULENTI 1500', label: 'Consulenti 1500', discount: 70 },
+  { value: 'ENTI AUTORIZZATI 1500', label: 'Enti Autorizzati 1500', discount: 70 },
+];
 
 export default function Tutors() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +36,29 @@ export default function Tutors() {
       toast({ title: 'Errore', description: 'Impossibile salvare.', variant: 'destructive' });
     }
   });
+
+  const updateSubscriptionMutation = useMutation({
+    mutationFn: ({ id, subscriptionType, discountPercentage }: { id: number, subscriptionType: string, discountPercentage: number }) => 
+      apiRequest('PUT', `/api/tutors/${id}`, { subscriptionType, discountPercentage }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tutors'] });
+      toast({ title: 'Salvato', description: 'Abbonamento aggiornato.' });
+    },
+    onError: () => {
+      toast({ title: 'Errore', description: 'Impossibile salvare.', variant: 'destructive' });
+    }
+  });
+
+  const handleSubscriptionChange = (tutorId: number, value: string) => {
+    const option = SUBSCRIPTION_OPTIONS.find(o => o.value === value);
+    if (option) {
+      updateSubscriptionMutation.mutate({ 
+        id: tutorId, 
+        subscriptionType: option.value, 
+        discountPercentage: option.discount 
+      });
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest('DELETE', `/api/tutors/${id}`),
@@ -184,9 +214,24 @@ export default function Tutors() {
                     {tutor.email || '-'}
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded">
-                      {tutor.notes || 'Standard'}
-                    </span>
+                    <Select
+                      value={tutor.subscriptionType || 'CONSULENTI 500'}
+                      onValueChange={(value) => handleSubscriptionChange(tutor.id, value)}
+                    >
+                      <SelectTrigger 
+                        className="h-8 w-48 bg-zinc-800 border-zinc-700 text-xs"
+                        data-testid={`select-subscription-${tutor.id}`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SUBSCRIPTION_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label} ({option.discount}%)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-end gap-2">

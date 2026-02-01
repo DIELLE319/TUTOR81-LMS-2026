@@ -26,6 +26,8 @@ export const tutors = pgTable("tutors", {
   regionalAuthorization: text("regional_authorization"),
   contactPerson: text("contact_person"),
   adminName: text("admin_name"),
+  subscriptionType: text("subscription_type").default("CONSULENTI 500"),
+  discountPercentage: integer("discount_percentage").default(60),
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
