@@ -818,7 +818,7 @@ export async function registerRoutes(
         companyName: schema.companies.businessName,
       })
       .from(schema.users)
-      .leftJoin(schema.companies, eq(schema.users.idcompany, sql`${schema.companies.id}::text`))
+      .leftJoin(schema.companies, sql`${schema.users.idcompany}::integer = ${schema.companies.id}`)
       .limit(500);
       
       const filtered = allUsers.filter(u => {
