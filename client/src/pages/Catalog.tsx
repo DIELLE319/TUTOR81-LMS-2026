@@ -229,16 +229,26 @@ export default function Catalog() {
               </h1>
               <p className="text-yellow-400/80 text-sm mt-1">Seleziona i corsi da vendere ai tuoi clienti</p>
             </div>
-            <div className="relative w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cerca corso per nome..." 
-                className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent shadow-sm"
-                data-testid="input-search-catalog"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                  placeholder="Cerca corso per nome..." 
+                  className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent shadow-sm"
+                  data-testid="input-search-catalog"
+                />
+              </div>
+              <button
+                onClick={() => {/* La ricerca è già reattiva */}}
+                className="px-4 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-medium rounded-lg text-sm transition-colors"
+                data-testid="btn-search-catalog"
+              >
+                Cerca
+              </button>
             </div>
           </div>
           
