@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, primaryKey, varchar, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, primaryKey, varchar, decimal, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
@@ -28,6 +28,7 @@ export const tutors = pgTable("tutors", {
   adminName: text("admin_name"),
   subscriptionType: text("subscription_type").default("CONSULENTI 500"),
   discountPercentage: integer("discount_percentage").default(60),
+  subscriptionStart: date("subscription_start"),
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),

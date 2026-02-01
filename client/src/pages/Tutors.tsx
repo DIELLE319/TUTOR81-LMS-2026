@@ -48,6 +48,39 @@ export default function Tutors() {
     }
   };
 
+  const updateDateMutation = useMutation({
+    mutationFn: ({ id, subscriptionStart }: { id: number, subscriptionStart: string | null }) => 
+      apiRequest('PUT', `/api/tutors/${id}`, { subscriptionStart }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tutors'] });
+      toast({ title: 'Salvato', description: 'Data aggiornata.' });
+    },
+  });
+
+  const handleDateChange = (tutorId: number, value: string) => {
+    updateDateMutation.mutate({ id: tutorId, subscriptionStart: value || null });
+  };
+
+  const formatExpiry = (startDate: string) => {
+    const start = new Date(startDate);
+    const expiry = new Date(start);
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    return expiry.toLocaleDateString('it-IT');
+  };
+
+  const getExpiryClass = (startDate: string) => {
+    const start = new Date(startDate);
+    const expiry = new Date(start);
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    const now = new Date();
+    const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) return 'text-red-500 font-medium';
+    if (daysLeft < 30) return 'text-orange-500';
+    if (daysLeft < 90) return 'text-yellow-500';
+    return 'text-green-500';
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest('DELETE', `/api/tutors/${id}`),
     onSuccess: () => {
@@ -133,6 +166,8 @@ export default function Tutors() {
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Telefono</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Email</th>
                 <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Abbonamento</th>
+                <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Inizio</th>
+                <th className="text-left py-3 px-4 text-gray-400 font-medium text-sm">Scadenza</th>
                 <th className="text-right py-3 px-4 text-gray-400 font-medium text-sm">Azioni</th>
               </tr>
             </thead>
@@ -185,6 +220,24 @@ export default function Tutors() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </td>
+                  <td className="py-3 px-4">
+                    <input
+                      type="date"
+                      value={tutor.subscriptionStart || ''}
+                      onChange={(e) => handleDateChange(tutor.id, e.target.value)}
+                      className="h-8 px-2 text-xs bg-zinc-800 border border-zinc-700 rounded text-white"
+                      data-testid={`input-date-${tutor.id}`}
+                    />
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    {tutor.subscriptionStart ? (
+                      <span className={getExpiryClass(tutor.subscriptionStart)}>
+                        {formatExpiry(tutor.subscriptionStart)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-600">-</span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-end gap-2">
