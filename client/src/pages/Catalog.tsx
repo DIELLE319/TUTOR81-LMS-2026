@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, ShoppingCart, ChevronDown, ChevronUp, Printer, Download } from 'lucide-react';
 import type { Course } from '@shared/schema';
 import SellCourseModal from '@/components/SellCourseModal';
 
@@ -264,6 +264,40 @@ export default function Catalog() {
     return numPrice * (1 - discountPercent / 100);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExport = () => {
+    const headers = ['Tipo', 'Rischio', 'Titolo', 'Settore', 'Ore', 'Modalità', 'Prezzo Listino', 'Costo Tutor'];
+    const rows = filteredCourses.map(course => {
+      const courseType = getCourseType(course.title);
+      const typeLabel = courseType === 'base' ? 'Base' : courseType === 'aggiornamento' ? 'Agg.' : 'N/D';
+      const riskLabel = course.riskLevel ? course.riskLevel.charAt(0).toUpperCase() + course.riskLevel.slice(1).toLowerCase() : 'N/D';
+      const price = typeof course.listPrice === 'string' ? parseFloat(course.listPrice) : (course.listPrice ?? 0);
+      const tutorCost = price * 0.4;
+      return [
+        typeLabel,
+        riskLabel,
+        course.title,
+        course.sector || '-',
+        course.hours || '-',
+        course.modality || 'E-LEARNING',
+        price.toFixed(2),
+        tutorCost.toFixed(2)
+      ];
+    });
+    
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `catalogo_corsi_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="bg-gray-100 min-h-screen font-sans">
       <div className="bg-gradient-to-r from-[#1a1a1a] to-[#2d2d2d] border-b border-gray-700 px-6 py-4">
@@ -274,6 +308,24 @@ export default function Catalog() {
                 Catalogo Corsi E-Learning e Videoconferenza
               </h1>
               <p className="text-yellow-400/80 text-sm mt-1">Seleziona i corsi da vendere ai tuoi clienti</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded text-sm font-medium transition-colors"
+                data-testid="btn-print"
+              >
+                <Printer className="w-4 h-4" />
+                Stampa
+              </button>
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 rounded text-sm font-medium transition-colors"
+                data-testid="btn-export"
+              >
+                <Download className="w-4 h-4" />
+                Esporta CSV
+              </button>
             </div>
           </div>
           
