@@ -802,6 +802,34 @@ export async function registerRoutes(
     }
   });
 
+  // Search users
+  app.get("/api/users/search", isAuthenticated, async (req, res) => {
+    try {
+      const q = (req.query.q as string || '').toLowerCase().trim();
+      if (q.length < 2) return res.json([]);
+      
+      const allUsers = await db.select({
+        id: schema.users.id,
+        firstName: schema.users.firstName,
+        lastName: schema.users.lastName,
+        email: schema.users.email,
+        fiscalCode: schema.users.fiscalCode,
+      }).from(schema.users).limit(500);
+      
+      const filtered = allUsers.filter(u => {
+        const fullName = `${u.lastName || ''} ${u.firstName || ''}`.toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        const cf = (u.fiscalCode || '').toLowerCase();
+        return fullName.includes(q) || email.includes(q) || cf.includes(q);
+      }).slice(0, 20);
+      
+      res.json(filtered);
+    } catch (error) {
+      console.error("Search users error:", error);
+      res.json([]);
+    }
+  });
+
   // Update user
   app.patch("/api/users/:id", isAuthenticated, async (req, res) => {
     try {

@@ -1,9 +1,19 @@
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from '@tanstack/react-query';
 import * as Icons from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
+}
+
+interface User {
+  id: number;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  fiscalCode: string | null;
 }
 
 const getRoleName = (role: number | null | undefined): string => {
@@ -25,9 +35,41 @@ const getRoleColor = (role: number | null | undefined): string => {
 };
 
 export default function Layout({ children }: LayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const userRole = user?.role ?? 0;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Cerca utenti
+  const { data: searchResults = [] } = useQuery<User[]>({
+    queryKey: ['/api/users/search', searchTerm],
+    queryFn: async () => {
+      if (searchTerm.length < 2) return [];
+      const res = await fetch(`/api/users/search?q=${encodeURIComponent(searchTerm)}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: searchTerm.length >= 2,
+  });
+
+  // Chiudi dropdown quando si clicca fuori
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleUserClick = (userId: number) => {
+    setShowResults(false);
+    setSearchTerm('');
+    setLocation(`/users/${userId}`);
+  };
 
   const getIcon = (name: keyof typeof Icons) => {
     const IconComponent = Icons[name] as React.ComponentType<{ size?: number }>;
@@ -172,14 +214,43 @@ export default function Layout({ children }: LayoutProps) {
         
         <header className='h-16 border-b border-yellow-600 flex justify-between items-center px-6 bg-yellow-500'>
           
-          <div className="relative w-96">
-            <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+          <div className="relative w-96" ref={searchRef}>
+            <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 z-10" size={16} />
             <input 
               type="text" 
               placeholder="Cerca Utente.." 
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowResults(true);
+              }}
+              onFocus={() => setShowResults(true)}
               className="w-full bg-white border border-gray-300 rounded-md py-2 pl-10 pr-4 text-sm text-black focus:outline-none focus:border-yellow-600 focus:ring-1 focus:ring-yellow-600"
               data-testid="input-search"
             />
+            {showResults && searchTerm.length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-80 overflow-y-auto z-50">
+                {searchResults.length === 0 ? (
+                  <div className="p-3 text-gray-500 text-sm">Nessun utente trovato</div>
+                ) : (
+                  searchResults.slice(0, 10).map((u) => (
+                    <div
+                      key={u.id}
+                      onClick={() => handleUserClick(u.id)}
+                      className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-black text-sm">
+                        {u.lastName} {u.firstName}
+                      </div>
+                      <div className="text-xs text-gray-500">{u.email}</div>
+                      {u.fiscalCode && (
+                        <div className="text-xs text-gray-400">CF: {u.fiscalCode}</div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4 text-sm font-medium text-black">
