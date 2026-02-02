@@ -32,6 +32,7 @@ async function syncEnrollmentToOvh(data: {
   licenseCode: string;
   startDate: Date;
   endDate: Date | null;
+  adminId: number;
 }) {
   let conn;
   try {
@@ -53,21 +54,24 @@ async function syncEnrollmentToOvh(data: {
       userId = existingUsers[0].id;
       console.log(`[OVH Sync] Utente esistente trovato: ${userId}`);
     } else {
-      // Crea nuovo utente su OVH
+      // Crea nuovo utente su OVH (nomi colonne OVH: name, surname, creation_date, suspended, deleted)
       const [result] = await conn.execute(
-        `INSERT INTO users (company_id, role, first_name, last_name, username, password, email, tax_code, is_active, created_at) 
-         VALUES (?, 0, ?, ?, ?, ?, ?, ?, 1, NOW())`,
+        `INSERT INTO users (company_id, role, name, surname, username, password, email, tax_code, suspended, deleted, creation_date) 
+         VALUES (?, 0, ?, ?, ?, ?, ?, ?, 0, 0, NOW())`,
         [data.companyId, data.firstName, data.lastName, username, password, data.email, data.fiscalCode.toUpperCase()]
       ) as any[];
       userId = result.insertId;
       console.log(`[OVH Sync] Nuovo utente creato: ${userId}`);
     }
     
-    // Crea iscrizione in learning_project_users
+    // Crea iscrizione in learning_project_users (nomi colonne OVH: starting_from, finish_within, learning_project_pwd)
+    const startingFrom = data.startDate.toISOString().split('T')[0]; // formato YYYY-MM-DD
+    const finishWithin = data.endDate ? data.endDate.toISOString().split('T')[0] : null;
+    
     const [lpuResult] = await conn.execute(
-      `INSERT INTO learning_project_users (user_id, learning_project_id, id_company, code, start_date, end_date, is_active, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 1, NOW())`,
-      [userId, data.courseId, data.companyId, data.licenseCode, data.startDate, data.endDate]
+      `INSERT INTO learning_project_users (user_id, learning_project_id, learning_project_pwd, company_id, starting_from, finish_within, days_to_alert, id_company, email, assigned)
+       VALUES (?, ?, ?, ?, ?, ?, 30, ?, ?, 1)`,
+      [userId, data.courseId, data.licenseCode, data.adminId, startingFrom, finishWithin, data.companyId, data.email]
     ) as any[];
     
     console.log(`[OVH Sync] Iscrizione creata: ${lpuResult.insertId} per utente ${userId} corso ${data.courseId}`);
@@ -753,6 +757,7 @@ export async function registerRoutes(
             licenseCode,
             startDate: enrollStartDate,
             endDate: enrollEndDate,
+            adminId: tutorId || 2,
           });
           if (ovhSyncResult.success) ovhSynced++;
         } catch (err) {
