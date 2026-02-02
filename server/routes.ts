@@ -1495,6 +1495,7 @@ export async function registerRoutes(
   // VENDITE (Sales/Purchases) 
   // ============================================================
   app.get("/api/sales", isAuthenticated, async (req, res) => {
+    let conn;
     try {
       // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
       const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
@@ -1506,70 +1507,44 @@ export async function registerRoutes(
       
       const tutorId = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
       
+      // Legge le vendite direttamente da OVH
+      conn = await getOvhConnection();
+      
       let query = `
         SELECT 
           tp.id,
-          ta.id as "adminId",
-          ta.name as "adminName",
+          u.id as adminId,
+          CONCAT(u.name, ' ', u.surname) as adminName,
           c.business_name as client,
-          c.id as "clientId",
-          t.id as "tutorId",
-          t.business_name as "tutorName",
+          c.id as clientId,
+          t.id as tutorId,
+          t.business_name as tutorName,
           tp.creation_date as date,
-          tp.learning_project_id as "courseId",
-          co.title as "courseName",
+          tp.learning_project_id as courseId,
+          lp.title as courseName,
           tp.qta as qty,
-          tp.price as "unitPrice",
-          (tp.qta * tp.price) as "totalCost"
+          tp.price as unitPrice,
+          (tp.qta * tp.price) as totalCost
         FROM tutors_purchases tp
-        JOIN tutor_admins ta ON ta.id = tp.tutor_id
-        JOIN tutors t ON t.id = ta.tutor_id
-        JOIN companies c ON c.id = tp.customer_company_id
-        LEFT JOIN courses co ON co.id = tp.learning_project_id
+        JOIN users u ON u.id = tp.tutor_id
+        LEFT JOIN companies c ON c.id = tp.customer_company_id
+        LEFT JOIN companies t ON t.id = u.company_id
+        LEFT JOIN learning_project lp ON lp.id = tp.learning_project_id
       `;
       
       if (tutorId) {
-        query += ` WHERE t.id = ${tutorId} ORDER BY tp.creation_date DESC`;
+        query += ` WHERE u.company_id = ${tutorId} ORDER BY tp.creation_date DESC`;
       } else {
         query += ` ORDER BY tp.creation_date DESC LIMIT 500`;
       }
       
-      const salesResult = await db.execute(sql.raw(query));
-      const salesRows = salesResult.rows as any[];
+      const [salesRows] = await conn.execute(query) as any[];
+      await conn.end();
       
-      // Fetch activated students for each sale (by company + course)
-      const salesWithStudents = await Promise.all(salesRows.map(async (sale) => {
-        if (!sale.courseId || !sale.clientId) return { ...sale, activatedStudents: '' };
-        
-        try {
-          // Limit students shown to the quantity sold in this order (max 5 for display)
-          const qty = parseInt(sale.qty) || 0;
-          const displayLimit = Math.min(qty, 5);
-          if (displayLimit <= 0) return { ...sale, activatedStudents: '' };
-          
-          const studentsQuery = `
-            SELECT s.first_name, s.last_name
-            FROM enrollments e
-            JOIN students s ON s.id = e.student_id
-            WHERE e.course_id = ${sale.courseId}
-              AND s.company_id = ${sale.clientId}
-            ORDER BY e.id DESC
-            LIMIT ${displayLimit}
-          `;
-          const studentsResult = await db.execute(sql.raw(studentsQuery));
-          const students = studentsResult.rows as any[];
-          const studentNames = students.map(s => `${s.first_name} ${s.last_name}`).join(', ');
-          // Show ... only if qty is greater than what we displayed
-          const suffix = qty > displayLimit ? '...' : '';
-          return { ...sale, activatedStudents: studentNames + suffix };
-        } catch {
-          return { ...sale, activatedStudents: '' };
-        }
-      }));
-      
-      res.json(salesWithStudents);
+      res.json(salesRows);
     } catch (error) {
       console.error("Sales error:", error);
+      if (conn) await conn.end();
       res.status(500).json({ error: "Failed to fetch sales" });
     }
   });
