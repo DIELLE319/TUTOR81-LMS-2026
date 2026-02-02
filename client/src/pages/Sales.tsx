@@ -362,7 +362,7 @@ export default function Sales() {
                     <td className="p-2 text-sm text-black">{sale.courseId}</td>
                     <td className="p-3 text-sm text-black max-w-[280px]">
                       <div className="font-medium">
-                        {(sale.courseName || '-').replace(/^EL\s*-\s*/i, '')}
+                        {(sale.courseName || '-').replace(/^[a-zA-Z0-9]+\s*-\s*/, '')}
                       </div>
                       {sale.activatedStudents && (
                         <div className="text-xs text-gray-500 mt-0.5">
