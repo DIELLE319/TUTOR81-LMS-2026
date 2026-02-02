@@ -1122,7 +1122,7 @@ export async function registerRoutes(
             SELECT s.first_name, s.last_name
             FROM enrollments e
             JOIN students s ON s.id = e.student_id
-            WHERE e.learning_project_id = ${sale.courseId}
+            WHERE e.course_id = ${sale.courseId}
               AND s.company_id = ${sale.clientId}
             LIMIT 5
           `;
