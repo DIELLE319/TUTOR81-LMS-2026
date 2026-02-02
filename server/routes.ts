@@ -216,6 +216,73 @@ export async function registerRoutes(
     }
   });
 
+  // Verifica iscrizione specifica per debug
+  app.get("/api/test-ovh-check/:licenseCode", async (req, res) => {
+    let conn;
+    try {
+      const licenseCode = req.params.licenseCode;
+      conn = await getOvhConnection();
+      
+      // Cerca l'iscrizione come fa il player
+      const [lpuRows] = await conn.execute(`
+        SELECT 
+          lpu.*,
+          u.id as user_db_id,
+          u.username,
+          u.password,
+          u.name as user_name,
+          u.surname as user_surname,
+          u.email as user_email,
+          u.tax_code,
+          u.suspended,
+          u.deleted,
+          lp.id as lp_id,
+          lp.title as course_title
+        FROM learning_project_users lpu
+        LEFT JOIN users u ON lpu.user_id = u.id
+        LEFT JOIN learning_project lp ON lpu.learning_project_id = lp.id
+        WHERE lpu.learning_project_pwd = ?
+      `, [licenseCode]) as any[];
+      
+      await conn.end();
+      
+      if (lpuRows.length === 0) {
+        return res.json({ success: false, error: "Iscrizione non trovata con questo codice licenza" });
+      }
+      
+      const enrollment = lpuRows[0];
+      
+      res.json({
+        success: true,
+        enrollment: {
+          id: enrollment.id,
+          licenseCode: enrollment.learning_project_pwd,
+          userId: enrollment.user_id,
+          learningProjectId: enrollment.learning_project_id,
+          startingFrom: enrollment.starting_from,
+          finishWithin: enrollment.finish_within,
+          courseTitle: enrollment.course_title,
+          user: {
+            id: enrollment.user_db_id,
+            username: enrollment.username,
+            hasPassword: !!enrollment.password,
+            passwordLength: enrollment.password?.length,
+            name: enrollment.user_name,
+            surname: enrollment.user_surname,
+            email: enrollment.user_email,
+            taxCode: enrollment.tax_code,
+            suspended: enrollment.suspended,
+            deleted: enrollment.deleted
+          }
+        }
+      });
+    } catch (error) {
+      console.error("OVH check enrollment error:", error);
+      if (conn) await conn.end();
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   // ============================================================
   // STATS
   // ============================================================
