@@ -205,11 +205,11 @@ export default function Sales() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-0 bg-white" align="start">
-                <Command>
-                  <CommandInput placeholder="Cerca ente..." className="text-black" />
-                  <CommandList>
-                    <CommandEmpty>Nessun ente trovato</CommandEmpty>
-                    <CommandGroup>
+                <Command className="bg-white">
+                  <CommandInput placeholder="Cerca ente..." className="text-black bg-white" />
+                  <CommandList className="bg-white">
+                    <CommandEmpty className="text-black">Nessun ente trovato</CommandEmpty>
+                    <CommandGroup className="bg-white">
                       <CommandItem
                         value="tutti"
                         onSelect={() => {
@@ -253,11 +253,11 @@ export default function Sales() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-0 bg-white" align="start">
-                <Command>
-                  <CommandInput placeholder="Cerca azienda..." className="text-black" />
-                  <CommandList>
-                    <CommandEmpty>Nessuna azienda trovata</CommandEmpty>
-                    <CommandGroup>
+                <Command className="bg-white">
+                  <CommandInput placeholder="Cerca azienda..." className="text-black bg-white" />
+                  <CommandList className="bg-white">
+                    <CommandEmpty className="text-black">Nessuna azienda trovata</CommandEmpty>
+                    <CommandGroup className="bg-white">
                       <CommandItem
                         value="tutte"
                         onSelect={() => {
