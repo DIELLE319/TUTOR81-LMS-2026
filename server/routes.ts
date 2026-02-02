@@ -60,16 +60,48 @@ async function syncEnrollmentToOvh(data: {
   lastName: string;
   fiscalCode: string;
   email: string;
-  companyId: number;
+  companyId: number;  // ID azienda cliente OVH
   courseId: number;
   licenseCode: string;
   startDate: Date;
   endDate: Date | null;
-  adminId: number;
+  tutorId: number;    // ID tutor Replit (usato per cercare admin OVH)
 }) {
   let conn;
   try {
     conn = await getOvhConnection();
+    
+    // STEP 1: Trova l'admin user OVH corretto
+    // Cerca un utente con role=1 che appartiene al tutor (nella tabella tutor_admins di OVH)
+    const [adminUsers] = await conn.execute(`
+      SELECT u.id as user_id, u.username, ta.tutor_id 
+      FROM tutor_admins ta 
+      JOIN users u ON u.id = ta.user_id 
+      WHERE ta.tutor_id = ? 
+      LIMIT 1
+    `, [data.tutorId]) as any[];
+    
+    let ovhAdminUserId: number;
+    if (adminUsers.length > 0) {
+      ovhAdminUserId = adminUsers[0].user_id;
+      console.log(`[OVH Sync] Admin OVH trovato: ${ovhAdminUserId} (${adminUsers[0].username})`);
+    } else {
+      // Fallback: cerca un utente con role=1 che appartiene al tutor
+      const [fallbackAdmins] = await conn.execute(`
+        SELECT u.id FROM users u 
+        JOIN companies c ON u.company_id = c.id 
+        WHERE c.id = ? AND u.role = 1 
+        LIMIT 1
+      `, [data.tutorId]) as any[];
+      
+      if (fallbackAdmins.length > 0) {
+        ovhAdminUserId = fallbackAdmins[0].id;
+        console.log(`[OVH Sync] Admin OVH trovato (fallback): ${ovhAdminUserId}`);
+      } else {
+        console.error(`[OVH Sync] Nessun admin OVH trovato per tutorId ${data.tutorId}`);
+        return { success: false, error: `Nessun admin OVH trovato per tutorId ${data.tutorId}` };
+      }
+    }
     
     // Username formato nome.cognome (minuscolo come OVH)
     const username = `${data.firstName}.${data.lastName}`.toLowerCase().replace(/\s+/g, '');
@@ -103,20 +135,20 @@ async function syncEnrollmentToOvh(data: {
     const startingFrom = data.startDate.toISOString().split('T')[0]; // formato YYYY-MM-DD
     const finishWithin = data.endDate ? data.endDate.toISOString().split('T')[0] : null;
     
-    // Crea record vendita in tutors_purchases
+    // Crea record vendita in tutors_purchases (usa ovhAdminUserId invece di tutorId Replit)
     const [purchaseResult] = await conn.execute(
       `INSERT INTO tutors_purchases (tutor_id, customer_company_id, user_company_ref, learning_project_id, qta, price, creation_date, executed)
        VALUES (?, ?, ?, ?, 1, 0, NOW(), 1)`,
-      [data.adminId, data.companyId, data.adminId, data.courseId]
+      [ovhAdminUserId, data.companyId, ovhAdminUserId, data.courseId]
     ) as any[];
     const purchaseId = purchaseResult.insertId;
     console.log(`[OVH Sync] Vendita creata: ${purchaseId}`);
     
-    // Crea iscrizione in learning_project_users con riferimento alla vendita
+    // Crea iscrizione in learning_project_users con riferimento alla vendita (usa ovhAdminUserId)
     const [lpuResult] = await conn.execute(
       `INSERT INTO learning_project_users (user_id, learning_project_id, learning_project_pwd, company_id, starting_from, finish_within, days_to_alert, id_company, email, assigned, tutor_purchase_id)
        VALUES (?, ?, ?, ?, ?, ?, 30, ?, ?, 1, ?)`,
-      [userId, data.courseId, data.licenseCode, data.adminId, startingFrom, finishWithin, data.companyId, data.email, purchaseId]
+      [userId, data.courseId, data.licenseCode, ovhAdminUserId, startingFrom, finishWithin, data.companyId, data.email, purchaseId]
     ) as any[];
     
     console.log(`[OVH Sync] Iscrizione creata: ${lpuResult.insertId} per utente ${userId} corso ${data.courseId}`);
@@ -1156,7 +1188,7 @@ export async function registerRoutes(
             licenseCode,
             startDate: enrollStartDate,
             endDate: enrollEndDate,
-            adminId: tutorId || 2,
+            tutorId: tutorId || 2,  // Usato per cercare l'admin OVH corretto
           });
           if (ovhSyncResult.success) ovhSynced++;
         } catch (err) {
