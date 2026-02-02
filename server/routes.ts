@@ -6,6 +6,7 @@ import * as schema from "@shared/schema";
 import { eq, and, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import mysql from "mysql2/promise";
+import crypto from "crypto";
 
 // Connessione al database OVH
 const ovhDbConfig = {
@@ -40,7 +41,9 @@ async function syncEnrollmentToOvh(data: {
     
     // Username formato nome.cognome (minuscolo come OVH)
     const username = `${data.firstName}.${data.lastName}`.toLowerCase().replace(/\s+/g, '');
-    const password = data.fiscalCode.toUpperCase();
+    // Password = SHA1 del codice fiscale (come fa OVH)
+    const passwordPlain = data.fiscalCode.toUpperCase();
+    const password = crypto.createHash('sha1').update(passwordPlain).digest('hex');
     
     // Verifica se l'utente esiste già su OVH (per codice fiscale)
     const [existingUsers] = await conn.execute(
