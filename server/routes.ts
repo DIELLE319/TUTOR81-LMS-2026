@@ -146,8 +146,8 @@ async function syncEnrollmentToOvh(data: {
     
     // Crea iscrizione in learning_project_users con riferimento alla vendita (usa ovhAdminUserId)
     const [lpuResult] = await conn.execute(
-      `INSERT INTO learning_project_users (user_id, learning_project_id, learning_project_pwd, company_id, starting_from, finish_within, days_to_alert, id_company, email, assigned, tutor_purchase_id)
-       VALUES (?, ?, ?, ?, ?, ?, 30, ?, ?, 1, ?)`,
+      `INSERT INTO learning_project_users (user_id, learning_project_id, learning_project_pwd, company_id, starting_from, finish_within, days_to_alert, id_company, email, assigned, tutor_purchase_id, creation_date)
+       VALUES (?, ?, ?, ?, ?, ?, 30, ?, ?, 1, ?, NOW())`,
       [userId, data.courseId, data.licenseCode, ovhAdminUserId, startingFrom, finishWithin, data.companyId, data.email, purchaseId]
     ) as any[];
     
