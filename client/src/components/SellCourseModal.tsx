@@ -443,7 +443,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
         <DialogHeader className="bg-yellow-500 px-6 py-4">
           <DialogTitle className="text-black text-lg font-bold flex items-center gap-2">
             <Send size={20} />
-            Invia codici di accesso per il corso
+            Invia codici di accesso per il corso (ID: {course.id})
           </DialogTitle>
           <p className="text-black font-semibold mt-1">{formatCourseTitle(course.title)}</p>
         </DialogHeader>
