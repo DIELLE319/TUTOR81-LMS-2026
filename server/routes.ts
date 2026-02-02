@@ -138,6 +138,85 @@ export async function registerRoutes(
   registerAuthRoutes(app);
 
   // ============================================================
+  // TEST OVH CONNECTION (temporaneo per debug)
+  // ============================================================
+  app.get("/api/test-ovh", async (req, res) => {
+    let conn;
+    try {
+      conn = await getOvhConnection();
+      
+      // Test connessione
+      const [rows] = await conn.execute('SELECT COUNT(*) as count FROM users') as any[];
+      const usersCount = rows[0].count;
+      
+      const [lpuRows] = await conn.execute('SELECT COUNT(*) as count FROM learning_project_users') as any[];
+      const lpuCount = lpuRows[0].count;
+      
+      const [tpRows] = await conn.execute('SELECT COUNT(*) as count FROM tutors_purchases') as any[];
+      const tpCount = tpRows[0].count;
+      
+      await conn.end();
+      
+      res.json({
+        success: true,
+        message: "Connessione OVH OK",
+        stats: {
+          users: usersCount,
+          learning_project_users: lpuCount,
+          tutors_purchases: tpCount
+        }
+      });
+    } catch (error) {
+      console.error("OVH connection test error:", error);
+      if (conn) await conn.end();
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
+  // Endpoint per vedere le ultime iscrizioni su OVH
+  app.get("/api/test-ovh-recent", async (req, res) => {
+    let conn;
+    try {
+      conn = await getOvhConnection();
+      
+      // Ultime 10 iscrizioni create su OVH
+      const [lpuRows] = await conn.execute(`
+        SELECT 
+          lpu.id,
+          lpu.user_id,
+          lpu.learning_project_id,
+          lpu.learning_project_pwd as license_code,
+          lpu.starting_from,
+          lpu.finish_within,
+          lpu.creation_date,
+          lpu.email,
+          lpu.id_company,
+          u.username,
+          u.name as user_name,
+          u.surname as user_surname,
+          u.tax_code,
+          lp.title as course_title
+        FROM learning_project_users lpu
+        LEFT JOIN users u ON lpu.user_id = u.id
+        LEFT JOIN learning_project lp ON lpu.learning_project_id = lp.id
+        ORDER BY lpu.id DESC
+        LIMIT 10
+      `) as any[];
+      
+      await conn.end();
+      
+      res.json({
+        success: true,
+        recentEnrollments: lpuRows
+      });
+    } catch (error) {
+      console.error("OVH recent enrollments error:", error);
+      if (conn) await conn.end();
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
+  // ============================================================
   // STATS
   // ============================================================
   app.get("/api/stats", isAuthenticated, async (req, res) => {
