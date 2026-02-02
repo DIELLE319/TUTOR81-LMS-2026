@@ -320,7 +320,7 @@ export default function Sales() {
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Cliente</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Ente Formativo</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Data Vendita</th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">Corso</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Learning Project</th>
                 <th className="text-center p-3 text-xs font-bold text-black uppercase">Qta</th>
                 <th className="text-right p-3 text-xs font-bold text-black uppercase">Tuo Costo</th>
               </tr>
