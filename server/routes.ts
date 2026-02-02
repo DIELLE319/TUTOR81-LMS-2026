@@ -1094,14 +1094,14 @@ export async function registerRoutes(
           t.business_name as "tutorName",
           tp.creation_date as date,
           tp.learning_project_id as "courseId",
-          lp.title as "courseName",
+          co.title as "courseName",
           tp.qta as qty,
           tp.price as "listPrice"
         FROM tutors_purchases tp
         JOIN tutor_admins ta ON ta.id = tp.tutor_id
         JOIN tutors t ON t.id = ta.tutor_id
         JOIN companies c ON c.id = tp.customer_company_id
-        LEFT JOIN learning_projects lp ON lp.id = tp.learning_project_id
+        LEFT JOIN courses co ON co.id = tp.learning_project_id
       `;
       
       if (tutorId) {
