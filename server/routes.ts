@@ -300,29 +300,23 @@ export async function registerRoutes(
         return res.json({ success: false, error: "Corso non trovato" });
       }
       
-      // Cerca moduli associati al learning_project
-      const [moduleRows] = await conn.execute(`
-        SELECT * FROM modules WHERE learning_project_id = ?
-      `, [courseId]) as any[];
+      // Cerca tutte le tabelle che potrebbero contenere info sul corso
+      const [tables] = await conn.execute(`SHOW TABLES`) as any[];
+      const tableNames = tables.map((t: any) => Object.values(t)[0]);
       
-      // Cerca lezioni dei moduli
-      let lessonRows: any[] = [];
-      if (moduleRows.length > 0) {
-        const moduleIds = moduleRows.map((m: any) => m.id);
-        const [lRows] = await conn.execute(`
-          SELECT * FROM lessons WHERE module_id IN (${moduleIds.join(',')})
-        `) as any[];
-        lessonRows = lRows;
-      }
+      // Tabelle rilevanti per i corsi
+      const relevantTables = tableNames.filter((t: string) => 
+        t.includes('course') || t.includes('module') || t.includes('lesson') || 
+        t.includes('learn') || t.includes('scorm') || t.includes('content') ||
+        t.includes('unity') || t.includes('object')
+      );
       
       await conn.end();
       
       res.json({
         success: true,
         learningProject: lpRows[0],
-        modulesCount: moduleRows.length,
-        lessonsCount: lessonRows.length,
-        modules: moduleRows.slice(0, 3) // primi 3 moduli per debug
+        tablesInDB: relevantTables
       });
     } catch (error) {
       console.error("OVH course check error:", error);
