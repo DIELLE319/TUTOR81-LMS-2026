@@ -27,7 +27,8 @@ interface Sale {
   courseId: number;
   courseName: string;
   qty: number;
-  listPrice: string;
+  unitPrice: string;
+  totalCost: string;
   activatedStudents?: string;
 }
 
@@ -119,7 +120,7 @@ export default function Sales() {
       formatDate(sale.date),
       sale.courseName || '-',
       sale.qty,
-      parseFloat(sale.listPrice || '0').toFixed(2)
+      parseFloat(sale.totalCost || '0').toFixed(2)
     ]);
     
     const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -143,7 +144,7 @@ export default function Sales() {
       formatDate(sale.date),
       sale.courseName || '-',
       sale.qty,
-      parseFloat(sale.listPrice || '0').toFixed(2)
+      parseFloat(sale.totalCost || '0').toFixed(2)
     ]);
     
     const { utils, writeFile } = await import('xlsx');

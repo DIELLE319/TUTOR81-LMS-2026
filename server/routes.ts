@@ -1096,7 +1096,8 @@ export async function registerRoutes(
           tp.learning_project_id as "courseId",
           co.title as "courseName",
           tp.qta as qty,
-          tp.price as "listPrice"
+          tp.price as "unitPrice",
+          (tp.qta * tp.price) as "totalCost"
         FROM tutors_purchases tp
         JOIN tutor_admins ta ON ta.id = tp.tutor_id
         JOIN tutors t ON t.id = ta.tutor_id
