@@ -126,20 +126,25 @@ export default function CourseEmailTemplate({
           margin: '0 0 20px 0',
           fontSize: '15px'
         }}>
-          Per accedere al corso clicca su avvia corso e<br />
-          inserisci il tuo nome utente in questo modo:
+          Per accedere al corso clicca su AVVIA CORSO e inserisci:
         </p>
         
         <div style={{ 
           backgroundColor: '#FFFFFF', 
           color: '#000', 
           padding: '15px 30px',
-          fontSize: '20px',
+          fontSize: '16px',
           fontWeight: 'bold',
           display: 'inline-block',
-          marginBottom: '25px'
+          marginBottom: '15px',
+          textAlign: 'left' as const
         }}>
-          {username}
+          <div style={{ marginBottom: '8px' }}>
+            <span style={{ color: '#666' }}>Nome utente:</span> {username}
+          </div>
+          <div>
+            <span style={{ color: '#666' }}>Password:</span> IL TUO CODICE FISCALE
+          </div>
         </div>
         
         <p style={{ 
@@ -296,12 +301,16 @@ export function generateEmailHTML(props: CourseEmailTemplateProps): string {
 
     <div style="background-color: #000; padding: 25px; text-align: center; border-top: 3px solid #FFFFFF;">
       <p style="color: #FFFFFF; margin: 0 0 20px 0; font-size: 15px;">
-        Per accedere al corso clicca su avvia corso e<br />
-        inserisci il tuo nome utente in questo modo:
+        Per accedere al corso clicca su AVVIA CORSO e inserisci:
       </p>
       
-      <div style="background-color: #FFFFFF; color: #000; padding: 15px 30px; font-size: 20px; font-weight: bold; display: inline-block; margin-bottom: 25px;">
-        ${props.username}
+      <div style="background-color: #FFFFFF; color: #000; padding: 15px 30px; font-size: 16px; font-weight: bold; display: inline-block; margin-bottom: 15px; text-align: left;">
+        <div style="margin-bottom: 8px;">
+          <span style="color: #666;">Nome utente:</span> ${props.username}
+        </div>
+        <div>
+          <span style="color: #666;">Password:</span> IL TUO CODICE FISCALE
+        </div>
       </div>
       
       <p style="color: #FFFFFF; margin: 0 0 15px 0; font-size: 14px;">

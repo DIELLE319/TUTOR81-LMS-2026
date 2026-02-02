@@ -184,12 +184,13 @@ export default function ActivatedCourses() {
   };
 
   const handleLaunchCourse = (enrollment: Enrollment) => {
-    if (!enrollment.licenseCode) {
-      toast({ title: "Codice licenza mancante", variant: "destructive" });
-      return;
-    }
-    const playerUrl = `https://avviacorso.tutor81.com/player.php?course=${enrollment.licenseCode}`;
+    // Il player OVH ora richiede username + codice fiscale dalla homepage
+    const playerUrl = `https://avviacorso.tutor81.com/`;
     window.open(playerUrl, '_blank');
+    toast({ 
+      title: "Player aperto", 
+      description: `Inserisci username e codice fiscale del corsista per accedere al corso.`
+    });
   };
 
   const handleSelectAll = (checked: boolean) => {
