@@ -316,13 +316,13 @@ export default function Sales() {
           <table className="w-full min-w-[1200px]" data-testid="table-sales">
             <thead className="bg-yellow-400">
               <tr>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">N. Ordine</th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">Data Vendita</th>
+                <th className="text-left p-2 text-xs font-bold text-black uppercase w-20">N. Ordine</th>
+                <th className="text-left p-2 text-xs font-bold text-black uppercase w-24">Data</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Ente Formativo</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Cliente</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Learning Project</th>
-                <th className="text-center p-3 text-xs font-bold text-black uppercase">Qta</th>
-                <th className="text-right p-3 text-xs font-bold text-black uppercase">Tuo Costo</th>
+                <th className="text-center p-2 text-xs font-bold text-black uppercase w-12">Qta</th>
+                <th className="text-right p-3 text-xs font-bold text-black uppercase w-24">Tuo Costo</th>
               </tr>
             </thead>
             <tbody>
