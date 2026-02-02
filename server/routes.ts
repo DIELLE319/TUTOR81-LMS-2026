@@ -72,35 +72,21 @@ async function syncEnrollmentToOvh(data: {
     conn = await getOvhConnection();
     
     // STEP 1: Trova l'admin user OVH corretto
-    // Cerca un utente con role=1 che appartiene al tutor (nella tabella tutor_admins di OVH)
+    // Cerca nella tabella users un utente con role=1 e company_id = tutorId (come fa OVH in getMainAdminOfCompany)
     const [adminUsers] = await conn.execute(`
-      SELECT u.id as user_id, u.username, ta.tutor_id 
-      FROM tutor_admins ta 
-      JOIN users u ON u.id = ta.user_id 
-      WHERE ta.tutor_id = ? 
+      SELECT id, username FROM users 
+      WHERE company_id = ? AND role = 1 
+      ORDER BY creation_date 
       LIMIT 1
     `, [data.tutorId]) as any[];
     
     let ovhAdminUserId: number;
     if (adminUsers.length > 0) {
-      ovhAdminUserId = adminUsers[0].user_id;
+      ovhAdminUserId = adminUsers[0].id;
       console.log(`[OVH Sync] Admin OVH trovato: ${ovhAdminUserId} (${adminUsers[0].username})`);
     } else {
-      // Fallback: cerca un utente con role=1 che appartiene al tutor
-      const [fallbackAdmins] = await conn.execute(`
-        SELECT u.id FROM users u 
-        JOIN companies c ON u.company_id = c.id 
-        WHERE c.id = ? AND u.role = 1 
-        LIMIT 1
-      `, [data.tutorId]) as any[];
-      
-      if (fallbackAdmins.length > 0) {
-        ovhAdminUserId = fallbackAdmins[0].id;
-        console.log(`[OVH Sync] Admin OVH trovato (fallback): ${ovhAdminUserId}`);
-      } else {
-        console.error(`[OVH Sync] Nessun admin OVH trovato per tutorId ${data.tutorId}`);
-        return { success: false, error: `Nessun admin OVH trovato per tutorId ${data.tutorId}` };
-      }
+      console.error(`[OVH Sync] Nessun admin OVH trovato per tutorId ${data.tutorId}`);
+      return { success: false, error: `Nessun admin OVH trovato per tutorId ${data.tutorId}` };
     }
     
     // Username formato nome.cognome (minuscolo come OVH)
