@@ -360,7 +360,7 @@ export default function Sales() {
                     <td className="p-3 text-sm text-black">{formatDate(sale.date)}</td>
                     <td className="p-3 text-sm text-black max-w-[250px]">
                       <div className="font-medium">
-                        ID {sale.courseId} - {sale.courseName || '-'}
+                        LP {sale.courseId} - {sale.courseName || '-'}
                       </div>
                       {sale.activatedStudents && (
                         <div className="text-xs text-gray-500 mt-0.5">
