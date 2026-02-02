@@ -283,6 +283,45 @@ export async function registerRoutes(
     }
   });
 
+  // Confronta tutti i campi di due iscrizioni OVH
+  app.get("/api/test-ovh-compare/:license1/:license2", async (req, res) => {
+    let conn;
+    try {
+      conn = await getOvhConnection();
+      
+      const [rows1] = await conn.execute(`SELECT * FROM learning_project_users WHERE learning_project_pwd = ?`, [req.params.license1]) as any[];
+      const [rows2] = await conn.execute(`SELECT * FROM learning_project_users WHERE learning_project_pwd = ?`, [req.params.license2]) as any[];
+      
+      await conn.end();
+      
+      const e1 = rows1[0] || null;
+      const e2 = rows2[0] || null;
+      
+      // Confronta i campi
+      const allKeys = new Set([...Object.keys(e1 || {}), ...Object.keys(e2 || {})]);
+      const differences: Record<string, { license1: any, license2: any }> = {};
+      
+      for (const key of allKeys) {
+        const v1 = e1?.[key];
+        const v2 = e2?.[key];
+        if (JSON.stringify(v1) !== JSON.stringify(v2)) {
+          differences[key] = { license1: v1, license2: v2 };
+        }
+      }
+      
+      res.json({
+        success: true,
+        license1: { code: req.params.license1, enrollment: e1 },
+        license2: { code: req.params.license2, enrollment: e2 },
+        differences
+      });
+    } catch (error) {
+      console.error("OVH compare error:", error);
+      if (conn) await conn.end();
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   // Verifica corso OVH per debug
   app.get("/api/test-ovh-course/:courseId", async (req, res) => {
     let conn;
