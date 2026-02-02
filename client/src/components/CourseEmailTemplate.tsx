@@ -61,13 +61,18 @@ export default function CourseEmailTemplate({
       <div style={{ 
         backgroundColor: '#000', 
         color: '#FFFFFF', 
-        padding: '15px', 
+        padding: '20px', 
         textAlign: 'center' as const,
-        fontSize: '18px',
-        fontWeight: 'bold',
         borderTop: '3px solid #FFFFFF'
       }}>
-        Devi svolgere un corso obbligatorio
+        <div style={{ fontSize: '14px', marginBottom: '8px' }}>IL TUO NOME UTENTE È:</div>
+        <div style={{ 
+          fontSize: '28px', 
+          fontWeight: 'bold',
+          letterSpacing: '1px'
+        }}>
+          {username}
+        </div>
       </div>
 
       <div style={{ padding: '30px', backgroundColor: '#FFFFFF' }}>
@@ -251,8 +256,9 @@ export function generateEmailHTML(props: CourseEmailTemplateProps): string {
       }
     </div>
 
-    <div style="background-color: #000; color: #FFFFFF; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; border-top: 3px solid #FFFFFF;">
-      Devi svolgere un corso obbligatorio
+    <div style="background-color: #000; color: #FFFFFF; padding: 20px; text-align: center; border-top: 3px solid #FFFFFF;">
+      <div style="font-size: 14px; margin-bottom: 8px;">IL TUO NOME UTENTE È:</div>
+      <div style="font-size: 28px; font-weight: bold; letter-spacing: 1px;">${props.username}</div>
     </div>
 
     <div style="padding: 30px; background-color: #FFFFFF;">

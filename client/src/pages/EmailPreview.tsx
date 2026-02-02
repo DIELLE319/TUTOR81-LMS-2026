@@ -15,7 +15,7 @@ export default function EmailPreview() {
         endDate="30/04/2026"
         referentName="Chillemi Giulia"
         referentEmail="formazione@afabi.it"
-        username="andrea.monteleone"
+        username="ANDREA.MONTELEONE"
         courseUrl="https://avviacorso.tutor81.com"
         instructionsUrl="https://tutor81.com/istruzioni"
       />
