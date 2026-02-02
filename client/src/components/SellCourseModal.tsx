@@ -101,6 +101,8 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const [selectedExistingUsers, setSelectedExistingUsers] = useState<Set<string>>(new Set());
   const [existingUserSearch, setExistingUserSearch] = useState('');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [cfMessages, setCfMessages] = useState<Record<number, { message: string; exists: boolean; sameCompany: boolean }>>({});
+  const [checkingCf, setCheckingCf] = useState<Record<number, boolean>>({});
   const [successData, setSuccessData] = useState<{
     created: number;
     ovhSynced: number;
@@ -186,11 +188,57 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
       setSelectedCompanyId('');
       setUserMode('new');
       setErrors({});
+      setCfMessages({});
+      setCheckingCf({});
       setSelectedExistingUsers(new Set());
       setExistingUserSearch('');
       setSuccessData(null);
     }
   }, [isOpen]);
+
+  // Verifica CF in tempo reale
+  const checkFiscalCode = async (fiscalCode: string, rowIndex: number) => {
+    if (!fiscalCode || fiscalCode.length < 3) {
+      setCfMessages(prev => {
+        const newMessages = { ...prev };
+        delete newMessages[rowIndex];
+        return newMessages;
+      });
+      return;
+    }
+
+    setCheckingCf(prev => ({ ...prev, [rowIndex]: true }));
+    
+    try {
+      const url = selectedCompanyId 
+        ? `/api/check-fiscal-code?fiscalCode=${encodeURIComponent(fiscalCode)}&companyId=${selectedCompanyId}`
+        : `/api/check-fiscal-code?fiscalCode=${encodeURIComponent(fiscalCode)}`;
+      
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data.exists) {
+        setCfMessages(prev => ({
+          ...prev,
+          [rowIndex]: {
+            message: data.message,
+            exists: true,
+            sameCompany: data.sameCompany
+          }
+        }));
+      } else {
+        setCfMessages(prev => {
+          const newMessages = { ...prev };
+          delete newMessages[rowIndex];
+          return newMessages;
+        });
+      }
+    } catch (error) {
+      console.error("Errore verifica CF:", error);
+    } finally {
+      setCheckingCf(prev => ({ ...prev, [rowIndex]: false }));
+    }
+  };
 
   useEffect(() => {
     setSelectedExistingUsers(new Set());
@@ -646,14 +694,34 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                         />
                       </td>
                       <td className="px-2 py-2">
-                        <Input
-                          value={row.fiscalCode}
-                          onChange={(e) => updateRow(idx, 'fiscalCode', e.target.value.toUpperCase())}
-                          placeholder="Codice Fiscale"
-                          maxLength={16}
-                          className={`h-8 text-sm bg-white border-gray-300 text-black uppercase min-w-[180px] font-mono ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''}`}
-                          data-testid={`input-cf-${idx}`}
-                        />
+                        <div className="relative">
+                          <Input
+                            value={row.fiscalCode}
+                            onChange={(e) => {
+                              updateRow(idx, 'fiscalCode', e.target.value.toUpperCase());
+                              // Verifica in tempo reale dopo 500ms
+                              const cf = e.target.value.toUpperCase();
+                              if (cf.length >= 6) {
+                                setTimeout(() => checkFiscalCode(cf, idx), 500);
+                              }
+                            }}
+                            onBlur={(e) => checkFiscalCode(e.target.value, idx)}
+                            placeholder="Codice Fiscale"
+                            maxLength={16}
+                            className={`h-8 text-sm bg-white border-gray-300 text-black uppercase min-w-[180px] font-mono ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''} ${cfMessages[idx]?.exists ? (cfMessages[idx].sameCompany ? 'border-yellow-500 bg-yellow-50' : 'border-orange-500 bg-orange-50') : ''}`}
+                            data-testid={`input-cf-${idx}`}
+                          />
+                          {checkingCf[idx] && (
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                              <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                            </div>
+                          )}
+                        </div>
+                        {cfMessages[idx] && (
+                          <div className={`mt-1 text-xs px-2 py-1 rounded ${cfMessages[idx].sameCompany ? 'bg-yellow-100 text-yellow-800 border border-yellow-400' : 'bg-orange-100 text-orange-800 border border-orange-400'}`}>
+                            {cfMessages[idx].message}
+                          </div>
+                        )}
                       </td>
                       <td className="px-2 py-2">
                         <Select value={row.userType} onValueChange={(val) => updateRow(idx, 'userType', val)}>

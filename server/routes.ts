@@ -470,6 +470,91 @@ export async function registerRoutes(
   });
 
   // ============================================================
+  // VERIFICA CODICE FISCALE IN TEMPO REALE
+  // ============================================================
+  app.get("/api/check-fiscal-code", isAuthenticated, async (req, res) => {
+    try {
+      const fiscalCode = (req.query.fiscalCode as string || '').toUpperCase().trim();
+      const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
+      
+      if (!fiscalCode) {
+        return res.json({ exists: false });
+      }
+      
+      // Controlla su Replit
+      const existingStudent = await db.select({
+        id: schema.students.id,
+        firstName: schema.students.firstName,
+        lastName: schema.students.lastName,
+        companyId: schema.students.companyId,
+        companyName: schema.companies.businessName,
+      })
+        .from(schema.students)
+        .leftJoin(schema.companies, eq(schema.students.companyId, schema.companies.id))
+        .where(sql`UPPER(${schema.students.fiscalCode}) = ${fiscalCode}`)
+        .limit(1);
+      
+      if (existingStudent.length > 0) {
+        const student = existingStudent[0];
+        const sameCompany = companyId ? student.companyId === companyId : false;
+        
+        return res.json({
+          exists: true,
+          sameCompany,
+          student: {
+            id: student.id,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            companyName: student.companyName,
+          },
+          message: sameCompany 
+            ? `Corsista già esistente: ${student.firstName} ${student.lastName} - verrà aggiunta nuova iscrizione`
+            : `Corsista già esistente in altra azienda: ${student.companyName}`
+        });
+      }
+      
+      // Controlla anche su OVH
+      let ovhExists = false;
+      let ovhUser = null;
+      try {
+        const conn = await getOvhConnection();
+        const [ovhUsers] = await conn.execute(
+          'SELECT id, name, surname FROM users WHERE tax_code = ? LIMIT 1',
+          [fiscalCode]
+        ) as any[];
+        await conn.end();
+        
+        if (ovhUsers.length > 0) {
+          ovhExists = true;
+          ovhUser = ovhUsers[0];
+        }
+      } catch (ovhError) {
+        console.error("[Check CF] OVH error:", ovhError);
+      }
+      
+      if (ovhExists && ovhUser) {
+        return res.json({
+          exists: true,
+          sameCompany: true, // Assumiamo che verrà usato lo stesso utente OVH
+          student: {
+            id: ovhUser.id,
+            firstName: ovhUser.name,
+            lastName: ovhUser.surname,
+            companyName: 'OVH',
+          },
+          message: `Corsista già esistente su OVH: ${ovhUser.name} ${ovhUser.surname} - verrà usato utente esistente`,
+          source: 'ovh'
+        });
+      }
+      
+      res.json({ exists: false });
+    } catch (error) {
+      console.error("Check fiscal code error:", error);
+      res.json({ exists: false });
+    }
+  });
+
+  // ============================================================
   // STUDENTS (Studenti/Dipendenti)
   // ============================================================
   app.get("/api/students", isAuthenticated, async (req, res) => {
