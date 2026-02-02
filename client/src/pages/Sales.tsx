@@ -318,11 +318,11 @@ export default function Sales() {
               <tr>
                 <th className="text-left p-2 text-xs font-bold text-black uppercase w-20">N. Ordine</th>
                 <th className="text-left p-2 text-xs font-bold text-black uppercase w-24">Data</th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">Ente Formativo</th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">Cliente</th>
+                <th className="text-left p-2 text-xs font-bold text-black uppercase">Ente Formativo</th>
+                <th className="text-left p-2 text-xs font-bold text-black uppercase">Cliente</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Learning Project</th>
                 <th className="text-center p-2 text-xs font-bold text-black uppercase w-12">Qta</th>
-                <th className="text-right p-3 text-xs font-bold text-black uppercase w-24">Tuo Costo</th>
+                <th className="text-right p-2 text-xs font-bold text-black uppercase w-24">Tuo Costo</th>
               </tr>
             </thead>
             <tbody>
@@ -345,9 +345,9 @@ export default function Sales() {
                     className="bg-white border-b border-gray-200 hover:bg-yellow-50"
                     data-testid={`row-sale-${sale.id}`}
                   >
-                    <td className="p-3 text-sm text-black font-medium">{sale.id}</td>
-                    <td className="p-3 text-sm text-black">{formatDate(sale.date)}</td>
-                    <td className="p-3 text-sm text-black max-w-[180px]">
+                    <td className="p-2 text-sm text-black font-medium">{sale.id}</td>
+                    <td className="p-2 text-sm text-black">{formatDate(sale.date)}</td>
+                    <td className="p-2 text-sm text-black max-w-[150px]">
                       <div className="truncate" title={sale.tutorName}>
                         {sale.tutorName}
                       </div>
@@ -355,10 +355,10 @@ export default function Sales() {
                         ID {sale.adminId} - {sale.adminName}
                       </div>
                     </td>
-                    <td className="p-3 text-sm text-black max-w-[180px] truncate" title={sale.client}>
+                    <td className="p-2 text-sm text-black max-w-[150px] truncate" title={sale.client}>
                       {sale.client}
                     </td>
-                    <td className="p-3 text-sm text-black max-w-[250px]">
+                    <td className="p-3 text-sm text-black max-w-[280px]">
                       <div className="font-medium">
                         LP {sale.courseId} - {sale.courseName || '-'}
                       </div>
@@ -368,8 +368,8 @@ export default function Sales() {
                         </div>
                       )}
                     </td>
-                    <td className="p-3 text-sm text-center text-black">{sale.qty}</td>
-                    <td className="p-3 text-sm text-right text-black font-medium">
+                    <td className="p-2 text-sm text-center text-black">{sale.qty}</td>
+                    <td className="p-2 text-sm text-right text-black font-medium">
                       {parseFloat(sale.listPrice || '0').toFixed(2)} €
                     </td>
                   </tr>
