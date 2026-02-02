@@ -1168,6 +1168,29 @@ export async function registerRoutes(
       const ovhCourseId = courseId;
       const ovhCompanyId = companyId;
 
+      // Trova l'admin tutor per creare la vendita locale
+      let adminTutorId = 1; // default
+      if (tutorId) {
+        const adminTutor = await db.select().from(schema.tutorAdmins)
+          .where(eq(schema.tutorAdmins.tutorId, tutorId))
+          .limit(1);
+        if (adminTutor.length > 0) {
+          adminTutorId = adminTutor[0].id;
+        }
+      }
+      
+      // Crea vendita locale prima delle iscrizioni
+      const [localPurchase] = await db.insert(schema.tutorsPurchases).values({
+        tutorId: adminTutorId,
+        customerCompanyId: companyId,
+        userCompanyRef: adminTutorId,
+        learningProjectId: courseId,
+        qta: corsisti.length,
+        price: "0.00",
+        executed: true,
+      }).returning();
+      console.log(`[Local] Vendita locale creata: ${localPurchase.id}`);
+
       for (const corsista of corsisti) {
         const { lastName, firstName, fiscalCode, startDate, endDate, daysToAlert } = corsista;
         
