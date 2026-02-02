@@ -1086,18 +1086,22 @@ export async function registerRoutes(
       let query = `
         SELECT 
           tp.id,
-          ta.name as user,
+          ta.id as "adminId",
+          ta.name as "adminName",
           c.business_name as client,
+          c.id as "clientId",
+          t.id as "tutorId",
+          t.business_name as "tutorName",
           tp.creation_date as date,
           tp.learning_project_id as "courseId",
+          lp.title as "courseName",
           tp.qta as qty,
-          tp.price as "listPrice",
-          t.id as "tutorId",
-          t.business_name as "tutorName"
+          tp.price as "listPrice"
         FROM tutors_purchases tp
         JOIN tutor_admins ta ON ta.id = tp.tutor_id
         JOIN tutors t ON t.id = ta.tutor_id
         JOIN companies c ON c.id = tp.customer_company_id
+        LEFT JOIN learning_projects lp ON lp.id = tp.learning_project_id
       `;
       
       if (tutorId) {
@@ -1106,8 +1110,33 @@ export async function registerRoutes(
         query += ` ORDER BY tp.creation_date DESC LIMIT 500`;
       }
       
-      const result = await db.execute(sql.raw(query));
-      res.json(result.rows);
+      const salesResult = await db.execute(sql.raw(query));
+      const salesRows = salesResult.rows as any[];
+      
+      // Fetch activated students for each sale (by company + course)
+      const salesWithStudents = await Promise.all(salesRows.map(async (sale) => {
+        if (!sale.courseId || !sale.clientId) return { ...sale, activatedStudents: '' };
+        
+        try {
+          const studentsQuery = `
+            SELECT s.first_name, s.last_name
+            FROM enrollments e
+            JOIN students s ON s.id = e.student_id
+            WHERE e.learning_project_id = ${sale.courseId}
+              AND s.company_id = ${sale.clientId}
+            LIMIT 5
+          `;
+          const studentsResult = await db.execute(sql.raw(studentsQuery));
+          const students = studentsResult.rows as any[];
+          const studentNames = students.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+          const suffix = students.length >= 5 ? '...' : '';
+          return { ...sale, activatedStudents: studentNames + suffix };
+        } catch {
+          return { ...sale, activatedStudents: '' };
+        }
+      }));
+      
+      res.json(salesWithStudents);
     } catch (error) {
       console.error("Sales error:", error);
       res.status(500).json({ error: "Failed to fetch sales" });

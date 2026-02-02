@@ -1,9 +1,10 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'wouter';
-import { Calendar, Building, Receipt, Printer, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { Search, ChevronsUpDown, Check, Download, FileSpreadsheet } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import type { Company } from '@shared/schema';
 import {
   Select,
   SelectContent,
@@ -11,247 +12,372 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-type InvoiceData = {
-  tutor: {
-    id: number;
-    businessName: string;
-    address: string | null;
-    city: string | null;
-    vatNumber: string | null;
-  };
-  period: { label: string };
-  orders: Array<{ orderId: number; courseId: number; qty: number; price: number; total: number }>;
-  totalSales: number;
-  grandTotal: number;
-  generatedAt: string;
-};
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface Sale {
   id: number;
-  user: string;
+  adminId: number;
+  adminName: string;
   client: string;
-  date: string;
-  course: string;
-  qty: number;
-  listPrice: number;
   tutorId: number;
   tutorName: string;
+  date: string;
+  courseId: number;
+  courseName: string;
+  qty: number;
+  listPrice: string;
+  activatedStudents?: string;
 }
 
-interface GroupedSales {
-  [monthKey: string]: {
-    label: string;
-    sales: Sale[];
-    total: number;
-  };
+interface Tutor {
+  id: number;
+  businessName: string;
+}
+
+interface Company {
+  id: number;
+  businessName: string;
 }
 
 export default function Sales() {
-  const [selectedTutorId, setSelectedTutorId] = useState<string>('');
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState('100');
+  const [tutorFilter, setTutorFilter] = useState<string>('');
+  const [tutorSearchOpen, setTutorSearchOpen] = useState(false);
+  const [companyFilter, setCompanyFilter] = useState<string>('');
+  const [companySearchOpen, setCompanySearchOpen] = useState(false);
 
-  const { data: tutors = [] } = useQuery<Company[]>({
+  const { data: sales = [], isLoading } = useQuery<Sale[]>({
+    queryKey: ['/api/sales'],
+  });
+
+  const { data: tutors = [] } = useQuery<Tutor[]>({
     queryKey: ['/api/tutors'],
   });
 
-  const { data: sales = [], isLoading } = useQuery<Sale[]>({
-    queryKey: ['/api/sales', selectedTutorId],
-    queryFn: async () => {
-      const url = selectedTutorId 
-        ? `/api/sales?tutorId=${selectedTutorId}`
-        : '/api/sales';
-      const res = await fetch(url, { credentials: 'include' });
-      return res.json();
-    },
-    enabled: !!selectedTutorId,
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ['/api/companies-list'],
   });
 
-  const selectedTutor = tutors.find(t => t.id.toString() === selectedTutorId);
+  const sortedTutors = useMemo(() => {
+    return tutors
+      .filter(t => t.businessName)
+      .sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''));
+  }, [tutors]);
 
-  const monthNames = ['GENNAIO', 'FEBBRAIO', 'MARZO', 'APRILE', 'MAGGIO', 'GIUGNO', 
-                      'LUGLIO', 'AGOSTO', 'SETTEMBRE', 'OTTOBRE', 'NOVEMBRE', 'DICEMBRE'];
+  const sortedCompanies = useMemo(() => {
+    return companies
+      .filter(c => c.businessName)
+      .sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''));
+  }, [companies]);
 
-  const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    sales.forEach(sale => {
-      if (!sale.date) return;
-      const date = new Date(sale.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
-      months.add(monthKey);
-    });
-    return Array.from(months).sort((a, b) => b.localeCompare(a)).map(key => {
-      const [year, month] = key.split('-');
-      return { key, label: `${monthNames[parseInt(month)]} ${year}` };
-    });
-  }, [sales]);
+  const selectedTutorName = useMemo(() => {
+    if (!tutorFilter) return '';
+    const tutor = tutors.find(t => t.id.toString() === tutorFilter);
+    return tutor?.businessName || '';
+  }, [tutorFilter, tutors]);
 
-  const groupedByMonth = useMemo(() => {
-    const groups: GroupedSales = {};
-    
-    const filteredSales = selectedMonth === 'all' 
-      ? sales 
-      : sales.filter(sale => {
-          if (!sale.date) return false;
-          const date = new Date(sale.date);
-          const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
-          return monthKey === selectedMonth;
-        });
-    
-    filteredSales.forEach(sale => {
-      if (!sale.date) return;
-      const date = new Date(sale.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
-      const monthLabel = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-      
-      if (!groups[monthKey]) {
-        groups[monthKey] = { label: monthLabel, sales: [], total: 0 };
-      }
-      groups[monthKey].sales.push(sale);
-      groups[monthKey].total += sale.listPrice * (sale.qty || 1);
-    });
+  const selectedCompanyName = useMemo(() => {
+    if (!companyFilter) return '';
+    const company = companies.find(c => c.id.toString() === companyFilter);
+    return company?.businessName || '';
+  }, [companyFilter, companies]);
 
-    return Object.entries(groups)
-      .sort(([a], [b]) => b.localeCompare(a))
-      .map(([key, value]) => ({ key, ...value }));
-  }, [sales, selectedMonth]);
-
-  const totalOrders = sales.length;
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('it-IT');
+  const formatDate = (date: string | null) => {
+    if (!date) return '-';
+    return format(new Date(date), 'dd/MM/yyyy', { locale: it });
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(price);
+  const filteredSales = useMemo(() => {
+    return sales.filter(sale => {
+      if (tutorFilter && sale.tutorId?.toString() !== tutorFilter) return false;
+      if (companyFilter && !sale.client?.toLowerCase().includes(selectedCompanyName.toLowerCase())) return false;
+      if (search) {
+        const s = search.toLowerCase();
+        return (
+          sale.adminName?.toLowerCase().includes(s) ||
+          sale.client?.toLowerCase().includes(s) ||
+          sale.courseName?.toLowerCase().includes(s)
+        );
+      }
+      return true;
+    });
+  }, [sales, tutorFilter, companyFilter, selectedCompanyName, search]);
+
+  const displayedSales = filteredSales.slice(0, parseInt(pageSize));
+
+  const exportCSV = () => {
+    const headers = ['Numero Ordine', 'ID Admin', 'Utente Admin', 'Cliente', 'Ente Formativo', 'Data Vendita', 'Nome Corso', 'Quantità', 'Tuo Costo'];
+    const rows = filteredSales.map(sale => [
+      sale.id,
+      sale.adminId,
+      sale.adminName,
+      sale.client,
+      sale.tutorName,
+      formatDate(sale.date),
+      sale.courseName || '-',
+      sale.qty,
+      parseFloat(sale.listPrice || '0').toFixed(2)
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `vendite_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportExcel = async () => {
+    const headers = ['Numero Ordine', 'ID Admin', 'Utente Admin', 'Cliente', 'Ente Formativo', 'Data Vendita', 'Nome Corso', 'Quantità', 'Tuo Costo'];
+    const rows = filteredSales.map(sale => [
+      sale.id,
+      sale.adminId,
+      sale.adminName,
+      sale.client,
+      sale.tutorName,
+      formatDate(sale.date),
+      sale.courseName || '-',
+      sale.qty,
+      parseFloat(sale.listPrice || '0').toFixed(2)
+    ]);
+    
+    const { utils, writeFile } = await import('xlsx');
+    const ws = utils.aoa_to_sheet([headers, ...rows]);
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, 'Vendite');
+    writeFile(wb, `vendite_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-blue-600 font-bold text-lg">
-                {selectedTutor?.businessName?.charAt(0) || 'A'}
-              </span>
-            </div>
-            <Select value={selectedTutorId} onValueChange={setSelectedTutorId}>
-              <SelectTrigger className="w-[300px] border-0 shadow-none text-xl font-bold text-gray-900 p-0 h-auto" data-testid="select-tutor">
-                <SelectValue placeholder="Seleziona Ente Formativo" />
-              </SelectTrigger>
-              <SelectContent>
-                {tutors.map(tutor => (
-                  <SelectItem key={tutor.id} value={tutor.id.toString()} data-testid={`option-tutor-${tutor.id}`}>
-                    {tutor.businessName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {selectedTutorId && (
-            <div className="flex items-center gap-4">
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px] bg-gray-100 border-0" data-testid="select-month">
-                  <SelectValue placeholder="Tutti i mesi" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tutti i mesi</SelectItem>
-                  {availableMonths.map(m => (
-                    <SelectItem key={m.key} value={m.key} data-testid={`option-month-${m.key}`}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="bg-gray-100 px-4 py-2 rounded-lg">
-                <span className="text-gray-600 text-sm">Totale Ordini: </span>
-                <span className="font-bold text-gray-900" data-testid="text-total-orders">{totalOrders}</span>
-              </div>
-              <Link href="/invoicing">
-                <Button className="bg-yellow-500 hover:bg-yellow-400 text-black" data-testid="button-invoicing">
-                  <Receipt size={18} className="mr-2" />
-                  Fatture
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
+    <div className="min-h-screen bg-gray-100">
+      <div className="bg-black py-4 px-6">
+        <h1 className="text-xl font-bold text-yellow-400" data-testid="text-page-title">
+          Corsi Venduti
+        </h1>
       </div>
 
-      {/* Content */}
       <div className="p-6">
-        {!selectedTutorId ? (
-          <div className="text-center py-20">
-            <Building size={64} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-medium text-gray-600 mb-2">Seleziona un Ente Formativo</h3>
-            <p className="text-gray-400">Scegli un ente formativo dal menu per visualizzare le vendite</p>
-          </div>
-        ) : isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-gray-500 mt-4">Caricamento...</p>
-          </div>
-        ) : sales.length === 0 ? (
-          <div className="text-center py-20">
-            <Calendar size={64} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-medium text-gray-600 mb-2">Nessuna vendita</h3>
-            <p className="text-gray-400">Non ci sono vendite per questo ente formativo</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {groupedByMonth.map(group => (
-              <div key={group.key} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                {/* Month Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <div className="flex items-center gap-2">
-                    <Calendar size={16} className="text-blue-500" />
-                    <span className="font-bold text-gray-800" data-testid={`text-month-${group.key}`}>{group.label}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-gray-500 text-sm">Tot. Costo: </span>
-                    <span className="font-bold text-blue-600" data-testid={`text-month-total-${group.key}`}>{formatPrice(group.total)}</span>
-                  </div>
-                </div>
-
-                {/* Table */}
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase w-16">ORD.</th>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase">UTENTE</th>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase">CLIENTE</th>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase w-28">DATA</th>
-                      <th className="text-left py-2 px-4 text-xs font-medium text-gray-500 uppercase">CORSO</th>
-                      <th className="text-center py-2 px-4 text-xs font-medium text-gray-500 uppercase w-16">QTA</th>
-                      <th className="text-right py-2 px-4 text-xs font-medium text-gray-500 uppercase w-24">COSTO</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.sales.map((sale, index) => (
-                      <tr 
-                        key={sale.id} 
-                        className={`border-b border-gray-50 hover:bg-blue-50/30 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
-                        data-testid={`row-sale-${sale.id}`}
-                      >
-                        <td className="py-3 px-4 text-sm text-gray-500">{sale.id}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700">{sale.user}</td>
-                        <td className="py-3 px-4 text-sm text-blue-600 font-medium hover:underline cursor-pointer">{sale.client}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{formatDate(sale.date)}</td>
-                        <td className="py-3 px-4 text-sm text-gray-700 max-w-xs truncate">{sale.course}</td>
-                        <td className="py-3 px-4 text-sm text-center text-gray-600">{sale.qty}</td>
-                        <td className="py-3 px-4 text-sm text-right text-blue-600 font-medium">{formatPrice(sale.listPrice)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        <div className="flex items-center justify-between mb-4 bg-yellow-400 p-3 rounded-lg gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-black font-medium">Show</span>
+              <Select value={pageSize} onValueChange={setPageSize}>
+                <SelectTrigger className="w-20 bg-white border-black" data-testid="select-page-size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-black font-medium">Cerca:</span>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Admin, cliente, corso..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-48 h-8 text-sm bg-white text-black border-black pl-2 pr-8 rounded"
+                  data-testid="input-search"
+                />
+                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
               </div>
-            ))}
+            </div>
+            <Popover open={tutorSearchOpen} onOpenChange={setTutorSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-64 justify-between bg-white border-black text-black hover:bg-yellow-50"
+                  data-testid="select-tutor-filter"
+                >
+                  {selectedTutorName || '--- Tutti gli Enti ---'}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0 bg-white" align="start">
+                <Command>
+                  <CommandInput placeholder="Cerca ente..." className="text-black" />
+                  <CommandList>
+                    <CommandEmpty>Nessun ente trovato</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="tutti"
+                        onSelect={() => {
+                          setTutorFilter('');
+                          setTutorSearchOpen(false);
+                        }}
+                        className="text-black hover:bg-yellow-100 cursor-pointer font-bold"
+                      >
+                        <Check className={cn('mr-2 h-4 w-4', !tutorFilter ? 'opacity-100' : 'opacity-0')} />
+                        --- Tutti gli Enti ---
+                      </CommandItem>
+                      {sortedTutors.map(tutor => (
+                        <CommandItem
+                          key={tutor.id}
+                          value={tutor.businessName}
+                          onSelect={() => {
+                            setTutorFilter(tutor.id.toString());
+                            setTutorSearchOpen(false);
+                          }}
+                          className="text-black hover:bg-yellow-100 cursor-pointer"
+                        >
+                          <Check className={cn('mr-2 h-4 w-4', tutorFilter === tutor.id.toString() ? 'opacity-100' : 'opacity-0')} />
+                          {tutor.businessName}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-64 justify-between bg-white border-black text-black hover:bg-yellow-50"
+                  data-testid="select-company-filter"
+                >
+                  {selectedCompanyName || '--- Tutte le Aziende ---'}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-0 bg-white" align="start">
+                <Command>
+                  <CommandInput placeholder="Cerca azienda..." className="text-black" />
+                  <CommandList>
+                    <CommandEmpty>Nessuna azienda trovata</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="tutte"
+                        onSelect={() => {
+                          setCompanyFilter('');
+                          setCompanySearchOpen(false);
+                        }}
+                        className="text-black hover:bg-yellow-100 cursor-pointer font-bold"
+                      >
+                        <Check className={cn('mr-2 h-4 w-4', !companyFilter ? 'opacity-100' : 'opacity-0')} />
+                        --- Tutte le Aziende ---
+                      </CommandItem>
+                      {sortedCompanies.map(company => (
+                        <CommandItem
+                          key={company.id}
+                          value={company.businessName}
+                          onSelect={() => {
+                            setCompanyFilter(company.id.toString());
+                            setCompanySearchOpen(false);
+                          }}
+                          className="text-black hover:bg-yellow-100 cursor-pointer"
+                        >
+                          <Check className={cn('mr-2 h-4 w-4', companyFilter === company.id.toString() ? 'opacity-100' : 'opacity-0')} />
+                          {company.businessName}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
-        )}
+          <div className="flex items-center gap-3">
+            <span className="text-black font-bold">
+              Totale: {filteredSales.length} vendite
+            </span>
+            <Button 
+              onClick={exportCSV}
+              className="bg-white hover:bg-gray-100 text-black border border-black"
+              data-testid="button-export-csv"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              CSV
+            </Button>
+            <Button 
+              onClick={exportExcel}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              data-testid="button-export-excel"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Excel
+            </Button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-lg border-2 border-black overflow-x-auto">
+          <table className="w-full min-w-[1200px]" data-testid="table-sales">
+            <thead className="bg-yellow-400">
+              <tr>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">N. Ordine</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Cliente</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Ente Formativo</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Data Vendita</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Corso</th>
+                <th className="text-center p-3 text-xs font-bold text-black uppercase">Qta</th>
+                <th className="text-right p-3 text-xs font-bold text-black uppercase">Tuo Costo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-black">
+                    Caricamento...
+                  </td>
+                </tr>
+              ) : displayedSales.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-black">
+                    Nessuna vendita trovata
+                  </td>
+                </tr>
+              ) : (
+                displayedSales.map((sale) => (
+                  <tr
+                    key={sale.id}
+                    className="bg-white border-b border-gray-200 hover:bg-yellow-50"
+                    data-testid={`row-sale-${sale.id}`}
+                  >
+                    <td className="p-3 text-sm text-black font-medium">{sale.id}</td>
+                    <td className="p-3 text-sm text-black max-w-[180px] truncate" title={sale.client}>
+                      {sale.client}
+                    </td>
+                    <td className="p-3 text-sm text-black max-w-[180px]">
+                      <div className="truncate" title={sale.tutorName}>
+                        {sale.tutorName}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        ID {sale.adminId} - {sale.adminName}
+                      </div>
+                    </td>
+                    <td className="p-3 text-sm text-black">{formatDate(sale.date)}</td>
+                    <td className="p-3 text-sm text-black max-w-[250px]">
+                      <div className="font-medium">
+                        ID {sale.courseId} - {sale.courseName || '-'}
+                      </div>
+                      {sale.activatedStudents && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {sale.activatedStudents}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3 text-sm text-center text-black">{sale.qty}</td>
+                    <td className="p-3 text-sm text-right text-black font-medium">
+                      {parseFloat(sale.listPrice || '0').toFixed(2)} €
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

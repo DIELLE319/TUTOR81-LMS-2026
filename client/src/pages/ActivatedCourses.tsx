@@ -208,6 +208,9 @@ export default function ActivatedCourses() {
 
   const getProgressColor = (progress: number) => {
     if (progress === 0) return "bg-red-500";
+    if (progress < 25) return "bg-orange-500";
+    if (progress < 50) return "bg-yellow-500";
+    if (progress < 75) return "bg-lime-500";
     return "bg-green-500";
   };
 
