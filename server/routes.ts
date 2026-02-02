@@ -37,8 +37,8 @@ async function syncEnrollmentToOvh(data: {
   try {
     conn = await getOvhConnection();
     
-    // Username formato NOME.COGNOME (maiuscolo)
-    const username = `${data.firstName}.${data.lastName}`.toUpperCase().replace(/\s+/g, '');
+    // Username formato nome.cognome (minuscolo come OVH)
+    const username = `${data.firstName}.${data.lastName}`.toLowerCase().replace(/\s+/g, '');
     const password = data.fiscalCode.toUpperCase();
     
     // Verifica se l'utente esiste già su OVH (per codice fiscale)
@@ -699,7 +699,7 @@ export async function registerRoutes(
         }
 
         const email = corsista.email || `${fiscalCode.toLowerCase()}@corsista.tutor81.com`;
-        const username = `${firstName}.${lastName}`.toUpperCase().replace(/\s+/g, '');
+        const username = `${firstName}.${lastName}`.toLowerCase().replace(/\s+/g, '');
         
         let studentId: number;
         const existingStudent = await db.select()
