@@ -708,7 +708,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                             onBlur={(e) => checkFiscalCode(e.target.value, idx)}
                             placeholder="Codice Fiscale"
                             maxLength={16}
-                            className={`h-8 text-sm bg-white border-gray-300 text-black uppercase min-w-[180px] font-mono ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''} ${cfMessages[idx]?.exists ? (cfMessages[idx].sameCompany ? 'border-yellow-500 bg-yellow-50' : 'border-orange-500 bg-orange-50') : ''}`}
+                            className={`h-8 text-sm bg-white border-gray-300 text-black uppercase min-w-[180px] font-mono ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''} ${cfMessages[idx]?.exists ? 'border-red-500 bg-red-50' : ''}`}
                             data-testid={`input-cf-${idx}`}
                           />
                           {checkingCf[idx] && (
@@ -718,8 +718,8 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           )}
                         </div>
                         {cfMessages[idx] && (
-                          <div className={`mt-1 text-xs px-2 py-1 rounded ${cfMessages[idx].sameCompany ? 'bg-yellow-100 text-yellow-800 border border-yellow-400' : 'bg-orange-100 text-orange-800 border border-orange-400'}`}>
-                            {cfMessages[idx].message}
+                          <div className="mt-1 text-xs px-2 py-1 rounded bg-red-100 text-red-800 border border-red-400 font-semibold">
+                            Codice fiscale già esistente - controlla tra gli utenti esistenti
                           </div>
                         )}
                       </td>
