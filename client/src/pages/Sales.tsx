@@ -318,8 +318,8 @@ export default function Sales() {
               <tr>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Cliente</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">N. Ordine</th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">Ente Formativo</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Data Vendita</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Ente Formativo</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Learning Project</th>
                 <th className="text-center p-3 text-xs font-bold text-black uppercase">Qta</th>
                 <th className="text-right p-3 text-xs font-bold text-black uppercase">Tuo Costo</th>
@@ -349,6 +349,7 @@ export default function Sales() {
                       {sale.client}
                     </td>
                     <td className="p-3 text-sm text-black font-medium">{sale.id}</td>
+                    <td className="p-3 text-sm text-black">{formatDate(sale.date)}</td>
                     <td className="p-3 text-sm text-black max-w-[180px]">
                       <div className="truncate" title={sale.tutorName}>
                         {sale.tutorName}
@@ -357,7 +358,6 @@ export default function Sales() {
                         ID {sale.adminId} - {sale.adminName}
                       </div>
                     </td>
-                    <td className="p-3 text-sm text-black">{formatDate(sale.date)}</td>
                     <td className="p-3 text-sm text-black max-w-[250px]">
                       <div className="font-medium">
                         LP {sale.courseId} - {sale.courseName || '-'}
