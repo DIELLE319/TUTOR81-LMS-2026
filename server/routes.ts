@@ -1,12 +1,44 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { setupAuth, registerAuthRoutes, isAuthenticated, authStorage } from "./replit_integrations/auth";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import mysql from "mysql2/promise";
 import crypto from "crypto";
+
+// Helper per ottenere tutorId dall'utente autenticato (sicurezza lato server)
+async function getAuthenticatedUserTutorId(req: Request): Promise<{ role: number | null; tutorId: number | null }> {
+  try {
+    const user = req.user as any;
+    if (!user?.claims?.sub) {
+      return { role: null, tutorId: null };
+    }
+    
+    const dbUser = await authStorage.getUser(user.claims.sub);
+    if (!dbUser) {
+      return { role: null, tutorId: null };
+    }
+    
+    // Se l'utente è admin tutor (role=1), cerca il suo tutorId
+    if (dbUser.role === 1 && dbUser.idcompany) {
+      const result = await db.execute(sql`
+        SELECT ta.tutor_id
+        FROM tutor_admins ta
+        WHERE ta.id = ${dbUser.idcompany}
+      `);
+      if (result.rows.length > 0) {
+        return { role: 1, tutorId: (result.rows[0] as any).tutor_id };
+      }
+    }
+    
+    return { role: dbUser.role, tutorId: null };
+  } catch (e) {
+    console.error("Error getting user tutor info:", e);
+    return { role: null, tutorId: null };
+  }
+}
 
 // Connessione al database OVH
 const ovhDbConfig = {
@@ -272,8 +304,18 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/clients", isAuthenticated, async (req, res) => {
     try {
+      // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
+      const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
+      
+      // Se role=1 ma tutorId non è stato risolto, nega accesso
+      if (role === 1 && !authTutorId) {
+        return res.status(403).json({ error: "Admin tutor non associato a un ente formativo" });
+      }
+      
+      const tutorIdFilter = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
+      
       // Get all companies with their tutor info
-      const companies = await db.select({
+      let query = db.select({
         id: schema.companies.id,
         businessName: schema.companies.businessName,
         city: schema.companies.city,
@@ -285,8 +327,12 @@ export async function registerRoutes(
         tutorName: schema.tutors.businessName,
       })
         .from(schema.companies)
-        .leftJoin(schema.tutors, eq(schema.companies.tutorId, schema.tutors.id))
-        .orderBy(schema.tutors.businessName, schema.companies.businessName);
+        .leftJoin(schema.tutors, eq(schema.companies.tutorId, schema.tutors.id));
+      
+      // Se c'è un filtro tutorId, filtra per quel tutor
+      const companies = tutorIdFilter 
+        ? await query.where(eq(schema.companies.tutorId, tutorIdFilter)).orderBy(schema.companies.businessName)
+        : await query.orderBy(schema.tutors.businessName, schema.companies.businessName);
 
       // Group by tutor
       const tutorGroups: { tutorId: number | null; tutorName: string; clients: any[] }[] = [];
@@ -325,7 +371,15 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/companies", isAuthenticated, async (req, res) => {
     try {
-      const tutorId = req.query.tutorId ? parseInt(req.query.tutorId as string) : null;
+      // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
+      const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
+      
+      // Se role=1 ma tutorId non è stato risolto, nega accesso
+      if (role === 1 && !authTutorId) {
+        return res.status(403).json({ error: "Admin tutor non associato a un ente formativo" });
+      }
+      
+      const tutorId = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
       const search = (req.query.search as string) || "";
 
       let query = db.select({
@@ -562,7 +616,16 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/students", isAuthenticated, async (req, res) => {
     try {
+      // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
+      const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
+      
+      // Se role=1 ma tutorId non è stato risolto, nega accesso
+      if (role === 1 && !authTutorId) {
+        return res.status(403).json({ error: "Admin tutor non associato a un ente formativo" });
+      }
+      
       const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
+      const tutorIdFilter = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
 
       const students = await db.select({
@@ -585,6 +648,9 @@ export async function registerRoutes(
         .limit(limit);
 
       let filtered = students;
+      if (tutorIdFilter) {
+        filtered = filtered.filter(s => s.tutorId === tutorIdFilter);
+      }
       if (companyId) {
         filtered = filtered.filter(s => s.companyId === companyId);
       }
@@ -685,7 +751,15 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/enrollments", isAuthenticated, async (req, res) => {
     try {
-      const tutorId = req.query.tutorId ? parseInt(req.query.tutorId as string) : null;
+      // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
+      const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
+      
+      // Se role=1 ma tutorId non è stato risolto, nega accesso
+      if (role === 1 && !authTutorId) {
+        return res.status(403).json({ error: "Admin tutor non associato a un ente formativo" });
+      }
+      
+      const tutorId = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
       const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : null;
 
       const enrollmentsRaw = await db.select({
@@ -1014,8 +1088,18 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/attestati", isAuthenticated, async (req, res) => {
     try {
+      // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
+      const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
+      
+      // Se role=1 ma tutorId non è stato risolto, nega accesso
+      if (role === 1 && !authTutorId) {
+        return res.status(403).json({ error: "Admin tutor non associato a un ente formativo" });
+      }
+      
+      const tutorIdFilter = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
+      
       // Query attestati from legacy tables with all joins
-      const attestati = await db.execute(sql`
+      let query = sql`
         SELECT 
           le.id,
           le.legacy_id,
@@ -1030,14 +1114,21 @@ export async function registerRoutes(
           lu.fiscal_code as user_fiscal_code,
           c.title as course_title,
           c.hours as course_hours,
-          t.business_name as tutor_name
+          t.business_name as tutor_name,
+          t.id as tutor_id
         FROM legacy_enrollments le
         LEFT JOIN legacy_users lu ON le.legacy_user_id = lu.legacy_id
         LEFT JOIN courses c ON le.legacy_course_id = c.id
         LEFT JOIN tutors t ON lu.creator_id = t.id
-        ORDER BY le.end_date DESC NULLS LAST
-        LIMIT 1000
-      `);
+      `;
+      
+      if (tutorIdFilter) {
+        query = sql`${query} WHERE t.id = ${tutorIdFilter}`;
+      }
+      
+      query = sql`${query} ORDER BY le.end_date DESC NULLS LAST LIMIT 1000`;
+      
+      const attestati = await db.execute(query);
       
       res.json(attestati.rows);
     } catch (error) {
@@ -1081,7 +1172,15 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/sales", isAuthenticated, async (req, res) => {
     try {
-      const tutorId = req.query.tutorId;
+      // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
+      const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
+      
+      // Se role=1 ma tutorId non è stato risolto, nega accesso
+      if (role === 1 && !authTutorId) {
+        return res.status(403).json({ error: "Admin tutor non associato a un ente formativo" });
+      }
+      
+      const tutorId = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
       
       let query = `
         SELECT 

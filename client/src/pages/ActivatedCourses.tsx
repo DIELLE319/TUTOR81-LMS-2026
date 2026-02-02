@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,7 @@ interface Company {
 }
 
 export default function ActivatedCourses() {
+  const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [companyFilter, setCompanyFilter] = useState<string>("");
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
@@ -76,9 +78,19 @@ export default function ActivatedCourses() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [newEndDate, setNewEndDate] = useState("");
   const { toast } = useToast();
+  
+  // Se l'utente è venditore (admin tutor), filtra per il suo tutorId
+  const isVenditore = user?.role === 1;
+  const userTutorId = (user as any)?.tutorId;
 
   const { data: enrollments = [], isLoading } = useQuery<Enrollment[]>({
-    queryKey: ["/api/enrollments"],
+    queryKey: ["/api/enrollments", userTutorId],
+    queryFn: async () => {
+      const url = userTutorId ? `/api/enrollments?tutorId=${userTutorId}` : '/api/enrollments';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
   });
 
   const { data: companies = [] } = useQuery<Company[]>({

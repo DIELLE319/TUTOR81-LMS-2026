@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,14 +33,25 @@ interface Attestato {
 }
 
 export default function Certificates() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState("50");
   const [selectedCompany, setSelectedCompany] = useState("all");
   const [selectedUser, setSelectedUser] = useState("all");
   const [selectedTutor, setSelectedTutor] = useState("all");
+  
+  // Se l'utente è venditore (admin tutor), filtra per il suo tutorId
+  const isVenditore = user?.role === 1;
+  const userTutorId = (user as any)?.tutorId;
 
   const { data: attestati = [], isLoading } = useQuery<Attestato[]>({
-    queryKey: ["/api/attestati"],
+    queryKey: ["/api/attestati", userTutorId],
+    queryFn: async () => {
+      const url = userTutorId ? `/api/attestati?tutorId=${userTutorId}` : '/api/attestati';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
   });
 
   // Ottieni lista aziende uniche

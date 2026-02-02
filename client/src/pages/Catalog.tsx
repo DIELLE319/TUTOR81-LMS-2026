@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ShoppingCart, ChevronDown, ChevronUp, Printer, Download } from 'lucide-react';
 import type { Course } from '@shared/schema';
+import { useAuth } from '@/hooks/use-auth';
 import SellCourseModal from '@/components/SellCourseModal';
 
 // Keywords per identificare corsi di test/demo

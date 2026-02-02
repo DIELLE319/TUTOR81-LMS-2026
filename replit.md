@@ -23,7 +23,21 @@ admin6d05a9d5@amm.tutor81.com:~/git/amm.tutor81.com.git
 
 The platform supports multiple user roles including administrators, tutors, and client companies, with features for course catalog management, sales tracking, user management, and certificate generation.
 
-## Recent Changes (February 1, 2026)
+## Recent Changes (February 2, 2026)
+
+- **Admin Tutor Data Filtering Implemented (con sicurezza lato server)**:
+  - All pages now filter data by tutorId for admin tutors (role=1)
+  - Pages updated: Clients, Sales, ActivatedCourses, Users, Certificates
+  - **SICUREZZA LATO SERVER**: Le API forzano il filtro tutorId basandosi sull'utente autenticato
+    - Helper `getAuthenticatedUserTutorId(req)` recupera tutorId dal database
+    - Per role=1, il tutorId è forzato dal server (ignora parametri client)
+    - Per altri ruoli, il filtro è opzionale
+  - APIs updated: `/api/clients`, `/api/sales`, `/api/enrollments`, `/api/students`, `/api/attestati`
+  - Admin tutors only see data from their own training organization (ente formativo)
+  - User auth now includes tutorId and tutorName from tutor_admins table
+  - **Login Admin Tutor**: username = nome.cognome (minuscolo), password = codice fiscale (maiuscolo)
+
+## Previous Changes (February 1, 2026)
 
 - **Complete Data Import from OVH**:
   - **14 Enti formativi (tutors)** - IDs aligned with OVH

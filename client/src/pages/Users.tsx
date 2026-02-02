@@ -4,6 +4,7 @@ import { useSearch } from 'wouter';
 import { Search, Users as UsersIcon, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { User as UserType } from '@shared/schema';
 
@@ -39,15 +40,26 @@ interface Enrollment {
 }
 
 export default function Users() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<StudentRow | null>(null);
   const [editData, setEditData] = useState<Partial<StudentRow>>({});
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const { toast } = useToast();
   const searchString = useSearch();
+  
+  // Se l'utente è venditore (admin tutor), filtra per il suo tutorId
+  const isVenditore = user?.role === 1;
+  const userTutorId = (user as any)?.tutorId;
 
   const { data: users = [], isLoading } = useQuery<StudentRow[]>({
-    queryKey: ['/api/students'],
+    queryKey: ['/api/students', userTutorId],
+    queryFn: async () => {
+      const url = userTutorId ? `/api/students?tutorId=${userTutorId}` : '/api/students';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
   });
 
   useEffect(() => {

@@ -24,6 +24,9 @@ import CourseStructure from "@/pages/CourseStructure";
 import CoursePlayer from "@/pages/CoursePlayer";
 import CoursePlayerVideo from "@/pages/CoursePlayerVideo";
 import PlayerLogin from "@/pages/PlayerLogin";
+import Videoconference from "@/pages/Videoconference";
+import Tracking from "@/pages/Tracking";
+import Feedback from "@/pages/Feedback";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -164,6 +167,18 @@ function Router() {
 
       <Route path="/content-management">
         <ProtectedRoute><ContentManagement /></ProtectedRoute>
+      </Route>
+
+      <Route path="/videoconference">
+        <ProtectedRoute><Videoconference /></ProtectedRoute>
+      </Route>
+
+      <Route path="/tracking">
+        <ProtectedRoute><Tracking /></ProtectedRoute>
+      </Route>
+
+      <Route path="/feedback">
+        <ProtectedRoute><Feedback /></ProtectedRoute>
       </Route>
 
       <Route path="/learning-objects">

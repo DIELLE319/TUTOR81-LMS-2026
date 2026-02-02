@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Search, ChevronsUpDown, Check, Download, FileSpreadsheet } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,15 +45,29 @@ interface Company {
 }
 
 export default function Sales() {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [pageSize, setPageSize] = useState('100');
-  const [tutorFilter, setTutorFilter] = useState<string>('');
   const [tutorSearchOpen, setTutorSearchOpen] = useState(false);
   const [companyFilter, setCompanyFilter] = useState<string>('');
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
+  
+  // Se l'utente è venditore (admin tutor), usa automaticamente il suo tutorId
+  const isVenditore = user?.role === 1;
+  const userTutorId = (user as any)?.tutorId;
+  const [tutorFilter, setTutorFilter] = useState<string>('');
+  
+  // Imposta il filtro tutor automaticamente per gli admin tutor
+  const effectiveTutorFilter = isVenditore && userTutorId ? userTutorId.toString() : tutorFilter;
 
   const { data: sales = [], isLoading } = useQuery<Sale[]>({
-    queryKey: ['/api/sales'],
+    queryKey: ['/api/sales', effectiveTutorFilter],
+    queryFn: async () => {
+      const url = effectiveTutorFilter ? `/api/sales?tutorId=${effectiveTutorFilter}` : '/api/sales';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
   });
 
   const { data: tutors = [] } = useQuery<Tutor[]>({

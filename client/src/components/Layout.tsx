@@ -119,6 +119,11 @@ export default function Layout({ children }: LayoutProps) {
           <div className="text-sm text-gray-400 mt-2 font-bold uppercase truncate">
             {user?.firstName} {user?.lastName}
           </div>
+          {isVenditore && (user as any)?.tutorName && (
+            <div className="text-xs text-yellow-400 mt-1 truncate">
+              {(user as any).tutorName}
+            </div>
+          )}
         </div>
 
         <div className="p-5 flex items-center gap-3 border-b border-gray-800">
@@ -159,9 +164,30 @@ export default function Layout({ children }: LayoutProps) {
               </>
             )}
             
-            {/* Venditore: vede solo le sue aziende clienti */}
+            {/* Venditore (Admin Tutor): menu completo ente formativo */}
             {isVenditore && (
-              <MenuItem to="/clients" label="Le Mie Aziende" iconName="Users" />
+              <>
+                <SectionHeader title="CLIENTI" />
+                <MenuItem to="/clients" label="Aziende Clienti" iconName="Building2" />
+                <MenuItem to="/companies/new" label="Crea Cliente" iconName="UserPlus" />
+                
+                <SectionHeader title="VENDITA" />
+                <MenuItem to="/catalog" label="Invia avvio corso" iconName="ShoppingCart" />
+                <MenuItem to="/sales" label="Corsi Venduti" iconName="FileText" />
+                
+                <SectionHeader title="CORSI (LMS)" />
+                <MenuItem to="/courses/active" label="In attività" iconName="Activity" />
+                <MenuItem to="/certificates" label="Attestati" iconName="CheckCircle" />
+                
+                <SectionHeader title="ARCHIVIO" />
+                <MenuItem to="/users" label="Elenco Utenti" iconName="User" />
+                <MenuItem to="/users/import" label="Importa Utenti" iconName="Upload" />
+                
+                <SectionHeader title="STRUMENTI" />
+                <MenuItem to="/videoconference" label="Videoconferenza" color="text-red-500" iconName="Video" />
+                <MenuItem to="/tracking" label="Tracciamento" iconName="BarChart2" />
+                <MenuItem to="/feedback" label="Feedback" iconName="MessageSquare" />
+              </>
             )}
             
             {/* Referente: vede la sua azienda */}
@@ -169,35 +195,33 @@ export default function Layout({ children }: LayoutProps) {
               <MenuItem to="/my-company" label="La Mia Azienda" iconName="Building2" />
             )}
 
-            {/* VENDITA - Solo Super Admin e Venditore */}
-            {(isSuperAdmin || isVenditore) && (
+            {/* Super Admin: menu completo */}
+            {isSuperAdmin && (
               <>
                 <SectionHeader title="VENDITA" />
                 <MenuItem to="/companies/new" label="Crea Cliente" iconName="UserPlus" />
                 <MenuItem to="/catalog" label="Invia avvio corso" iconName="ShoppingCart" />
                 <MenuItem to="/sales" label="Corsi Venduti" iconName="FileText" />
                 <MenuItem to="/invoicing" label="Fatturazione" iconName="Receipt" />
-              </>
-            )}
 
-            {/* CORSI LMS - Tutti vedono */}
-            <SectionHeader title="CORSI (LMS)" />
-            <MenuItem to="/courses/active" label="In attività" iconName="Activity" />
-            <MenuItem to="/certificates" label="Attestati" iconName="CheckCircle" />
-            <MenuItem to="/courses/expiring" label="Da Ripetere" iconName="Clock" />
+                <SectionHeader title="CORSI (LMS)" />
+                <MenuItem to="/courses/active" label="In attività" iconName="Activity" />
+                <MenuItem to="/certificates" label="Attestati" iconName="CheckCircle" />
+                <MenuItem to="/courses/expiring" label="Da Ripetere" iconName="Clock" />
 
-            {/* ARCHIVIO - Solo Super Admin e Venditore */}
-            {(isSuperAdmin || isVenditore) && (
-              <>
                 <SectionHeader title="ARCHIVIO" />
                 <MenuItem to="/users" label="Elenco Utenti" iconName="User" />
                 <MenuItem to="/users/import" label="Importa Utenti" iconName="Upload" />
+                
+                <SectionHeader title="STRUMENTI" />
+                <MenuItem to="/videoconference" label="Videoconferenza" color="text-red-500" iconName="Video" />
+                <MenuItem to="/tracking" label="Tracciamento" iconName="BarChart2" />
+                <MenuItem to="/feedback" label="Feedback" iconName="MessageSquare" />
+                
+                <SectionHeader title="CONTENT MANAGEMENT" />
+                <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" />
               </>
             )}
-
-            {/* CONTENT MANAGEMENT */}
-            <SectionHeader title="CONTENT MANAGEMENT" />
-            <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" />
             
             {/* Referente: gestisce utenti della sua azienda */}
             {isReferente && (

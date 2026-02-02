@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { Search, Plus, Users, ChevronRight, MapPin, Mail, ChevronDown, ChevronUp, Building } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 type Client = {
   id: number;
@@ -21,11 +22,22 @@ type TutorGroup = {
 };
 
 export default function Clients() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedTutors, setExpandedTutors] = useState<Set<string>>(new Set());
+  
+  // Se l'utente è venditore (admin tutor), filtra per il suo tutorId
+  const isVenditore = user?.role === 1;
+  const tutorId = (user as any)?.tutorId;
 
   const { data: tutorGroups = [], isLoading } = useQuery<TutorGroup[]>({
-    queryKey: ['/api/clients'],
+    queryKey: ['/api/clients', tutorId],
+    queryFn: async () => {
+      const url = tutorId ? `/api/clients?tutorId=${tutorId}` : '/api/clients';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
   });
 
   const toggleTutor = (tutorKey: string) => {

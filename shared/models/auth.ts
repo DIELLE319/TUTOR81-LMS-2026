@@ -31,4 +31,7 @@ export const users = pgTable("users", {
 });
 
 export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
+export type User = typeof users.$inferSelect & {
+  tutorId?: number | null;
+  tutorName?: string | null;
+};
