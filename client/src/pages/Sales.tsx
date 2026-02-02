@@ -320,6 +320,7 @@ export default function Sales() {
                 <th className="text-left p-2 text-xs font-bold text-black uppercase w-24">Data</th>
                 <th className="text-left p-2 text-xs font-bold text-black uppercase">Ente Formativo</th>
                 <th className="text-left p-2 text-xs font-bold text-black uppercase">Cliente</th>
+                <th className="text-left p-2 text-xs font-bold text-black uppercase w-16">ID LP</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Corso</th>
                 <th className="text-center p-2 text-xs font-bold text-black uppercase w-12">Qta</th>
                 <th className="text-right p-2 text-xs font-bold text-black uppercase w-24">Tuo Costo</th>
@@ -328,13 +329,13 @@ export default function Sales() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-black">
+                  <td colSpan={8} className="text-center py-8 text-black">
                     Caricamento...
                   </td>
                 </tr>
               ) : displayedSales.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-black">
+                  <td colSpan={8} className="text-center py-8 text-black">
                     Nessuna vendita trovata
                   </td>
                 </tr>
@@ -358,9 +359,10 @@ export default function Sales() {
                     <td className="p-2 text-sm text-black max-w-[150px] truncate" title={sale.client}>
                       {sale.client}
                     </td>
+                    <td className="p-2 text-sm text-black">{sale.courseId}</td>
                     <td className="p-3 text-sm text-black max-w-[280px]">
                       <div className="font-medium">
-                        LP {sale.courseId} - {sale.courseName || '-'}
+                        {sale.courseName || '-'}
                       </div>
                       {sale.activatedStudents && (
                         <div className="text-xs text-gray-500 mt-0.5">
