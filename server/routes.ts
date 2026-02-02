@@ -68,10 +68,20 @@ async function syncEnrollmentToOvh(data: {
     const startingFrom = data.startDate.toISOString().split('T')[0]; // formato YYYY-MM-DD
     const finishWithin = data.endDate ? data.endDate.toISOString().split('T')[0] : null;
     
+    // Crea record vendita in tutors_purchases
+    const [purchaseResult] = await conn.execute(
+      `INSERT INTO tutors_purchases (tutor_id, customer_company_id, user_company_ref, learning_project_id, qta, price, creation_date, executed)
+       VALUES (?, ?, ?, ?, 1, 0, NOW(), 1)`,
+      [data.adminId, data.companyId, data.adminId, data.courseId]
+    ) as any[];
+    const purchaseId = purchaseResult.insertId;
+    console.log(`[OVH Sync] Vendita creata: ${purchaseId}`);
+    
+    // Crea iscrizione in learning_project_users con riferimento alla vendita
     const [lpuResult] = await conn.execute(
-      `INSERT INTO learning_project_users (user_id, learning_project_id, learning_project_pwd, company_id, starting_from, finish_within, days_to_alert, id_company, email, assigned)
-       VALUES (?, ?, ?, ?, ?, ?, 30, ?, ?, 1)`,
-      [userId, data.courseId, data.licenseCode, data.adminId, startingFrom, finishWithin, data.companyId, data.email]
+      `INSERT INTO learning_project_users (user_id, learning_project_id, learning_project_pwd, company_id, starting_from, finish_within, days_to_alert, id_company, email, assigned, tutor_purchase_id)
+       VALUES (?, ?, ?, ?, ?, ?, 30, ?, ?, 1, ?)`,
+      [userId, data.courseId, data.licenseCode, data.adminId, startingFrom, finishWithin, data.companyId, data.email, purchaseId]
     ) as any[];
     
     console.log(`[OVH Sync] Iscrizione creata: ${lpuResult.insertId} per utente ${userId} corso ${data.courseId}`);
