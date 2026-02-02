@@ -5,6 +5,81 @@ import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
 import { z } from "zod";
+import mysql from "mysql2/promise";
+
+// Connessione al database OVH
+const ovhDbConfig = {
+  host: "135.125.205.19",
+  port: 3306,
+  user: "pro_tutor81",
+  password: "hpm0?7C3",
+  database: "pro_tutor81",
+  connectTimeout: 10000,
+};
+
+async function getOvhConnection() {
+  return mysql.createConnection(ovhDbConfig);
+}
+
+// Sincronizza iscrizione con OVH
+async function syncEnrollmentToOvh(data: {
+  firstName: string;
+  lastName: string;
+  fiscalCode: string;
+  email: string;
+  companyId: number;
+  courseId: number;
+  licenseCode: string;
+  startDate: Date;
+  endDate: Date | null;
+}) {
+  let conn;
+  try {
+    conn = await getOvhConnection();
+    
+    // Username formato NOME.COGNOME (maiuscolo)
+    const username = `${data.firstName}.${data.lastName}`.toUpperCase().replace(/\s+/g, '');
+    const password = data.fiscalCode.toUpperCase();
+    
+    // Verifica se l'utente esiste già su OVH (per codice fiscale)
+    const [existingUsers] = await conn.execute(
+      'SELECT id FROM users WHERE tax_code = ? LIMIT 1',
+      [data.fiscalCode.toUpperCase()]
+    ) as any[];
+    
+    let userId: number;
+    
+    if (existingUsers.length > 0) {
+      userId = existingUsers[0].id;
+      console.log(`[OVH Sync] Utente esistente trovato: ${userId}`);
+    } else {
+      // Crea nuovo utente su OVH
+      const [result] = await conn.execute(
+        `INSERT INTO users (company_id, role, first_name, last_name, username, password, email, tax_code, is_active, created_at) 
+         VALUES (?, 0, ?, ?, ?, ?, ?, ?, 1, NOW())`,
+        [data.companyId, data.firstName, data.lastName, username, password, data.email, data.fiscalCode.toUpperCase()]
+      ) as any[];
+      userId = result.insertId;
+      console.log(`[OVH Sync] Nuovo utente creato: ${userId}`);
+    }
+    
+    // Crea iscrizione in learning_project_users
+    const [lpuResult] = await conn.execute(
+      `INSERT INTO learning_project_users (user_id, learning_project_id, id_company, code, start_date, end_date, is_active, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 1, NOW())`,
+      [userId, data.courseId, data.companyId, data.licenseCode, data.startDate, data.endDate]
+    ) as any[];
+    
+    console.log(`[OVH Sync] Iscrizione creata: ${lpuResult.insertId} per utente ${userId} corso ${data.courseId}`);
+    
+    await conn.end();
+    return { success: true, userId, username };
+  } catch (error) {
+    console.error("[OVH Sync] Errore:", error);
+    if (conn) await conn.end();
+    return { success: false, error: String(error) };
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -609,7 +684,12 @@ export async function registerRoutes(
 
       const tutorId = company[0].tutorId;
       let created = 0;
-      const results: { studentId: number; licenseCode: string; email: string; firstName: string; lastName: string; fiscalCode: string }[] = [];
+      let ovhSynced = 0;
+      const results: { studentId: number; licenseCode: string; email: string; firstName: string; lastName: string; fiscalCode: string; username: string; ovhSync: boolean }[] = [];
+
+      // Usa l'ID direttamente (Replit e OVH usano gli stessi ID)
+      const ovhCourseId = courseId;
+      const ovhCompanyId = companyId;
 
       for (const corsista of corsisti) {
         const { lastName, firstName, fiscalCode, startDate, endDate, daysToAlert } = corsista;
@@ -618,7 +698,8 @@ export async function registerRoutes(
           continue;
         }
 
-        const email = `${fiscalCode.toLowerCase()}@corsista.tutor81.com`;
+        const email = corsista.email || `${fiscalCode.toLowerCase()}@corsista.tutor81.com`;
+        const username = `${firstName}.${lastName}`.toUpperCase().replace(/\s+/g, '');
         
         let studentId: number;
         const existingStudent = await db.select()
@@ -644,18 +725,39 @@ export async function registerRoutes(
         }
 
         const licenseCode = `${courseId}-${studentId}-${Date.now().toString(36).toUpperCase()}`;
+        const enrollStartDate = startDate ? new Date(startDate) : new Date();
+        const enrollEndDate = endDate ? new Date(endDate) : null;
 
         const [enrollment] = await db.insert(schema.enrollments).values({
           studentId,
           courseId,
           tutorId,
           licenseCode,
-          startDate: startDate ? new Date(startDate) : new Date(),
-          endDate: endDate ? new Date(endDate) : null,
+          startDate: enrollStartDate,
+          endDate: enrollEndDate,
           daysToAlert: daysToAlert || 15,
           progress: 0,
           status: "active",
         }).returning();
+
+        // Sincronizza con OVH
+        let ovhSyncResult = { success: false };
+        try {
+          ovhSyncResult = await syncEnrollmentToOvh({
+            firstName,
+            lastName,
+            fiscalCode,
+            email,
+            companyId: ovhCompanyId,
+            courseId: ovhCourseId,
+            licenseCode,
+            startDate: enrollStartDate,
+            endDate: enrollEndDate,
+          });
+          if (ovhSyncResult.success) ovhSynced++;
+        } catch (err) {
+          console.error("[OVH Sync] Errore sincronizzazione:", err);
+        }
 
         const student = await db.select().from(schema.students).where(eq(schema.students.id, studentId)).limit(1);
         results.push({ 
@@ -665,14 +767,17 @@ export async function registerRoutes(
           firstName: student[0]?.firstName || firstName,
           lastName: student[0]?.lastName || lastName,
           fiscalCode: student[0]?.fiscalCode || fiscalCode,
+          username,
+          ovhSync: ovhSyncResult.success,
         });
         created++;
       }
 
       res.json({ 
         success: true, 
-        created, 
-        message: `${created} iscrizioni create con successo`,
+        created,
+        ovhSynced,
+        message: `${created} iscrizioni create, ${ovhSynced} sincronizzate con OVH`,
         courseTitle: course[0].title,
         enrollments: results 
       });

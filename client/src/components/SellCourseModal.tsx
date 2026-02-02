@@ -103,6 +103,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [successData, setSuccessData] = useState<{
     created: number;
+    ovhSynced: number;
     courseTitle: string;
     enrollments: Array<{
       studentId: number;
@@ -110,6 +111,8 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
       firstName: string;
       lastName: string;
       fiscalCode: string;
+      username: string;
+      ovhSync: boolean;
     }>;
   } | null>(null);
   
@@ -125,6 +128,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
     onSuccess: (data) => {
       setSuccessData({
         created: data.created,
+        ovhSynced: data.ovhSynced || 0,
         courseTitle: data.courseTitle,
         enrollments: data.enrollments,
       });
@@ -366,7 +370,14 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-green-600">Iscrizioni Create!</h2>
-                <p className="text-gray-600">{successData.created} corsist{successData.created === 1 ? 'a' : 'i'} iscritt{successData.created === 1 ? 'o' : 'i'}</p>
+                <p className="text-gray-600">
+                  {successData.created} corsist{successData.created === 1 ? 'a' : 'i'} iscritt{successData.created === 1 ? 'o' : 'i'}
+                  {successData.ovhSynced > 0 && (
+                    <span className="ml-2 text-green-600">
+                      ({successData.ovhSynced} sincronizzat{successData.ovhSynced === 1 ? 'o' : 'i'} con OVH)
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
             
@@ -378,27 +389,35 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                 <thead>
                   <tr className="bg-yellow-500 text-black">
                     <th className="p-2 text-left border border-yellow-600">Corsista</th>
+                    <th className="p-2 text-left border border-yellow-600">Username</th>
                     <th className="p-2 text-left border border-yellow-600">Codice Fiscale</th>
-                    <th className="p-2 text-left border border-yellow-600">Codice Licenza</th>
+                    <th className="p-2 text-left border border-yellow-600">OVH</th>
                   </tr>
                 </thead>
                 <tbody>
                   {successData.enrollments.map((e, idx) => (
                     <tr key={idx} className="border border-yellow-300">
                       <td className="p-2 border border-yellow-300">{e.lastName} {e.firstName}</td>
+                      <td className="p-2 border border-yellow-300 font-mono font-bold text-blue-700">{e.username}</td>
                       <td className="p-2 border border-yellow-300 font-mono">{e.fiscalCode}</td>
-                      <td className="p-2 border border-yellow-300 font-mono font-bold text-green-700">{e.licenseCode}</td>
+                      <td className="p-2 border border-yellow-300 text-center">
+                        {e.ovhSync ? (
+                          <span className="text-green-600 font-bold">✓</span>
+                        ) : (
+                          <span className="text-red-600 font-bold">✗</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             
-            <div className="bg-gray-100 rounded-lg p-4 mb-6">
+            <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-700">
-                <strong>Per accedere al corso:</strong><br />
-                1. Vai su <code className="bg-yellow-200 px-1">accedi.tutor81.com</code><br />
-                2. Inserisci il <strong>Codice Licenza</strong> e il <strong>Codice Fiscale</strong>
+                <strong>Il corsista può accedere al corso su:</strong><br />
+                <code className="bg-green-200 px-2 py-1 rounded text-lg font-bold">avviacorso.tutor81.com</code><br /><br />
+                Inserendo: <strong>Username</strong> + <strong>Codice Fiscale</strong> (come password)
               </p>
             </div>
             
