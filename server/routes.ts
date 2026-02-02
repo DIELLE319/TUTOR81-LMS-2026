@@ -283,6 +283,54 @@ export async function registerRoutes(
     }
   });
 
+  // Verifica corso OVH per debug
+  app.get("/api/test-ovh-course/:courseId", async (req, res) => {
+    let conn;
+    try {
+      const courseId = parseInt(req.params.courseId);
+      conn = await getOvhConnection();
+      
+      // Dettagli learning_project
+      const [lpRows] = await conn.execute(`
+        SELECT * FROM learning_project WHERE id = ?
+      `, [courseId]) as any[];
+      
+      if (lpRows.length === 0) {
+        await conn.end();
+        return res.json({ success: false, error: "Corso non trovato" });
+      }
+      
+      // Cerca moduli associati al learning_project
+      const [moduleRows] = await conn.execute(`
+        SELECT * FROM modules WHERE learning_project_id = ?
+      `, [courseId]) as any[];
+      
+      // Cerca lezioni dei moduli
+      let lessonRows: any[] = [];
+      if (moduleRows.length > 0) {
+        const moduleIds = moduleRows.map((m: any) => m.id);
+        const [lRows] = await conn.execute(`
+          SELECT * FROM lessons WHERE module_id IN (${moduleIds.join(',')})
+        `) as any[];
+        lessonRows = lRows;
+      }
+      
+      await conn.end();
+      
+      res.json({
+        success: true,
+        learningProject: lpRows[0],
+        modulesCount: moduleRows.length,
+        lessonsCount: lessonRows.length,
+        modules: moduleRows.slice(0, 3) // primi 3 moduli per debug
+      });
+    } catch (error) {
+      console.error("OVH course check error:", error);
+      if (conn) await conn.end();
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   // ============================================================
   // STATS
   // ============================================================
