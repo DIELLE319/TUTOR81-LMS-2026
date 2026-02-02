@@ -1118,18 +1118,25 @@ export async function registerRoutes(
         if (!sale.courseId || !sale.clientId) return { ...sale, activatedStudents: '' };
         
         try {
+          // Limit students shown to the quantity sold in this order (max 5 for display)
+          const qty = parseInt(sale.qty) || 0;
+          const displayLimit = Math.min(qty, 5);
+          if (displayLimit <= 0) return { ...sale, activatedStudents: '' };
+          
           const studentsQuery = `
             SELECT s.first_name, s.last_name
             FROM enrollments e
             JOIN students s ON s.id = e.student_id
             WHERE e.course_id = ${sale.courseId}
               AND s.company_id = ${sale.clientId}
-            LIMIT 5
+            ORDER BY e.id DESC
+            LIMIT ${displayLimit}
           `;
           const studentsResult = await db.execute(sql.raw(studentsQuery));
           const students = studentsResult.rows as any[];
           const studentNames = students.map(s => `${s.first_name} ${s.last_name}`).join(', ');
-          const suffix = students.length >= 5 ? '...' : '';
+          // Show ... only if qty is greater than what we displayed
+          const suffix = qty > displayLimit ? '...' : '';
           return { ...sale, activatedStudents: studentNames + suffix };
         } catch {
           return { ...sale, activatedStudents: '' };
