@@ -316,8 +316,8 @@ export default function Sales() {
           <table className="w-full min-w-[1200px]" data-testid="table-sales">
             <thead className="bg-yellow-400">
               <tr>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">N. Ordine</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Cliente</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">N. Ordine</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Ente Formativo</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Data Vendita</th>
                 <th className="text-left p-3 text-xs font-bold text-black uppercase">Learning Project</th>
@@ -345,10 +345,10 @@ export default function Sales() {
                     className="bg-white border-b border-gray-200 hover:bg-yellow-50"
                     data-testid={`row-sale-${sale.id}`}
                   >
-                    <td className="p-3 text-sm text-black font-medium">{sale.id}</td>
                     <td className="p-3 text-sm text-black max-w-[180px] truncate" title={sale.client}>
                       {sale.client}
                     </td>
+                    <td className="p-3 text-sm text-black font-medium">{sale.id}</td>
                     <td className="p-3 text-sm text-black max-w-[180px]">
                       <div className="truncate" title={sale.tutorName}>
                         {sale.tutorName}
