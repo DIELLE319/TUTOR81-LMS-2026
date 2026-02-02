@@ -23,8 +23,36 @@ admin6d05a9d5@amm.tutor81.com:~/git/amm.tutor81.com.git
 
 The platform supports multiple user roles including administrators, tutors, and client companies, with features for course catalog management, sales tracking, user management, and certificate generation.
 
+## PROCEDURE CRITICHE - DA NON DIMENTICARE
+
+### Fonte Dati (OVH = Source of Truth)
+Le seguenti API leggono **direttamente da OVH** (NON da tabelle locali Replit):
+- `/api/sales` → OVH `tutors_purchases` (vendite in tempo reale)
+- `/api/enrollments/sync` → Scrive su OVH `learning_project_users`
+- `/api/students/sync` → Scrive su OVH `users`
+
+### Creazione Vendita (Sale)
+1. Inserisce in OVH `tutors_purchases`
+2. Campi: `tutor_id` (admin ID), `customer_company_id`, `learning_project_id`, `qta`, `price`, `creation_date`
+
+### Attivazione Corso (Enrollment)
+1. Crea/aggiorna corsista su OVH `users`
+2. Password = SHA1(CODICE_FISCALE.trim().toUpperCase())
+3. Inserisce in OVH `learning_project_users`
+4. Campi: `company_id` = admin ID, `id_company` = cliente, `user_id` = corsista
+
+### Sync Password Utenti Esistenti
+- Se utente esiste su OVH, aggiorna password con SHA1(CF_UPPERCASE_TRIMMED)
+- Codice fiscale sempre: `.trim().toUpperCase()`
+
+### Query Admin per Tutor
+```sql
+SELECT id FROM users WHERE company_id = {tutorId} AND role = 1 LIMIT 1
+```
+
 ## Recent Changes (February 2, 2026)
 
+- **Sales API ora legge direttamente da OVH** (non più da tabella locale)
 - **Admin Tutor Data Filtering Implemented (con sicurezza lato server)**:
   - All pages now filter data by tutorId for admin tutors (role=1)
   - Pages updated: Clients, Sales, ActivatedCourses, Users, Certificates
