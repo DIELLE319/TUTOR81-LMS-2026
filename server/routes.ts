@@ -91,27 +91,33 @@ async function syncEnrollmentToOvh(data: {
     
     // Username formato nome.cognome (minuscolo come OVH)
     const username = `${data.firstName}.${data.lastName}`.toLowerCase().replace(/\s+/g, '');
-    // Password = SHA1 del codice fiscale (come fa OVH)
-    const passwordPlain = data.fiscalCode.toUpperCase();
+    // Password = SHA1 del codice fiscale (come fa OVH) - PULITO dagli spazi
+    const cleanFiscalCode = data.fiscalCode.toUpperCase().trim();
+    const passwordPlain = cleanFiscalCode;
     const password = crypto.createHash('sha1').update(passwordPlain).digest('hex');
     
-    // Verifica se l'utente esiste già su OVH (per codice fiscale)
+    // Verifica se l'utente esiste già su OVH (per codice fiscale - cerca anche con spazi)
     const [existingUsers] = await conn.execute(
-      'SELECT id FROM users WHERE tax_code = ? LIMIT 1',
-      [data.fiscalCode.toUpperCase()]
+      'SELECT id FROM users WHERE TRIM(tax_code) = ? LIMIT 1',
+      [cleanFiscalCode]
     ) as any[];
     
     let userId: number;
     
     if (existingUsers.length > 0) {
       userId = existingUsers[0].id;
-      console.log(`[OVH Sync] Utente esistente trovato: ${userId}`);
+      // AGGIORNA la password dell'utente esistente al nuovo codice fiscale
+      await conn.execute(
+        'UPDATE users SET password = ?, tax_code = ? WHERE id = ?',
+        [password, cleanFiscalCode, userId]
+      );
+      console.log(`[OVH Sync] Utente esistente trovato: ${userId} - password aggiornata`);
     } else {
       // Crea nuovo utente su OVH (nomi colonne OVH: name, surname, creation_date, suspended, deleted)
       const [result] = await conn.execute(
         `INSERT INTO users (company_id, role, name, surname, username, password, email, tax_code, suspended, deleted, creation_date) 
          VALUES (?, 0, ?, ?, ?, ?, ?, ?, 0, 0, NOW())`,
-        [data.companyId, data.firstName, data.lastName, username, password, data.email, data.fiscalCode.toUpperCase()]
+        [data.companyId, data.firstName, data.lastName, username, password, data.email, cleanFiscalCode]
       ) as any[];
       userId = result.insertId;
       console.log(`[OVH Sync] Nuovo utente creato: ${userId}`);
@@ -377,6 +383,56 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("OVH course check error:", error);
+      if (conn) await conn.end();
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
+  // Endpoint per aggiornare la password di un utente su OVH usando il codice fiscale
+  app.post("/api/fix-ovh-password/:userId", async (req, res) => {
+    let conn;
+    try {
+      const userId = parseInt(req.params.userId);
+      conn = await getOvhConnection();
+      
+      // Trova l'utente
+      const [users] = await conn.execute(
+        'SELECT id, username, tax_code FROM users WHERE id = ?',
+        [userId]
+      ) as any[];
+      
+      if (users.length === 0) {
+        await conn.end();
+        return res.json({ success: false, error: "Utente non trovato" });
+      }
+      
+      const user = users[0];
+      const cleanFiscalCode = (user.tax_code || '').trim().toUpperCase();
+      
+      if (!cleanFiscalCode) {
+        await conn.end();
+        return res.json({ success: false, error: "Codice fiscale mancante" });
+      }
+      
+      // Calcola la nuova password (SHA1 del codice fiscale)
+      const newPassword = crypto.createHash('sha1').update(cleanFiscalCode).digest('hex');
+      
+      // Aggiorna la password e pulisci il codice fiscale
+      await conn.execute(
+        'UPDATE users SET password = ?, tax_code = ? WHERE id = ?',
+        [newPassword, cleanFiscalCode, userId]
+      );
+      
+      await conn.end();
+      
+      res.json({
+        success: true,
+        message: `Password aggiornata per ${user.username}`,
+        fiscalCode: cleanFiscalCode,
+        userId
+      });
+    } catch (error) {
+      console.error("Fix OVH password error:", error);
       if (conn) await conn.end();
       res.status(500).json({ success: false, error: String(error) });
     }

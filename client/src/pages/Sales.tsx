@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { Search, ChevronsUpDown, Check, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, ChevronsUpDown, Check, Download, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,7 @@ export default function Sales() {
   const [tutorSearchOpen, setTutorSearchOpen] = useState(false);
   const [companyFilter, setCompanyFilter] = useState<string>('');
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   // Se l'utente è venditore (admin tutor), usa automaticamente il suo tutorId
   const isVenditore = user?.role === 1;
@@ -108,7 +109,7 @@ export default function Sales() {
   };
 
   const filteredSales = useMemo(() => {
-    return sales.filter(sale => {
+    const filtered = sales.filter(sale => {
       if (tutorFilter && sale.tutorId?.toString() !== tutorFilter) return false;
       if (companyFilter && sale.clientId?.toString() !== companyFilter) return false;
       if (search) {
@@ -121,7 +122,8 @@ export default function Sales() {
       }
       return true;
     });
-  }, [sales, tutorFilter, companyFilter, selectedCompanyName, search]);
+    return filtered.sort((a, b) => sortOrder === 'desc' ? b.id - a.id : a.id - b.id);
+  }, [sales, tutorFilter, companyFilter, selectedCompanyName, search, sortOrder]);
 
   const displayedSales = filteredSales.slice(0, parseInt(pageSize));
 
@@ -333,7 +335,16 @@ export default function Sales() {
           <table className="w-full min-w-[1200px]" data-testid="table-sales">
             <thead className="bg-yellow-400">
               <tr>
-                <th className="text-left p-2 text-xs font-bold text-black uppercase w-20">N. Ordine</th>
+                <th className="text-left p-2 text-xs font-bold text-black uppercase w-20">
+                  <button
+                    onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                    className="flex items-center gap-1 hover:text-yellow-700 transition-colors"
+                    data-testid="button-sort-id"
+                  >
+                    N. Ordine
+                    {sortOrder === 'desc' ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+                  </button>
+                </th>
                 <th className="text-left p-2 text-xs font-bold text-black uppercase w-24">Data</th>
                 <th className="text-left p-2 text-xs font-bold text-black uppercase">Ente Formativo</th>
                 <th className="text-left p-2 text-xs font-bold text-black uppercase">Cliente</th>
