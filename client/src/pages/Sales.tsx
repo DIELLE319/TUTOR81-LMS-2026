@@ -21,6 +21,7 @@ interface Sale {
   adminId: number;
   adminName: string;
   client: string;
+  clientId: number;
   tutorId: number;
   tutorName: string;
   date: string;
@@ -94,7 +95,7 @@ export default function Sales() {
   const filteredSales = useMemo(() => {
     return sales.filter(sale => {
       if (tutorFilter && sale.tutorId?.toString() !== tutorFilter) return false;
-      if (companyFilter && !sale.client?.toLowerCase().includes(selectedCompanyName.toLowerCase())) return false;
+      if (companyFilter && sale.clientId?.toString() !== companyFilter) return false;
       if (search) {
         const s = search.toLowerCase();
         return (
