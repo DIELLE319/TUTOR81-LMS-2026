@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useSearch } from 'wouter';
 import { Search, Users as UsersIcon, X, User } from 'lucide-react';
@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import type { User as UserType } from '@shared/schema';
 
 interface StudentRow {
   id: number;
@@ -42,6 +41,7 @@ interface Enrollment {
 export default function Users() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTutorId, setSelectedTutorId] = useState<number | 'all'>('all');
   const [selectedUser, setSelectedUser] = useState<StudentRow | null>(null);
   const [editData, setEditData] = useState<Partial<StudentRow>>({});
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -50,6 +50,7 @@ export default function Users() {
   
   // Se l'utente è venditore (admin tutor), filtra per il suo tutorId
   const isVenditore = user?.role === 1;
+  const isSuperAdmin = user?.role === 1000;
   const userTutorId = (user as any)?.tutorId;
 
   const { data: users = [], isLoading } = useQuery<StudentRow[]>({
@@ -88,6 +89,12 @@ export default function Users() {
   });
   const companies = companiesResponse?.data || [];
 
+  const tutorCompanies = useMemo(() => companies.filter((c) => c.isTutor), [companies]);
+  const selectedTutorName = useMemo(() => {
+    if (selectedTutorId === 'all') return null;
+    return tutorCompanies.find((c) => c.id === selectedTutorId)?.businessName ?? null;
+  }, [selectedTutorId, tutorCompanies]);
+
   const { data: userEnrollments = [] } = useQuery<Enrollment[]>({
     queryKey: [`/api/user-enrollments?userId=${selectedUser?.id}`],
     enabled: !!selectedUser,
@@ -107,15 +114,27 @@ export default function Users() {
     },
   });
 
-  const filteredUsers = users.filter(u => 
-    u.id?.toString().includes(searchTerm) ||
-    u.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.fiscalCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.tutorName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return users.filter((u) => {
+      if (isSuperAdmin && selectedTutorId !== 'all' && u.tutorId !== selectedTutorId) {
+        return false;
+      }
+
+      if (!normalizedSearch) return true;
+
+      return (
+        u.id?.toString().includes(normalizedSearch) ||
+        u.firstName?.toLowerCase().includes(normalizedSearch) ||
+        u.lastName?.toLowerCase().includes(normalizedSearch) ||
+        u.email?.toLowerCase().includes(normalizedSearch) ||
+        u.fiscalCode?.toLowerCase().includes(normalizedSearch) ||
+        u.companyName?.toLowerCase().includes(normalizedSearch) ||
+        u.tutorName?.toLowerCase().includes(normalizedSearch)
+      );
+    });
+  }, [users, searchTerm, isSuperAdmin, selectedTutorId]);
 
   const openUserModal = (user: StudentRow) => {
     setSelectedUser(user);
@@ -135,59 +154,94 @@ export default function Users() {
     }
   };
 
-  const roleLabels: Record<number, string> = {
-    0: 'Corsista',
-    1: 'Amministratore Ente Formativo',
-    2: 'Referente Aziendale',
-    1000: 'Superadmin',
-  };
-
   return (
     <div className="p-6 bg-black min-h-screen">
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-white" data-testid="text-users-title">Elenco Utenti</h1>
-          <p className="text-gray-500 text-sm">{users.length} utenti registrati</p>
+          <h1 className="text-2xl font-bold text-white" data-testid="text-users-title">
+            Elenco Utenti
+            {selectedTutorName ? (
+              <>
+                {' '}di <span className="text-yellow-400">{selectedTutorName}</span>
+              </>
+            ) : null}
+          </h1>
+          <p className="text-gray-500 text-sm">
+            {isSuperAdmin && selectedTutorId === 'all'
+              ? `${users.length} utenti registrati (tutti gli enti)`
+              : `${filteredUsers.length} utenti`}
+          </p>
         </div>
       </div>
 
-      <div className="bg-[#1e1e1e] rounded-lg border border-gray-800 p-3 mb-4">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-            <input
-              type="text"
-              placeholder="Cerca per ID, nome, email o azienda..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-black border border-gray-700 rounded-lg py-2 pl-9 pr-4 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none"
-              data-testid="input-search-users"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            {selectedIds.size > 0 && (
-              <span className="text-sm text-gray-400">
-                {selectedIds.size} selezionati
-              </span>
+      <div className="bg-white rounded-xl overflow-hidden border-2 border-black/70 mb-4">
+        <div className="bg-yellow-400 px-4 py-3 border-b border-black/20">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-black/60" size={16} />
+              <input
+                type="text"
+                placeholder="ID, nome, email, azienda..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-white border border-yellow-600/30 rounded-lg py-2 pl-9 pr-4 text-sm text-black placeholder-black/50 focus:border-black/40 focus:outline-none"
+                data-testid="input-search-users"
+              />
+            </div>
+
+            {isSuperAdmin && !isVenditore && (
+              <select
+                value={selectedTutorId}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedTutorId(value === 'all' ? 'all' : parseInt(value));
+                  setSelectedIds(new Set());
+                }}
+                className="h-10 bg-white border border-yellow-600/30 rounded-lg px-3 text-sm text-black focus:border-black/40 focus:outline-none"
+                data-testid="select-tutor-filter"
+              >
+                <option value="all">--- Tutti gli Enti ---</option>
+                {tutorCompanies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.businessName}
+                  </option>
+                ))}
+              </select>
             )}
-            <Button 
-              size="sm"
-              variant="outline"
-              disabled={selectedIds.size === 0}
-              className="bg-orange-500 hover:bg-orange-600 text-white border-0 disabled:opacity-50"
-              data-testid="button-suspend-selected"
-            >
-              Sospendi
-            </Button>
-            <Button 
-              size="sm"
-              variant="destructive"
-              disabled={selectedIds.size === 0}
-              className="bg-red-500 hover:bg-red-600 disabled:opacity-50"
-              data-testid="button-delete-selected"
-            >
-              Elimina
-            </Button>
+
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              <div
+                className="h-10 px-3 inline-flex items-center rounded-lg bg-green-600 text-white text-sm font-semibold"
+                data-testid="badge-total-users"
+              >
+                Totale: {filteredUsers.length} utenti
+              </div>
+
+              {selectedIds.size > 0 && (
+                <span className="text-sm text-black/70">
+                  {selectedIds.size} selezionati
+                </span>
+              )}
+
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={selectedIds.size === 0}
+                className="h-10 bg-yellow-200 hover:bg-yellow-100 text-black border border-black/10 disabled:opacity-50"
+                data-testid="button-suspend-selected"
+              >
+                Sospendi
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={selectedIds.size === 0}
+                className="h-10 bg-orange-500 hover:bg-orange-600 text-black border border-black/10 disabled:opacity-50"
+                data-testid="button-delete-selected"
+              >
+                Elimina
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -204,10 +258,10 @@ export default function Users() {
           <p className="text-gray-500">Gli utenti registrati appariranno qui</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg overflow-hidden">
+        <div className="bg-white rounded-xl overflow-hidden border-2 border-black/70">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-100 text-left text-xs text-gray-600 uppercase">
+              <tr className="bg-yellow-500 text-left text-xs text-black uppercase">
                 <th className="px-2 py-2 w-8">
                   <input 
                     type="checkbox" 
@@ -223,13 +277,15 @@ export default function Users() {
                     data-testid="checkbox-select-all"
                   />
                 </th>
-                <th className="px-3 py-2 font-medium">ID</th>
-                <th className="px-3 py-2 font-medium">Nome</th>
-                <th className="px-3 py-2 font-medium">Cognome</th>
-                <th className="px-3 py-2 font-medium">Codice Fiscale</th>
-                <th className="px-3 py-2 font-medium">Ente Formativo</th>
-                <th className="px-3 py-2 font-medium">Azienda</th>
-                <th className="px-3 py-2 font-medium">Email</th>
+                <th className="px-3 py-2 font-bold">ID</th>
+                <th className="px-3 py-2 font-bold">Nome</th>
+                <th className="px-3 py-2 font-bold">Cognome</th>
+                <th className="px-3 py-2 font-bold">Codice Fiscale</th>
+                {isSuperAdmin && selectedTutorId === 'all' ? (
+                  <th className="px-3 py-2 font-bold">Ente</th>
+                ) : null}
+                <th className="px-3 py-2 font-bold">Azienda</th>
+                <th className="px-3 py-2 font-bold">Email</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -269,9 +325,11 @@ export default function Users() {
                   <td className="px-3 py-1.5 font-mono text-xs text-gray-600">
                     {user.fiscalCode || '-'}
                   </td>
-                  <td className="px-3 py-1.5 text-xs">
-                    {user.tutorName || '-'}
-                  </td>
+                  {isSuperAdmin && selectedTutorId === 'all' ? (
+                    <td className="px-3 py-1.5 text-xs">
+                      {user.tutorName || '-'}
+                    </td>
+                  ) : null}
                   <td className="px-3 py-1.5 text-xs">
                     {user.companyName || '-'}
                   </td>

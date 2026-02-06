@@ -123,43 +123,51 @@ export default function LearningObjects() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <Input
-            placeholder="Cerca per titolo o ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-zinc-900 border-zinc-800 text-white"
-            data-testid="input-search"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant={filterType === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterType("all")}
-            data-testid="button-filter-all"
-          >
-            Tutti
-          </Button>
-          <Button
-            variant={filterType === "unused" ? "destructive" : "outline"}
-            size="sm"
-            onClick={() => setFilterType("unused")}
-            data-testid="button-filter-unused"
-          >
-            <AlertTriangle className="w-4 h-4 mr-1" />
-            Non in uso ({unusedCount})
-          </Button>
-          <Button
-            variant={filterType === "suspended" ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setFilterType("suspended")}
-            data-testid="button-filter-suspended"
-          >
-            Sospesi ({suspendedCount})
-          </Button>
+      <div className="bg-white rounded-xl overflow-hidden border-2 border-black/70 mb-4">
+        <div className="bg-yellow-400 px-4 py-3 border-b border-black/20">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/60" />
+              <Input
+                placeholder="Cerca per titolo o ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white border-yellow-600/30 text-black placeholder-black/50"
+                data-testid="input-search"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilterType("all")}
+                className={filterType === 'all' ? 'bg-yellow-200 border-black/10 text-black' : 'bg-white border-black/10 text-black hover:bg-yellow-50'}
+                data-testid="button-filter-all"
+              >
+                Tutti
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilterType("unused")}
+                className={filterType === 'unused' ? 'bg-yellow-200 border-black/10 text-black' : 'bg-white border-black/10 text-black hover:bg-yellow-50'}
+                data-testid="button-filter-unused"
+              >
+                <AlertTriangle className="w-4 h-4 mr-1" />
+                Non in uso ({unusedCount})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilterType("suspended")}
+                className={filterType === 'suspended' ? 'bg-yellow-200 border-black/10 text-black' : 'bg-white border-black/10 text-black hover:bg-yellow-50'}
+                data-testid="button-filter-suspended"
+              >
+                Sospesi ({suspendedCount})
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -168,44 +176,44 @@ export default function LearningObjects() {
           <div className="animate-spin w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full" />
         </div>
       ) : (
-        <div className="border border-zinc-800 rounded-lg overflow-hidden">
+        <div className="bg-white rounded-xl overflow-hidden border-2 border-black/70">
           <Table>
             <TableHeader>
-              <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
-                <TableHead className="text-gray-400 w-16">Tipo</TableHead>
-                <TableHead className="text-gray-400 w-20">ID</TableHead>
-                <TableHead className="text-gray-400">Titolo</TableHead>
-                <TableHead className="text-gray-400 w-24">Durata</TableHead>
-                <TableHead className="text-gray-400 w-24">Domande</TableHead>
-                <TableHead className="text-gray-400 w-24">Stato</TableHead>
-                <TableHead className="text-gray-400 w-32">Azione</TableHead>
+              <TableRow className="bg-yellow-500 border-b border-yellow-600/30">
+                <TableHead className="text-black font-bold uppercase w-16">Tipo</TableHead>
+                <TableHead className="text-black font-bold uppercase w-20">ID</TableHead>
+                <TableHead className="text-black font-bold uppercase">Titolo</TableHead>
+                <TableHead className="text-black font-bold uppercase w-24">Durata</TableHead>
+                <TableHead className="text-black font-bold uppercase w-24">Domande</TableHead>
+                <TableHead className="text-black font-bold uppercase w-24">Stato</TableHead>
+                <TableHead className="text-black font-bold uppercase w-32">Azione</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredObjects.map((obj) => (
                 <TableRow
                   key={obj.id}
-                  className={`border-zinc-800 cursor-pointer ${
+                  className={`border-b border-gray-200 cursor-pointer ${
                     !obj.inUse && !obj.suspended
-                      ? "bg-red-950/20 hover:bg-red-950/30"
+                      ? "bg-red-50 hover:bg-red-100"
                       : obj.suspended
-                      ? "bg-zinc-900/50 hover:bg-zinc-900/70 opacity-60"
-                      : "hover:bg-zinc-900/50"
+                      ? "bg-gray-50 hover:bg-gray-100 opacity-60"
+                      : "hover:bg-gray-50"
                   }`}
                   onClick={() => navigate(`/learning-objects/${obj.id}`)}
                   data-testid={`row-object-${obj.id}`}
                 >
                   <TableCell>
-                    <div className="flex items-center justify-center text-gray-400">
+                    <div className="flex items-center justify-center text-gray-600">
                       {getObjectTypeIcon(obj.objectType)}
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-500 font-mono text-sm">
+                  <TableCell className="text-gray-600 font-mono text-sm">
                     {obj.legacyId || obj.id}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className={`${!obj.inUse ? "text-red-400" : "text-white"}`}>
+                      <span className={`${!obj.inUse ? "text-red-700" : "text-black"}`}>
                         {obj.title}
                       </span>
                       {!obj.inUse && !obj.suspended && (
@@ -215,20 +223,20 @@ export default function LearningObjects() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-400">
+                  <TableCell className="text-gray-700">
                     {obj.duration} min
                   </TableCell>
-                  <TableCell className="text-gray-400">
+                  <TableCell className="text-gray-700">
                     {obj.questionsCount || "-"}
                   </TableCell>
                   <TableCell>
                     {obj.suspended ? (
-                      <Badge variant="secondary" className="bg-zinc-700">
+                      <Badge variant="secondary" className="bg-gray-200 text-gray-700">
                         <Pause className="w-3 h-3 mr-1" />
                         Sospeso
                       </Badge>
                     ) : obj.inUse ? (
-                      <Badge className="bg-green-900/50 text-green-400 border-green-800">
+                      <Badge className="bg-green-100 text-green-800 border border-green-200">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Attivo
                       </Badge>

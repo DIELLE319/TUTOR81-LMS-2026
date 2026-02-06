@@ -35,10 +35,10 @@ if ( !defined('DB_USER') )
     define( 'DB_USER', 'pro_tutor81' );
 /** MySQL database password */
 if ( !defined('DB_PASSWORD') )
-    define( 'DB_PASSWORD', 'hpm0?7C3' );
+    define( 'DB_PASSWORD', getenv('OVH_DB_PASSWORD') ?: '' );
 /** MySQL hostname */
 if ( !defined('DB_HOST') )
-    define( 'DB_HOST', '127.0.0.1' );
+    define( 'DB_HOST', getenv('OVH_DB_HOST') ?: '127.0.0.1' );
 /** Database Charset to use in creating database tables. */
 if ( !defined('DB_CHARSET') )
     define( 'DB_CHARSET', 'utf8' );

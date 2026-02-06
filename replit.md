@@ -13,13 +13,13 @@ admin6d05a9d5@amm.tutor81.com:~/git/amm.tutor81.com.git
 
 **Credenziali SSH OVH:**
 - Username: admin6d05a9d5
-- Password: Q3MxD!WMp@4n
+- Password: [REDACTED]
 
 **Database OVH:**
 - Host: 135.125.205.19:3306
 - Database: pro_tutor81
 - User: pro_tutor81
-- Password: hpm0?7C3
+- Password: [REDACTED]
 
 The platform supports multiple user roles including administrators, tutors, and client companies, with features for course catalog management, sales tracking, user management, and certificate generation.
 

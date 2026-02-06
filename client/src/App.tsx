@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import Layout from "@/components/Layout";
+import EnvironmentBanner from "@/components/EnvironmentBanner";
+import PublicHeader from "@/components/PublicHeader";
 
 import Dashboard from "@/pages/Dashboard";
 import Tutors from "@/pages/Tutors";
@@ -27,6 +29,10 @@ import PlayerLogin from "@/pages/PlayerLogin";
 import Videoconference from "@/pages/Videoconference";
 import Tracking from "@/pages/Tracking";
 import Feedback from "@/pages/Feedback";
+import MyCompany from "@/pages/MyCompany";
+import CompanyUsers from "@/pages/CompanyUsers";
+import AdminLoginMarker from "@/pages/AdminLoginMarker";
+import SuperAdminEntry from "@/pages/SuperAdminEntry";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -62,11 +68,15 @@ function LoginPage() {
   }
 
   if (user) {
-    return <Redirect to="/dashboard" />;
+    return <Redirect to={user.role === 1000 ? "/superadmin" : "/dashboard"} />;
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-black flex flex-col relative overflow-hidden font-sans">
+      <EnvironmentBanner />
+      <PublicHeader />
+
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
         <div className="absolute -top-[50%] -left-[20%] w-[100%] h-[100%] bg-gradient-to-br from-yellow-500/10 to-transparent rounded-full blur-[100px] animate-spin-slow" />
         <div className="absolute -bottom-[50%] -right-[20%] w-[100%] h-[100%] bg-gradient-to-tl from-blue-900/20 to-transparent rounded-full blur-[100px]" />
@@ -98,14 +108,36 @@ function LoginPage() {
           &copy; {new Date().getFullYear()} Tutor81. Tutti i diritti riservati.
         </div>
       </div>
+      </div>
     </div>
   );
+}
+
+function RoleHomeRedirect() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
+  if (!user) return <Redirect to="/login" />;
+
+  return <Redirect to={user.role === 1000 ? "/superadmin" : "/dashboard"} />;
 }
 
 function Router() {
   return (
     <Switch>
+      <Route path="/admin-login" component={AdminLoginMarker} />
       <Route path="/login" component={LoginPage} />
+
+      <Route path="/superadmin">
+        <ProtectedRoute><SuperAdminEntry /></ProtectedRoute>
+      </Route>
       
       <Route path="/dashboard">
         <ProtectedRoute><Dashboard /></ProtectedRoute>
@@ -165,6 +197,14 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
+      <Route path="/my-company">
+        <ProtectedRoute><MyCompany /></ProtectedRoute>
+      </Route>
+
+      <Route path="/company-users">
+        <ProtectedRoute><CompanyUsers /></ProtectedRoute>
+      </Route>
+
       <Route path="/content-management">
         <ProtectedRoute><ContentManagement /></ProtectedRoute>
       </Route>
@@ -220,7 +260,7 @@ function Router() {
       </Route>
 
       <Route path="/">
-        <Redirect to="/dashboard" />
+        <RoleHomeRedirect />
       </Route>
       
       <Route component={NotFound} />

@@ -16,6 +16,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import PageHeader from '@/components/PageHeader';
 
 interface Sale {
   id: number;
@@ -46,6 +47,7 @@ interface Company {
 
 export default function Sales() {
   const { user } = useAuth();
+  const isSuperAdmin = user?.role === 1000;
   const [search, setSearch] = useState('');
   const [pageSize, setPageSize] = useState('100');
   const [tutorSearchOpen, setTutorSearchOpen] = useState(false);
@@ -73,7 +75,22 @@ export default function Sales() {
 
   const { data: tutors = [] } = useQuery<Tutor[]>({
     queryKey: ['/api/tutors'],
+    refetchOnMount: 'always',
+    queryFn: async () => {
+      const res = await fetch('/api/tutors', { credentials: 'include', cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch tutors');
+      return res.json();
+    },
   });
+
+  const isNoneSubscription = (subscriptionType: string | null | undefined) => {
+    const normalized = (subscriptionType ?? '').trim().toLowerCase();
+    if (!normalized) return true;
+    if (normalized === 'nessuno') return true;
+    if (normalized.includes('nessun abbonamento')) return true;
+    if (normalized.startsWith('nessun')) return true;
+    return false;
+  };
 
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ['/api/companies-list'],
@@ -81,7 +98,7 @@ export default function Sales() {
 
   const sortedTutors = useMemo(() => {
     return tutors
-      .filter(t => t.businessName)
+      .filter(t => t.businessName && !isNoneSubscription(t.subscriptionType))
       .sort((a, b) => (a.businessName || '').localeCompare(b.businessName || ''));
   }, [tutors]);
 
@@ -173,20 +190,50 @@ export default function Sales() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-black py-4 px-6">
-        <h1 className="text-xl font-bold text-yellow-400" data-testid="text-page-title">
-          Corsi Venduti
-        </h1>
-      </div>
+    <div className="p-6 bg-black min-h-screen">
+      <PageHeader
+        title="Corsi Venduti"
+        description={`Totale: ${filteredSales.length} vendite`}
+        actions={
+          <>
+            <Button
+              onClick={exportCSV}
+              className="bg-white/10 hover:bg-white/15 text-white border border-gray-700"
+              data-testid="button-export-csv"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              CSV
+            </Button>
+            <Button
+              onClick={exportExcel}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              data-testid="button-export-excel"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Excel
+            </Button>
+          </>
+        }
+      />
 
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4 bg-yellow-400 p-3 rounded-lg gap-4 flex-wrap">
+      <div
+        className={cn(
+          'mt-6 rounded-xl border-2 p-4',
+          isSuperAdmin ? 'bg-white border-black/70' : 'bg-[#1e1e1e] border-gray-800'
+        )}
+      >
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-black font-medium">Show</span>
+              <span className={cn('text-sm font-medium', isSuperAdmin ? 'text-black' : 'text-gray-300')}>Mostra</span>
               <Select value={pageSize} onValueChange={setPageSize}>
-                <SelectTrigger className="w-20 bg-white border-black" data-testid="select-page-size">
+                <SelectTrigger
+                  className={cn(
+                    'w-20',
+                    isSuperAdmin ? 'bg-white border-black/20 text-black' : 'bg-black border-gray-700 text-white'
+                  )}
+                  data-testid="select-page-size"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -197,45 +244,62 @@ export default function Sales() {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="flex items-center gap-2">
-              <span className="text-sm text-black font-medium">Cerca:</span>
+              <span className={cn('text-sm font-medium', isSuperAdmin ? 'text-black' : 'text-gray-300')}>Cerca</span>
               <div className="relative">
                 <Input
                   type="text"
                   placeholder="Admin, cliente, corso..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-48 h-8 text-sm bg-white text-black border-black pl-2 pr-8 rounded"
+                  className={cn(
+                    'w-56 h-9 text-sm pl-3 pr-9 rounded-md',
+                    isSuperAdmin
+                      ? 'bg-white text-black border-black/20'
+                      : 'bg-black text-white border-gray-700'
+                  )}
                   data-testid="input-search"
                 />
-                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Search
+                  className={cn(
+                    'absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4',
+                    isSuperAdmin ? 'text-black/50' : 'text-gray-500'
+                  )}
+                />
               </div>
             </div>
+
             <Popover open={tutorSearchOpen} onOpenChange={setTutorSearchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
-                  className="w-64 justify-between bg-white border-black text-black hover:bg-yellow-50"
+                  className={cn(
+                    'w-64 justify-between',
+                    isSuperAdmin
+                      ? 'bg-white border-black/20 text-black hover:bg-yellow-50'
+                      : 'bg-black border-gray-700 text-white hover:bg-white/5'
+                  )}
                   data-testid="select-tutor-filter"
                 >
                   {selectedTutorName || '--- Tutti gli Enti ---'}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-0 bg-white" align="start">
-                <Command className="bg-white">
-                  <CommandInput placeholder="Cerca ente..." className="text-black bg-white" />
-                  <CommandList className="bg-white">
-                    <CommandEmpty className="text-black">Nessun ente trovato</CommandEmpty>
-                    <CommandGroup className="bg-white">
+              <PopoverContent className="w-64 p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Cerca ente..." />
+                  <CommandList>
+                    <CommandEmpty>Nessun ente trovato</CommandEmpty>
+                    <CommandGroup>
                       <CommandItem
                         value="tutti"
                         onSelect={() => {
                           setTutorFilter('');
                           setTutorSearchOpen(false);
                         }}
-                        className="text-black hover:bg-yellow-100 cursor-pointer font-bold"
+                        className="cursor-pointer font-bold"
                       >
                         <Check className={cn('mr-2 h-4 w-4', !tutorFilter ? 'opacity-100' : 'opacity-0')} />
                         --- Tutti gli Enti ---
@@ -248,7 +312,7 @@ export default function Sales() {
                             setTutorFilter(tutor.id.toString());
                             setTutorSearchOpen(false);
                           }}
-                          className="text-black hover:bg-yellow-100 cursor-pointer"
+                          className="cursor-pointer"
                         >
                           <Check className={cn('mr-2 h-4 w-4', tutorFilter === tutor.id.toString() ? 'opacity-100' : 'opacity-0')} />
                           {tutor.businessName}
@@ -259,31 +323,37 @@ export default function Sales() {
                 </Command>
               </PopoverContent>
             </Popover>
+
             <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
-                  className="w-64 justify-between bg-white border-black text-black hover:bg-yellow-50"
+                  className={cn(
+                    'w-64 justify-between',
+                    isSuperAdmin
+                      ? 'bg-white border-black/20 text-black hover:bg-yellow-50'
+                      : 'bg-black border-gray-700 text-white hover:bg-white/5'
+                  )}
                   data-testid="select-company-filter"
                 >
                   {selectedCompanyName || '--- Tutte le Aziende ---'}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-0 bg-white" align="start">
-                <Command className="bg-white">
-                  <CommandInput placeholder="Cerca azienda..." className="text-black bg-white" />
-                  <CommandList className="bg-white">
-                    <CommandEmpty className="text-black">Nessuna azienda trovata</CommandEmpty>
-                    <CommandGroup className="bg-white">
+              <PopoverContent className="w-64 p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Cerca azienda..." />
+                  <CommandList>
+                    <CommandEmpty>Nessuna azienda trovata</CommandEmpty>
+                    <CommandGroup>
                       <CommandItem
                         value="tutte"
                         onSelect={() => {
                           setCompanyFilter('');
                           setCompanySearchOpen(false);
                         }}
-                        className="text-black hover:bg-yellow-100 cursor-pointer font-bold"
+                        className="cursor-pointer font-bold"
                       >
                         <Check className={cn('mr-2 h-4 w-4', !companyFilter ? 'opacity-100' : 'opacity-0')} />
                         --- Tutte le Aziende ---
@@ -296,7 +366,7 @@ export default function Sales() {
                             setCompanyFilter(company.id.toString());
                             setCompanySearchOpen(false);
                           }}
-                          className="text-black hover:bg-yellow-100 cursor-pointer"
+                          className="cursor-pointer"
                         >
                           <Check className={cn('mr-2 h-4 w-4', companyFilter === company.id.toString() ? 'opacity-100' : 'opacity-0')} />
                           {company.businessName}
@@ -308,32 +378,17 @@ export default function Sales() {
               </PopoverContent>
             </Popover>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-black font-bold">
-              Totale: {filteredSales.length} vendite
-            </span>
-            <Button 
-              onClick={exportCSV}
-              className="bg-white hover:bg-gray-100 text-black border border-black"
-              data-testid="button-export-csv"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              CSV
-            </Button>
-            <Button 
-              onClick={exportExcel}
-              className="bg-green-600 hover:bg-green-700 text-white"
-              data-testid="button-export-excel"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Excel
-            </Button>
-          </div>
         </div>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-lg border-2 border-black overflow-x-auto">
+      <div
+        className={cn(
+          'mt-4 rounded-xl border-2 overflow-x-auto',
+          isSuperAdmin ? 'bg-white border-black/70' : 'bg-[#0f0f0f] border-gray-800'
+        )}
+      >
           <table className="w-full min-w-[1200px]" data-testid="table-sales">
-            <thead className="bg-yellow-400">
+            <thead className="bg-yellow-500">
               <tr>
                 <th className="text-left p-2 text-xs font-bold text-black uppercase w-20">
                   <button
@@ -357,13 +412,13 @@ export default function Sales() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-black">
+                  <td colSpan={8} className={cn('text-center py-10', isSuperAdmin ? 'text-gray-600' : 'text-gray-400')}>
                     Caricamento...
                   </td>
                 </tr>
               ) : displayedSales.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-black">
+                  <td colSpan={8} className={cn('text-center py-10', isSuperAdmin ? 'text-gray-600' : 'text-gray-400')}>
                     Nessuna vendita trovata
                   </td>
                 </tr>
@@ -371,36 +426,55 @@ export default function Sales() {
                 displayedSales.map((sale) => (
                   <tr
                     key={sale.id}
-                    className="bg-white border-b border-gray-200 hover:bg-yellow-50"
+                    className={cn(
+                      'border-b',
+                      isSuperAdmin
+                        ? 'border-gray-200 hover:bg-gray-50'
+                        : 'border-gray-800 hover:bg-white/5'
+                    )}
                     data-testid={`row-sale-${sale.id}`}
                   >
-                    <td className="p-2 text-sm text-black font-medium">{sale.id}</td>
-                    <td className="p-2 text-sm text-black">{formatDate(sale.date)}</td>
-                    <td className="p-2 text-sm text-black max-w-[150px]">
+                    <td className={cn('p-2 text-sm font-medium', isSuperAdmin ? 'text-black' : 'text-white')}>
+                      {sale.id}
+                    </td>
+                    <td className={cn('p-2 text-sm', isSuperAdmin ? 'text-gray-700' : 'text-gray-200')}>
+                      {formatDate(sale.date)}
+                    </td>
+                    <td className={cn('p-2 text-sm max-w-[150px]', isSuperAdmin ? 'text-gray-700' : 'text-gray-200')}>
                       <div className="truncate" title={sale.tutorName}>
                         {sale.tutorName}
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className={cn('text-xs mt-0.5', isSuperAdmin ? 'text-gray-500' : 'text-gray-500')}>
                         ID {sale.adminId} - {sale.adminName}
                       </div>
                     </td>
-                    <td className="p-2 text-sm text-black max-w-[150px] truncate" title={sale.client}>
+                    <td
+                      className={cn(
+                        'p-2 text-sm max-w-[150px] truncate',
+                        isSuperAdmin ? 'text-gray-700' : 'text-gray-200'
+                      )}
+                      title={sale.client}
+                    >
                       {sale.client}
                     </td>
-                    <td className="p-2 text-sm text-black">{sale.courseId}</td>
-                    <td className="p-3 text-sm text-black max-w-[280px]">
-                      <div className="font-medium">
+                    <td className={cn('p-2 text-sm', isSuperAdmin ? 'text-gray-700' : 'text-gray-200')}>
+                      {sale.courseId}
+                    </td>
+                    <td className={cn('p-3 text-sm max-w-[280px]', isSuperAdmin ? 'text-gray-700' : 'text-gray-200')}>
+                      <div className={cn('font-medium', isSuperAdmin ? 'text-black' : 'text-white')}>
                         {(sale.courseName || '-').replace(/^[a-zA-Z0-9]+\s*-\s*/, '')}
                       </div>
                       {sale.activatedStudents && (
-                        <div className="text-xs text-gray-500 mt-0.5">
+                        <div className={cn('text-xs mt-0.5', isSuperAdmin ? 'text-gray-500' : 'text-gray-500')}>
                           {sale.activatedStudents}
                         </div>
                       )}
                     </td>
-                    <td className="p-2 text-sm text-center text-black">{sale.qty}</td>
-                    <td className="p-2 text-sm text-right text-black font-medium">
-                      {parseFloat(sale.listPrice || '0').toFixed(2)} €
+                    <td className={cn('p-2 text-sm text-center', isSuperAdmin ? 'text-gray-700' : 'text-gray-200')}>
+                      {sale.qty}
+                    </td>
+                    <td className={cn('p-2 text-sm text-right font-medium', isSuperAdmin ? 'text-black' : 'text-white')}>
+                      {parseFloat(sale.totalCost || '0').toFixed(2)} €
                     </td>
                   </tr>
                 ))
@@ -409,6 +483,5 @@ export default function Sales() {
           </table>
         </div>
       </div>
-    </div>
   );
 }

@@ -59,7 +59,23 @@ export default function Invoicing() {
 
   const { data: tutors = [] } = useQuery<Tutor[]>({
     queryKey: ['/api/tutors'],
-    select: (data: any[]) => data.map((t: any) => ({ id: t.id, businessName: t.businessName })),
+    refetchOnMount: 'always',
+    queryFn: async () => {
+      const res = await fetch('/api/tutors', { credentials: 'include', cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch tutors');
+      return res.json();
+    },
+    select: (data: any[]) =>
+      data
+        .filter((t: any) => {
+          const normalized = String(t?.subscriptionType ?? '').trim().toLowerCase();
+          if (!normalized) return false;
+          if (normalized === 'nessuno') return false;
+          if (normalized.includes('nessun abbonamento')) return false;
+          if (normalized.startsWith('nessun')) return false;
+          return true;
+        })
+        .map((t: any) => ({ id: t.id, businessName: t.businessName })),
   });
 
   const { data: invoiceData, isLoading: isLoadingInvoice, refetch } = useQuery<InvoiceData>({
@@ -162,29 +178,30 @@ export default function Invoicing() {
       </div>
 
       {/* Filters */}
-      <div className="bg-[#1e1e1e] rounded-xl border border-gray-800 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-gray-400 text-sm mb-2">Ente Formativo</label>
-            <select
-              value={selectedTutor || ''}
-              onChange={(e) => setSelectedTutor(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full bg-black border border-gray-700 rounded-lg py-2 px-3 text-white focus:border-yellow-500 focus:outline-none"
-              data-testid="select-tutor"
-            >
-              <option value="">Seleziona ente...</option>
-              {tutors.map(t => (
-                <option key={t.id} value={t.id}>#{t.id} {t.businessName}</option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white rounded-xl overflow-hidden border-2 border-black/70 mb-6">
+        <div className="bg-yellow-400 px-4 py-3 border-b border-black/20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-black text-sm mb-2 font-medium">Ente Formativo</label>
+              <select
+                value={selectedTutor || ''}
+                onChange={(e) => setSelectedTutor(e.target.value ? parseInt(e.target.value) : null)}
+                className="w-full bg-white border border-yellow-600/30 rounded-lg py-2 px-3 text-black focus:border-black/40 focus:outline-none"
+                data-testid="select-tutor"
+              >
+                <option value="">Seleziona ente...</option>
+                {tutors.map(t => (
+                  <option key={t.id} value={t.id}>#{t.id} {t.businessName}</option>
+                ))}
+              </select>
+            </div>
           
           <div>
-            <label className="block text-gray-400 text-sm mb-2">Mese</label>
+            <label className="block text-black text-sm mb-2 font-medium">Mese</label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="w-full bg-black border border-gray-700 rounded-lg py-2 px-3 text-white focus:border-yellow-500 focus:outline-none"
+              className="w-full bg-white border border-yellow-600/30 rounded-lg py-2 px-3 text-black focus:border-black/40 focus:outline-none"
               data-testid="select-month"
             >
               {months.map((m, i) => (
@@ -194,17 +211,18 @@ export default function Invoicing() {
           </div>
           
           <div>
-            <label className="block text-gray-400 text-sm mb-2">Anno</label>
+            <label className="block text-black text-sm mb-2 font-medium">Anno</label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="w-full bg-black border border-gray-700 rounded-lg py-2 px-3 text-white focus:border-yellow-500 focus:outline-none"
+              className="w-full bg-white border border-yellow-600/30 rounded-lg py-2 px-3 text-black focus:border-black/40 focus:outline-none"
               data-testid="select-year"
             >
               {years.map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
+          </div>
           </div>
         </div>
       </div>
@@ -409,40 +427,40 @@ export default function Invoicing() {
 
       {/* Archive Section */}
       {savedInvoices.length > 0 && (
-        <div className="mt-6 bg-[#1e1e1e] rounded-xl border border-gray-800 overflow-hidden">
-          <div className="p-4 border-b border-gray-800 flex items-center gap-2">
-            <Archive size={20} className="text-yellow-500" />
-            <h2 className="text-lg font-bold text-white">Archivio Fatture</h2>
-            <span className="text-gray-500 text-sm">({savedInvoices.length})</span>
+        <div className="mt-6 bg-white rounded-xl border-2 border-black/70 overflow-hidden">
+          <div className="bg-yellow-400 px-4 py-3 flex items-center gap-2 border-b border-black/20">
+            <Archive size={20} className="text-black/70" />
+            <h2 className="text-lg font-bold text-black">Archivio Fatture</h2>
+            <span className="text-black/70 text-sm">({savedInvoices.length})</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="bg-gray-900 text-left text-sm text-gray-400">
-                  <th className="px-4 py-3">N. Fattura</th>
-                  <th className="px-4 py-3">Ente Formativo</th>
-                  <th className="px-4 py-3">Periodo</th>
-                  <th className="px-4 py-3">Ordini</th>
-                  <th className="px-4 py-3 text-right">Totale</th>
-                  <th className="px-4 py-3">Data Creazione</th>
-                  <th className="px-4 py-3 text-center">Azioni</th>
+              <thead className="bg-yellow-500">
+                <tr className="text-left text-xs text-black uppercase">
+                  <th className="px-4 py-3 font-bold">N. Fattura</th>
+                  <th className="px-4 py-3 font-bold">Ente Formativo</th>
+                  <th className="px-4 py-3 font-bold">Periodo</th>
+                  <th className="px-4 py-3 font-bold">Ordini</th>
+                  <th className="px-4 py-3 text-right font-bold">Totale</th>
+                  <th className="px-4 py-3 font-bold">Data Creazione</th>
+                  <th className="px-4 py-3 text-center font-bold">Azioni</th>
                 </tr>
               </thead>
               <tbody>
                 {savedInvoices.map((inv) => (
-                  <tr key={inv.id} className="border-t border-gray-800 hover:bg-gray-900/50">
-                    <td className="px-4 py-3 text-yellow-500 font-mono text-sm">{inv.invoiceNumber || '-'}</td>
-                    <td className="px-4 py-3 text-white">#{inv.tutorId} {inv.tutorName}</td>
-                    <td className="px-4 py-3 text-gray-300">
+                  <tr key={inv.id} className="border-t border-gray-200 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-black font-mono text-sm">{inv.invoiceNumber || '-'}</td>
+                    <td className="px-4 py-3 text-black">#{inv.tutorId} {inv.tutorName}</td>
+                    <td className="px-4 py-3 text-gray-700">
                       {months[inv.month - 1]} {inv.year}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-sm">
+                    <td className="px-4 py-3 text-gray-700 text-sm">
                       {inv.orderIds.split(',').map(id => `#${id}`).join(', ')}
                     </td>
-                    <td className="px-4 py-3 text-right text-green-400 font-medium">
+                    <td className="px-4 py-3 text-right text-black font-medium">
                       {formatCurrency(parseFloat(inv.totalAmount))}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-sm">
+                    <td className="px-4 py-3 text-gray-600 text-sm">
                       {new Date(inv.createdAt).toLocaleDateString('it-IT')}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -451,7 +469,7 @@ export default function Invoicing() {
                         variant="ghost"
                         onClick={() => deleteInvoiceMutation.mutate(inv.id)}
                         disabled={deleteInvoiceMutation.isPending}
-                        className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-500/10"
                         data-testid={`button-delete-invoice-${inv.id}`}
                       >
                         <Trash2 size={16} />

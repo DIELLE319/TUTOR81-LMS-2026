@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { User, Key, LogIn, ExternalLink } from "lucide-react";
+import EnvironmentBanner from "@/components/EnvironmentBanner";
+import PublicHeader from "@/components/PublicHeader";
 
 const OLD_PLAYER_URL = "https://avviacorso.tutor81.com/prelogin.php";
 
@@ -57,8 +59,12 @@ export default function PlayerLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white shadow-2xl">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col">
+      <EnvironmentBanner />
+      <PublicHeader showLoginCta />
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white shadow-2xl">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mb-4">
             <LogIn className="w-8 h-8 text-gray-900" />
@@ -144,7 +150,8 @@ export default function PlayerLogin() {
             </a>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

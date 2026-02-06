@@ -38,7 +38,13 @@ export function registerAuthRoutes(app: Express): void {
         }
       }
       
-      res.json({ ...user, tutorId, tutorName });
+      const allowedRoles = new Set([0, 1, 2, 1000]);
+      const normalizedRole = allowedRoles.has(user.role ?? 0) ? user.role : 0;
+      if (normalizedRole !== user.role) {
+        console.warn(`[auth] Normalized legacy role for user ${user.id}: ${user.role} -> ${normalizedRole}`);
+      }
+
+      res.json({ ...user, role: normalizedRole, tutorId, tutorName });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });

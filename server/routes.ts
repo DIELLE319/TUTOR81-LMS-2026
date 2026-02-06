@@ -1,12 +1,34 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, registerAuthRoutes, isAuthenticated, authStorage } from "./replit_integrations/auth";
-import { db } from "./db";
+import { db, hasDatabase } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, desc, sql, ilike, or, isNotNull } from "drizzle-orm";
+import { eq, and, desc, sql, ilike, or, isNotNull, inArray } from "drizzle-orm";
 import { z } from "zod";
 import mysql from "mysql2/promise";
 import crypto from "crypto";
+
+function hasOvhSyncEnv() {
+  return Boolean(
+    process.env.OVH_DB_HOST &&
+      process.env.OVH_DB_USER &&
+      process.env.OVH_DB_PASSWORD &&
+      process.env.OVH_DB_NAME,
+  );
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timeoutId: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<T>((_resolve, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
 
 // Helper per ottenere tutorId dall'utente autenticato (sicurezza lato server)
 async function getAuthenticatedUserTutorId(req: Request): Promise<{ role: number | null; tutorId: number | null }> {
@@ -40,18 +62,241 @@ async function getAuthenticatedUserTutorId(req: Request): Promise<{ role: number
   }
 }
 
+async function getAuthenticatedDbUser(req: Request) {
+  const user = req.user as any;
+  if (!user?.claims?.sub) return null;
+  return await authStorage.getUser(user.claims.sub);
+}
+
 // Connessione al database OVH
-const ovhDbConfig = {
-  host: "135.125.205.19",
-  port: 3306,
-  user: "pro_tutor81",
-  password: "hpm0?7C3",
-  database: "pro_tutor81",
-  connectTimeout: 10000,
-};
+function getOvhDbConfig() {
+  const host = process.env.OVH_DB_HOST;
+  const port = parseInt(process.env.OVH_DB_PORT || "3306", 10);
+  const user = process.env.OVH_DB_USER;
+  const password = process.env.OVH_DB_PASSWORD;
+  const database = process.env.OVH_DB_NAME;
+  const connectTimeout = parseInt(process.env.OVH_DB_CONNECT_TIMEOUT || "10000", 10);
+
+  const missing: string[] = [];
+  if (!host) missing.push("OVH_DB_HOST");
+  if (!user) missing.push("OVH_DB_USER");
+  if (!password) missing.push("OVH_DB_PASSWORD");
+  if (!database) missing.push("OVH_DB_NAME");
+
+  if (missing.length) {
+    throw new Error(`Missing OVH DB env vars: ${missing.join(", ")}`);
+  }
+
+  return { host, port, user, password, database, connectTimeout };
+}
 
 async function getOvhConnection() {
-  return mysql.createConnection(ovhDbConfig);
+  return mysql.createConnection(getOvhDbConfig());
+}
+
+type OvhActiveTutorIdsCache = { fetchedAt: number; ids: Set<number> };
+let ovhActiveTutorIdsCache: OvhActiveTutorIdsCache | null = null;
+
+type OvhActiveTutorKeysCache = { fetchedAt: number; vatKeys: Set<string>; nameKeys: Set<string> };
+let ovhActiveTutorKeysCache: OvhActiveTutorKeysCache | null = null;
+
+type OvhActiveTutorPgIdsCache = { fetchedAt: number; ids: Set<number> };
+let ovhActiveTutorPgIdsCache: OvhActiveTutorPgIdsCache | null = null;
+
+type PlatformTutorIdsCache = { fetchedAt: number; ids: Set<number> };
+let platformTutorIdsCache: PlatformTutorIdsCache | null = null;
+
+function looksLikePlatformTutor(input: { businessName?: string | null; email?: string | null }) {
+  const name = (input.businessName || "").toLowerCase();
+  const email = (input.email || "").toLowerCase();
+  return name.includes("tutor81") || email.includes("tutor81");
+}
+
+function normalizeVatKey(input: string | null | undefined) {
+  return (input || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .trim();
+}
+
+function normalizeBusinessNameKey(input: string | null | undefined) {
+  return (input || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .trim();
+}
+
+async function getOvhActiveTutorKeysCached(): Promise<{ vatKeys: Set<string>; nameKeys: Set<string> } | null> {
+  if (!hasOvhSyncEnv()) return null;
+
+  const ttlMs = parseInt(process.env.OVH_ACTIVE_TUTORS_TTL_MS || "60000", 10);
+  const now = Date.now();
+  if (ovhActiveTutorKeysCache && now - ovhActiveTutorKeysCache.fetchedAt < ttlMs) {
+    return { vatKeys: ovhActiveTutorKeysCache.vatKeys, nameKeys: ovhActiveTutorKeysCache.nameKeys };
+  }
+
+  let conn;
+  try {
+    conn = await withTimeout(getOvhConnection(), 10_000);
+    const [rows] = await conn.execute(
+      `
+      SELECT c.id, c.vat, c.business_name
+      FROM companies c
+      INNER JOIN (
+        SELECT company_id, MAX(COALESCE(validity_end, '9999-12-31')) AS max_end
+        FROM company_plans
+        GROUP BY company_id
+      ) latest ON latest.company_id = c.id
+      INNER JOIN company_plans cp
+        ON cp.company_id = c.id
+       AND COALESCE(cp.validity_end, '9999-12-31') = latest.max_end
+      WHERE c.deleted = 0
+        AND c.is_tutor = 1
+        AND c.suspended = 0
+        AND cp.suspended = 0
+        AND (cp.validity_end IS NULL OR cp.validity_end >= CURDATE())
+      `,
+    );
+
+    const vatKeys = new Set<string>();
+    const nameKeys = new Set<string>();
+    for (const r of rows as any[]) {
+      const vatKey = normalizeVatKey(r.vat);
+      if (vatKey) vatKeys.add(vatKey);
+      const nameKey = normalizeBusinessNameKey(r.business_name);
+      if (nameKey) nameKeys.add(nameKey);
+    }
+
+    ovhActiveTutorKeysCache = { fetchedAt: now, vatKeys, nameKeys };
+    return { vatKeys, nameKeys };
+  } catch (e) {
+    console.error("[OVH Sync] Failed to fetch active tutor keys:", e);
+    return null;
+  } finally {
+    if (conn) {
+      try {
+        await conn.end();
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+async function getOvhActiveTutorPgIdsCached(): Promise<Set<number> | null> {
+  const keys = await getOvhActiveTutorKeysCached();
+  if (!keys) return null;
+
+  const ttlMs = parseInt(process.env.OVH_ACTIVE_TUTORS_TTL_MS || "60000", 10);
+  const now = Date.now();
+  if (ovhActiveTutorPgIdsCache && now - ovhActiveTutorPgIdsCache.fetchedAt < ttlMs) {
+    return ovhActiveTutorPgIdsCache.ids;
+  }
+
+  // Match OVH active tutors to Postgres tutors by VAT (preferred) or normalized business name.
+  // This avoids relying on numeric IDs that often don't coincide between the two DBs.
+  const pgTutors = await db
+    .select({ id: schema.tutors.id, vatNumber: schema.tutors.vatNumber, businessName: schema.tutors.businessName })
+    .from(schema.tutors)
+    .where(sql`coalesce(${schema.tutors.isActive}, true) = true`);
+
+  const ids = new Set<number>();
+  for (const t of pgTutors) {
+    const vatKey = normalizeVatKey(t.vatNumber);
+    if (vatKey && keys.vatKeys.has(vatKey)) {
+      ids.add(t.id);
+      continue;
+    }
+
+    const nameKey = normalizeBusinessNameKey(t.businessName);
+    if (nameKey && keys.nameKeys.has(nameKey)) {
+      ids.add(t.id);
+      continue;
+    }
+  }
+
+  ovhActiveTutorPgIdsCache = { fetchedAt: now, ids };
+  return ids;
+}
+
+async function getPlatformTutorIdsCached(): Promise<Set<number>> {
+  const ttlMs = parseInt(process.env.PLATFORM_TUTORS_TTL_MS || "60000", 10);
+  const now = Date.now();
+  if (platformTutorIdsCache && now - platformTutorIdsCache.fetchedAt < ttlMs) {
+    return platformTutorIdsCache.ids;
+  }
+
+  const rows = await db
+    .select({ id: schema.tutors.id })
+    .from(schema.tutors)
+    .where(
+      and(
+        sql`coalesce(${schema.tutors.isActive}, true) = true`,
+        or(
+          ilike(schema.tutors.businessName, "%tutor81%"),
+          ilike(sql`coalesce(${schema.tutors.email}, '')`, "%tutor81%"),
+        ),
+      ),
+    );
+
+  const ids = new Set<number>();
+  for (const r of rows) ids.add(r.id);
+  platformTutorIdsCache = { fetchedAt: now, ids };
+  return ids;
+}
+
+async function getOvhActiveTutorIdsCached(): Promise<Set<number> | null> {
+  if (!hasOvhSyncEnv()) return null;
+
+  const ttlMs = parseInt(process.env.OVH_ACTIVE_TUTORS_TTL_MS || "60000", 10);
+  const now = Date.now();
+  if (ovhActiveTutorIdsCache && now - ovhActiveTutorIdsCache.fetchedAt < ttlMs) {
+    return ovhActiveTutorIdsCache.ids;
+  }
+
+  let conn;
+  try {
+    conn = await withTimeout(getOvhConnection(), 10_000);
+    const [rows] = await conn.execute(
+      `
+      SELECT c.id
+      FROM companies c
+      INNER JOIN (
+        SELECT company_id, MAX(COALESCE(validity_end, '9999-12-31')) AS max_end
+        FROM company_plans
+        GROUP BY company_id
+      ) latest ON latest.company_id = c.id
+      INNER JOIN company_plans cp
+        ON cp.company_id = c.id
+       AND COALESCE(cp.validity_end, '9999-12-31') = latest.max_end
+      WHERE c.deleted = 0
+        AND c.is_tutor = 1
+        AND c.suspended = 0
+        AND cp.suspended = 0
+        AND (cp.validity_end IS NULL OR cp.validity_end >= CURDATE())
+      `,
+    );
+
+    const ids = new Set<number>();
+    for (const r of rows as any[]) {
+      const id = Number(r.id);
+      if (Number.isFinite(id)) ids.add(id);
+    }
+
+    ovhActiveTutorIdsCache = { fetchedAt: now, ids };
+    return ids;
+  } catch (e) {
+    console.error("[OVH Sync] Failed to fetch active tutor ids:", e);
+    return null;
+  } finally {
+    if (conn) {
+      try {
+        await conn.end();
+      } catch {
+        // ignore
+      }
+    }
+  }
 }
 
 // Sincronizza iscrizione con OVH
@@ -127,11 +372,26 @@ async function syncEnrollmentToOvh(data: {
     const startingFrom = data.startDate.toISOString().split('T')[0]; // formato YYYY-MM-DD
     const finishWithin = data.endDate ? data.endDate.toISOString().split('T')[0] : null;
     
-    // Crea record vendita in tutors_purchases (usa ovhAdminUserId invece di tutorId Replit)
+    // NOTE mapping legacy OVH/PHP:
+    // - tutors_purchases.customer_company_id = azienda cliente
+    // - tutors_purchases.tutor_id = admin tutor che effettua l'acquisto ("creator")
+    // - tutors_purchases.user_company_ref = admin tutor di riferimento dell'azienda (companies.owner_user_id)
+    // - learning_project_users.id_company = azienda cliente
+    // - learning_project_users.company_id = admin tutor che assegna la licenza ("creator")
+
+    // Trova l'admin tutor di riferimento dell'azienda (owner_user_id)
+    const [companyRows] = await conn.execute(
+      `SELECT owner_user_id FROM companies WHERE id = ? LIMIT 1`,
+      [data.companyId],
+    ) as any[];
+    const ownerUserId = companyRows?.[0]?.owner_user_id ? Number(companyRows[0].owner_user_id) : null;
+    const userCompanyRef = Number.isFinite(ownerUserId as any) ? (ownerUserId as number) : ovhAdminUserId;
+
+    // Crea record vendita in tutors_purchases
     const [purchaseResult] = await conn.execute(
       `INSERT INTO tutors_purchases (tutor_id, customer_company_id, user_company_ref, learning_project_id, qta, price, creation_date, executed)
        VALUES (?, ?, ?, ?, 1, 0, NOW(), 1)`,
-      [ovhAdminUserId, data.companyId, ovhAdminUserId, data.courseId]
+      [ovhAdminUserId, data.companyId, userCompanyRef, data.courseId]
     ) as any[];
     const purchaseId = purchaseResult.insertId;
     console.log(`[OVH Sync] Vendita creata: ${purchaseId}`);
@@ -158,8 +418,80 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  await setupAuth(app);
-  registerAuthRoutes(app);
+  const authDisabled = /^(true|1|yes)$/i.test(process.env.DISABLE_AUTH ?? "");
+
+  const hasAuthEnv = Boolean(
+    process.env.REPL_ID &&
+      process.env.SESSION_SECRET &&
+      process.env.DATABASE_URL,
+  );
+
+  if (authDisabled) {
+    console.warn(
+      "[auth] DISABLE_AUTH is enabled. Replit/OIDC login is bypassed (use only on staging).",
+    );
+    registerAuthRoutes(app);
+    app.get("/api/login", (_req, res) => res.redirect("/"));
+    app.get("/api/logout", (_req, res) => res.status(204).end());
+  } else if (hasAuthEnv) {
+    await setupAuth(app);
+    registerAuthRoutes(app);
+  } else {
+    console.warn(
+      "[auth] Missing REPL_ID / SESSION_SECRET / DATABASE_URL. Auth routes are disabled.",
+    );
+    // Provide a minimal endpoint so the client can boot in local/dev without crashing.
+    app.get("/api/auth/user", (_req, res) => res.json(null));
+  }
+
+  // Lightweight health check (useful for reverse-proxy/DNS validation)
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true });
+  });
+
+  // Marker page to visually distinguish this app from legacy/Replit deployments.
+  // Useful when multiple platforms share similar URLs.
+  app.get("/admin-login", (req, res) => {
+    const host = req.headers.host || req.hostname;
+    res
+      .status(200)
+      .set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" })
+      .send(`<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tutor81 LMS</title>
+    <style>
+      :root { --bg: #FFD400; --fg: #111827; --card: rgba(255,255,255,.78); }
+      body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+      .card { width:min(860px, calc(100vw - 32px)); background:var(--card); border:1px solid rgba(0,0,0,.12); border-radius:18px; padding:24px; box-shadow: 0 20px 60px rgba(0,0,0,.18); }
+      h1 { margin:0 0 8px; font-size:28px; letter-spacing:-0.02em; }
+      p { margin:0 0 16px; opacity:.9; }
+      .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+      a { display:inline-block; padding:10px 12px; border-radius:12px; background:#111827; color:#fff; text-decoration:none; font-weight:700; }
+      a.secondary { background: rgba(17,24,39,.08); color:#111827; border:1px solid rgba(17,24,39,.18); }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; background: rgba(17,24,39,.08); padding:2px 6px; border-radius:8px; }
+      .meta { margin-top:14px; font-size:13px; opacity:.75; line-height:1.35; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Questa e8 la nuova <strong>Tutor81 LMS</strong></h1>
+      <p>Pagina di riconoscimento (marker) per distinguere la LMS su VPS da legacy/Replit.</p>
+      <div class="row">
+        <a href="/">Apri App</a>
+        <a class="secondary" href="/api/health">/api/health</a>
+        <a class="secondary" href="/api/auth/user">/api/auth/user</a>
+      </div>
+      <div class="meta">
+        Host: <code>${String(host).replace(/</g, "&lt;")}</code><br/>
+        NODE_ENV: <code>${String(process.env.NODE_ENV || "").replace(/</g, "&lt;")}</code>
+      </div>
+    </div>
+  </body>
+</html>`);
+  });
 
   // ============================================================
   // TEST OVH CONNECTION (temporaneo per debug)
@@ -467,7 +799,63 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/tutors", isAuthenticated, async (req, res) => {
     try {
-      const tutors = await db.select().from(schema.tutors).orderBy(schema.tutors.businessName);
+      const ovhActiveTutorIds = await getOvhActiveTutorPgIdsCached();
+      const platformTutorIds = await getPlatformTutorIdsCached();
+
+      // Se OVH è configurato, la sorgente di verità per "attivi" è OVH (piano corrente non sospeso/non scaduto).
+      // Questo evita mismatch quando subscriptionType/discount su Postgres non sono allineati.
+      if (ovhActiveTutorIds) {
+        const allowedIds = Array.from(new Set<number>([...ovhActiveTutorIds, ...platformTutorIds]));
+        if (allowedIds.length === 0) return res.json([]);
+
+        const tutors = await db
+          .select()
+          .from(schema.tutors)
+          .where(and(
+            sql`coalesce(${schema.tutors.isActive}, true) = true`,
+            inArray(schema.tutors.id, allowedIds),
+          ))
+          .orderBy(schema.tutors.businessName);
+
+        return res.json(tutors);
+      }
+
+      // Mostra solo enti con abbonamento diverso da "NESSUNO" / "Nessun abbonamento" (e varianti).
+      // Non whitelista i piani: così non rischiamo di nascondere piani nuovi/legacy.
+      let tutors = await db
+        .select()
+        .from(schema.tutors)
+        .where(sql`
+          coalesce(${schema.tutors.isActive}, true) = true
+          and
+          trim(coalesce(${schema.tutors.subscriptionType}, '')) <> ''
+          and coalesce(${schema.tutors.subscriptionType}, '') not ilike '%nessuno%'
+          and coalesce(${schema.tutors.subscriptionType}, '') not ilike '%nessun abbonamento%'
+          and coalesce(${schema.tutors.discountPercentage}, 0) > 0
+        `)
+        .orderBy(schema.tutors.businessName);
+
+      // Include sempre i tutor "piattaforma" (es. "TUTOR81 ...") anche se non hanno un piano come gli altri.
+      // (Serve perché TUTOR81 vende anche online.)
+      if (platformTutorIds.size > 0) {
+        const platformTutors = await db
+          .select()
+          .from(schema.tutors)
+          .where(sql`
+            coalesce(${schema.tutors.isActive}, true) = true
+            and (
+              ${schema.tutors.businessName} ilike '%tutor81%'
+              or coalesce(${schema.tutors.email}, '') ilike '%tutor81%'
+            )
+          `)
+          .orderBy(schema.tutors.businessName);
+
+        const byId = new Map<number, (typeof tutors)[number]>();
+        for (const t of tutors) byId.set(t.id, t);
+        for (const t of platformTutors) byId.set(t.id, t);
+        tutors = Array.from(byId.values()).sort((a, b) => a.businessName.localeCompare(b.businessName));
+      }
+
       res.json(tutors);
     } catch (error) {
       console.error("Tutors error:", error);
@@ -605,6 +993,9 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/clients", isAuthenticated, async (req, res) => {
     try {
+      const ovhActiveTutorIds = await getOvhActiveTutorPgIdsCached();
+      const platformTutorIds = await getPlatformTutorIdsCached();
+
       // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
       const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
       
@@ -614,6 +1005,11 @@ export async function registerRoutes(
       }
       
       const tutorIdFilter = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
+
+      // Se il filtro punta ad un tutor sospeso su OVH, non restituire nulla.
+      if (tutorIdFilter && ovhActiveTutorIds && !ovhActiveTutorIds.has(tutorIdFilter) && !platformTutorIds.has(tutorIdFilter)) {
+        return res.json([]);
+      }
       
       // Get all companies with their tutor info
       let query = db.select({
@@ -631,9 +1027,14 @@ export async function registerRoutes(
         .leftJoin(schema.tutors, eq(schema.companies.tutorId, schema.tutors.id));
       
       // Se c'è un filtro tutorId, filtra per quel tutor
-      const companies = tutorIdFilter 
+      let companies = tutorIdFilter 
         ? await query.where(eq(schema.companies.tutorId, tutorIdFilter)).orderBy(schema.companies.businessName)
         : await query.orderBy(schema.tutors.businessName, schema.companies.businessName);
+
+      // Se OVH è disponibile, nascondi i gruppi legati a tutor sospesi/invalidi su OVH.
+      if (ovhActiveTutorIds) {
+        companies = companies.filter((c) => (c.tutorId == null ? true : (ovhActiveTutorIds.has(c.tutorId) || platformTutorIds.has(c.tutorId))));
+      }
 
       // Group by tutor
       const tutorGroups: { tutorId: number | null; tutorName: string; clients: any[] }[] = [];
@@ -670,8 +1071,68 @@ export async function registerRoutes(
   // ============================================================
   // COMPANIES (Aziende Clienti)
   // ============================================================
+  // Referente: la propria azienda
+  app.get("/api/me/company", isAuthenticated, async (req, res) => {
+    try {
+      const dbUser = await getAuthenticatedDbUser(req);
+      if (!dbUser) return res.status(401).json({ error: "Unauthorized" });
+
+      if (dbUser.role !== 2 || !dbUser.idcompany) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const [company] = await db
+        .select()
+        .from(schema.companies)
+        .where(eq(schema.companies.id, dbUser.idcompany))
+        .limit(1);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      res.json(company);
+    } catch (error) {
+      console.error("Me company error:", error);
+      res.status(500).json({ error: "Failed to fetch company" });
+    }
+  });
+
+  app.get("/api/me/company/users", isAuthenticated, async (req, res) => {
+    try {
+      const dbUser = await getAuthenticatedDbUser(req);
+      if (!dbUser) return res.status(401).json({ error: "Unauthorized" });
+
+      if (dbUser.role !== 2 || !dbUser.idcompany) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const students = await db
+        .select({
+          id: schema.students.id,
+          firstName: schema.students.firstName,
+          lastName: schema.students.lastName,
+          email: schema.students.email,
+          fiscalCode: schema.students.fiscalCode,
+          companyId: schema.students.companyId,
+          isActive: schema.students.isActive,
+        })
+        .from(schema.students)
+        .where(eq(schema.students.companyId, dbUser.idcompany))
+        .orderBy(schema.students.lastName, schema.students.firstName);
+
+      res.json(students);
+    } catch (error) {
+      console.error("Me company users error:", error);
+      res.status(500).json({ error: "Failed to fetch company users" });
+    }
+  });
+
   app.get("/api/companies", isAuthenticated, async (req, res) => {
     try {
+      const ovhActiveTutorIds = await getOvhActiveTutorPgIdsCached();
+      const platformTutorIds = await getPlatformTutorIdsCached();
+
       // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
       const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
       
@@ -707,6 +1168,12 @@ export async function registerRoutes(
       if (tutorId) {
         filtered = filtered.filter(c => c.tutorId === tutorId);
       }
+
+      // Se OVH è disponibile, nascondi le aziende collegate a tutor sospesi/invalidi.
+      if (ovhActiveTutorIds) {
+        filtered = filtered.filter((c) => (c.tutorId == null ? true : (ovhActiveTutorIds.has(c.tutorId) || platformTutorIds.has(c.tutorId))));
+      }
+
       if (search) {
         const searchLower = search.toLowerCase();
         filtered = filtered.filter(c => c.businessName.toLowerCase().includes(searchLower));
@@ -722,9 +1189,58 @@ export async function registerRoutes(
   // Endpoint per ottenere solo i tutors (enti formativi)
   app.get("/api/companies/tutors", isAuthenticated, async (req, res) => {
     try {
-      const tutors = await db.select()
+      const ovhActiveTutorIds = await getOvhActiveTutorPgIdsCached();
+      const platformTutorIds = await getPlatformTutorIdsCached();
+
+      if (ovhActiveTutorIds) {
+        const allowedIds = Array.from(new Set<number>([...ovhActiveTutorIds, ...platformTutorIds]));
+        if (allowedIds.length === 0) return res.json([]);
+
+        const tutors = await db
+          .select()
+          .from(schema.tutors)
+          .where(and(
+            sql`coalesce(${schema.tutors.isActive}, true) = true`,
+            inArray(schema.tutors.id, allowedIds),
+          ))
+          .orderBy(schema.tutors.businessName);
+
+        return res.json(tutors);
+      }
+
+      let tutors = await db
+        .select()
         .from(schema.tutors)
+        .where(sql`
+          coalesce(${schema.tutors.isActive}, true) = true
+          and
+          trim(coalesce(${schema.tutors.subscriptionType}, '')) <> ''
+          and coalesce(${schema.tutors.subscriptionType}, '') not ilike '%nessuno%'
+          and coalesce(${schema.tutors.subscriptionType}, '') not ilike '%nessun abbonamento%'
+          and coalesce(${schema.tutors.discountPercentage}, 0) > 0
+        `)
         .orderBy(schema.tutors.businessName);
+
+      // Include sempre i tutor piattaforma (TUTOR81...)
+      if (platformTutorIds.size > 0) {
+        const platformTutors = await db
+          .select()
+          .from(schema.tutors)
+          .where(sql`
+            coalesce(${schema.tutors.isActive}, true) = true
+            and (
+              ${schema.tutors.businessName} ilike '%tutor81%'
+              or coalesce(${schema.tutors.email}, '') ilike '%tutor81%'
+            )
+          `)
+          .orderBy(schema.tutors.businessName);
+
+        const byId = new Map<number, (typeof tutors)[number]>();
+        for (const t of tutors) byId.set(t.id, t);
+        for (const t of platformTutors) byId.set(t.id, t);
+        tutors = Array.from(byId.values()).sort((a, b) => a.businessName.localeCompare(b.businessName));
+      }
+
       res.json(tutors);
     } catch (error) {
       console.error("Tutors error:", error);
@@ -737,8 +1253,23 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid company ID" });
 
+      const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
+      const dbUser = role === 2 ? await getAuthenticatedDbUser(req) : null;
+
+      // role=2 (referente): può vedere solo la sua azienda
+      if (role === 2) {
+        if (!dbUser?.idcompany || dbUser.idcompany !== id) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
       const [company] = await db.select().from(schema.companies).where(eq(schema.companies.id, id));
       if (!company) return res.status(404).json({ error: "Company not found" });
+
+      // role=1 (admin tutor): può vedere solo aziende del proprio tutor
+      if (role === 1 && authTutorId && company.tutorId !== authTutorId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
 
       res.json(company);
     } catch (error) {
@@ -751,6 +1282,32 @@ export async function registerRoutes(
     try {
       const companyId = parseInt(req.params.id);
       if (isNaN(companyId)) return res.status(400).json({ error: "Invalid company ID" });
+
+      const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
+      const dbUser = role === 2 ? await getAuthenticatedDbUser(req) : null;
+
+      // role=2 (referente): può vedere solo i suoi utenti
+      if (role === 2) {
+        if (!dbUser?.idcompany || dbUser.idcompany !== companyId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
+      // role=1 (admin tutor): può vedere solo aziende del proprio tutor
+      if (role === 1) {
+        if (!authTutorId) {
+          return res.status(403).json({ error: "Admin tutor non associato a un ente formativo" });
+        }
+        const [company] = await db
+          .select({ id: schema.companies.id, tutorId: schema.companies.tutorId })
+          .from(schema.companies)
+          .where(eq(schema.companies.id, companyId))
+          .limit(1);
+        if (!company) return res.status(404).json({ error: "Company not found" });
+        if (company.tutorId !== authTutorId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
 
       const students = await db.select({
         id: schema.students.id,
@@ -1143,6 +1700,13 @@ export async function registerRoutes(
 
   app.post("/api/enrollments/activate", isAuthenticated, async (req, res) => {
     try {
+      if (!hasDatabase) {
+        return res.status(503).json({
+          error:
+            "Database non configurato (DATABASE_URL mancante). Impossibile assegnare corsi/creare licenze.",
+        });
+      }
+
       const { courseId, companyId, corsisti } = req.body;
       
       if (!courseId || !companyId || !corsisti || !Array.isArray(corsisti) || corsisti.length === 0) {
@@ -1240,24 +1804,34 @@ export async function registerRoutes(
           status: "active",
         }).returning();
 
-        // Sincronizza con OVH
+        // Sincronizza con OVH (non deve bloccare indefinitamente la risposta)
         let ovhSyncResult = { success: false };
-        try {
-          ovhSyncResult = await syncEnrollmentToOvh({
-            firstName,
-            lastName,
-            fiscalCode,
-            email,
-            companyId: ovhCompanyId,
-            courseId: ovhCourseId,
-            licenseCode,
-            startDate: enrollStartDate,
-            endDate: enrollEndDate,
-            tutorId: tutorId || 2,  // Usato per cercare l'admin OVH corretto
-          });
-          if (ovhSyncResult.success) ovhSynced++;
-        } catch (err) {
-          console.error("[OVH Sync] Errore sincronizzazione:", err);
+        const ovhTimeoutMs = parseInt(process.env.OVH_SYNC_TIMEOUT_MS || "6000", 10);
+        if (hasOvhSyncEnv()) {
+          try {
+            ovhSyncResult = await withTimeout(
+              syncEnrollmentToOvh({
+                firstName,
+                lastName,
+                fiscalCode,
+                email,
+                companyId: ovhCompanyId,
+                courseId: ovhCourseId,
+                licenseCode,
+                startDate: enrollStartDate,
+                endDate: enrollEndDate,
+                tutorId: tutorId || 2, // Usato per cercare l'admin OVH corretto
+              }),
+              ovhTimeoutMs,
+            );
+            if ((ovhSyncResult as any).success) ovhSynced++;
+          } catch (err) {
+            console.error("[OVH Sync] Errore/timeout sincronizzazione:", err);
+          }
+        } else {
+          console.warn(
+            "[OVH Sync] Skipped: missing OVH DB env vars (OVH_DB_HOST/USER/PASSWORD/NAME).",
+          );
         }
 
         const student = await db.select().from(schema.students).where(eq(schema.students.id, studentId)).limit(1);
@@ -1676,32 +2250,80 @@ export async function registerRoutes(
       const { licenseCode } = req.body;
       if (!licenseCode) return res.status(400).json({ error: "License code required" });
 
-      const enrollment = await db.select({
-        id: schema.enrollments.id,
-        courseId: schema.enrollments.courseId,
-        studentId: schema.enrollments.studentId,
-        licenseCode: schema.enrollments.licenseCode,
-        progress: schema.enrollments.progress,
-        status: schema.enrollments.status,
-        studentName: schema.students.firstName,
-        studentSurname: schema.students.lastName,
-        studentEmail: schema.students.email,
-        courseTitle: schema.courses.title,
-      })
-        .from(schema.enrollments)
-        .innerJoin(schema.students, eq(schema.enrollments.studentId, schema.students.id))
-        .innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
-        .where(eq(schema.enrollments.licenseCode, licenseCode))
-        .limit(1);
+      // 1) Prefer local DB (new LMS) if configured
+      if (hasDatabase) {
+        const enrollment = await db
+          .select({
+            id: schema.enrollments.id,
+            courseId: schema.enrollments.courseId,
+            studentId: schema.enrollments.studentId,
+            licenseCode: schema.enrollments.licenseCode,
+            progress: schema.enrollments.progress,
+            status: schema.enrollments.status,
+            studentName: schema.students.firstName,
+            studentSurname: schema.students.lastName,
+            studentEmail: schema.students.email,
+            courseTitle: schema.courses.title,
+          })
+          .from(schema.enrollments)
+          .innerJoin(schema.students, eq(schema.enrollments.studentId, schema.students.id))
+          .innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+          .where(eq(schema.enrollments.licenseCode, licenseCode))
+          .limit(1);
 
-      if (enrollment.length === 0) {
-        return res.status(404).json({ error: "Invalid license code" });
+        if (enrollment.length > 0) {
+          return res.json({ valid: true, enrollment: enrollment[0] });
+        }
       }
 
-      res.json({
-        valid: true,
-        enrollment: enrollment[0],
-      });
+      // 2) Fallback to OVH (legacy player) if env is configured
+      if (hasOvhSyncEnv()) {
+        let conn: any;
+        try {
+          conn = await getOvhConnection();
+          const [rows] = (await conn.execute(
+            `SELECT
+              lpu.id,
+              lpu.learning_project_id,
+              lpu.user_id,
+              lpu.learning_project_pwd as license_code,
+              u.name as user_name,
+              u.surname as user_surname,
+              u.email as user_email,
+              u.tax_code,
+              lp.title as course_title
+            FROM learning_project_users lpu
+            LEFT JOIN users u ON u.id = lpu.user_id
+            LEFT JOIN learning_project lp ON lp.id = lpu.learning_project_id
+            WHERE lpu.learning_project_pwd = ?
+            LIMIT 1`,
+            [licenseCode],
+          )) as any[];
+
+          if (rows && rows.length > 0) {
+            const r = rows[0];
+            return res.json({
+              valid: true,
+              enrollment: {
+                id: r.id,
+                courseId: r.learning_project_id,
+                studentId: r.user_id,
+                licenseCode: r.license_code,
+                progress: 0,
+                status: "active",
+                studentName: r.user_name,
+                studentSurname: r.user_surname,
+                studentEmail: r.user_email,
+                courseTitle: r.course_title,
+              },
+            });
+          }
+        } finally {
+          if (conn) await conn.end();
+        }
+      }
+
+      return res.status(404).json({ error: "Invalid license code" });
     } catch (error) {
       console.error("License validation error:", error);
       res.status(500).json({ error: "Failed to validate license" });
@@ -2084,15 +2706,7 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/export/tutor-gerarchia", async (req, res) => {
     try {
-      const mysql = await import("mysql2/promise");
-      
-      const connection = await mysql.createConnection({
-        host: '135.125.205.19',
-        port: 3306,
-        user: 'pro_tutor81',
-        password: 'hpm0?7C3',
-        database: 'pro_tutor81'
-      });
+      const connection = await getOvhConnection();
 
       const [rows] = await connection.execute(`
         SELECT 

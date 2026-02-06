@@ -103,10 +103,12 @@ require_once 'ecommerce/bk/header.php'; ?>
                     <?php
                     if ($companies) {
                         foreach ($companies as $company){
-                            //if ($company['suspended'] >= 1 || strtotime('now') > strtotime($company['validity_end'])) continue;
-                            if ($company['suspended'] >= 1){ 
-                                continue; 
-                                
+                            // Safety net: hide suspended/expired plans.
+                            if ($company['suspended'] >= 1) {
+                                continue;
+                            }
+                            if (!empty($company['validity_end']) && strtotime('now') > strtotime($company['validity_end'])) {
+                                continue;
                             }
                             $delete = false;
                             $users = $comp_obj->getAllUsersCompanyByID($company['id']);
@@ -118,7 +120,7 @@ require_once 'ecommerce/bk/header.php'; ?>
                                 }
                             }?>
 
-                            <tr data-company_id="<?= $company['id'] ?>">
+                            <tr data-company_id="<?= $company['id'] ?>" data-company_plan_id="<?= isset($company['company_plan_id']) ? $company['company_plan_id'] : '' ?>">
                                 <td><?= strtoupper($company['business_name']) ?></td>
                                 <td><?= $company['address'] ?></td>
                                 <td><?= $company['telephone'] ?></td>
@@ -131,6 +133,14 @@ require_once 'ecommerce/bk/header.php'; ?>
                                 </td>
                                 <td class="action text-right" style="width: 40px;">
                                     <?= $delete ? '<a href="javascript: void(0)" class="delete"><span class="glyphicon glyphicon-remove red"></span></a>' : '' ?>
+
+                                    <?php if ($scelta === 'tutors') { ?>
+                                        <?php if (!empty($company['company_plan_id'])) { ?>
+                                            <a href="javascript: void(0)" class="suspend-plan" title="Sospendi ente (piano)">
+                                                <span class="glyphicon glyphicon-pause text-warning"></span>
+                                            </a>
+                                        <?php } ?>
+                                    <?php } ?>
 
                                     <?php if ($_SESSION['user']['company']['is_tutor'] == "1") { ?>
 
@@ -222,6 +232,33 @@ require_once 'ecommerce/bk/header.php'; ?>
                 deleted = deleteCompany(company_id);
             }
             if (deleted) location.reload();
+        });
+
+        // Sospendi piano abbonamento dell'ente (non cancella l'ente)
+        $('#companies-table').on('click', 'tbody > tr .action .suspend-plan', function(e){
+            e.preventDefault();
+            e.stopPropagation();
+            var tr = $(this).parents('tr');
+            var company_plan_id = tr.data('company_plan_id');
+            var company_name = tr.children().first().text();
+            if (!company_plan_id) {
+                alert('Piano abbonamento non trovato per questo ente.');
+                return;
+            }
+            bootbox.confirm("Vuoi sospendere l'ente " + company_name + "? (verrà nascosto dagli attivi)", function(result){
+                if (!result) return;
+                $.post('manage/company.php', {
+                    op_type: 'suspended_company_plan',
+                    id: company_plan_id,
+                    suspended: 1
+                }, function(data){
+                    if (parseInt(data, 10) > 0) {
+                        location.reload();
+                    } else {
+                        alert('Errore: impossibile sospendere il piano.');
+                    }
+                });
+            });
         });
         
         $('#companyModal').on('hidden.bs.modal', function (e) {

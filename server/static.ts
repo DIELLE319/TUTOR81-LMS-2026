@@ -10,10 +10,14 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  const indexHtmlPath = path.resolve(distPath, "index.html");
 
-  // fall through to index.html if the file doesn't exist
-  app.use("/{*path}", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // Serve built assets (and index.html when requesting "/").
+  app.use(express.static(distPath, { index: "index.html" }));
+
+  // SPA fallback: for any non-API route that isn't a real static file, return index.html.
+  // Using a RegExp avoids path-pattern edge-cases across Express versions.
+  app.get(/^\/(?!api\b).*/, (_req, res) => {
+    res.sendFile(indexHtmlPath);
   });
 }

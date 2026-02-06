@@ -1,13 +1,8 @@
 const mysql = require('mysql2/promise');
+const { getOvhDbConfig } = require('./ovh-db-config.cjs');
 
 async function main() {
-  const connection = await mysql.createConnection({
-    host: '135.125.205.19',
-    port: 3306,
-    user: 'pro_tutor81',
-    password: 'hpm0?7C3',
-    database: 'pro_tutor81'
-  });
+  const connection = await mysql.createConnection(getOvhDbConfig());
 
   const [rows] = await connection.execute(`
     SELECT DISTINCT tutor_id, COUNT(*) as cnt

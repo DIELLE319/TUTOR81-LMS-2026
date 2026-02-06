@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
 import * as Icons from 'lucide-react';
+import EnvironmentBanner from '@/components/EnvironmentBanner';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -154,6 +155,9 @@ export default function Layout({ children }: LayoutProps) {
           <ul className='space-y-0.5'>
             
             <SectionHeader title="HOME" />
+            {isSuperAdmin && (
+              <MenuItem to="/superadmin" label="Ingresso Super Admin" iconName="Sparkles" />
+            )}
             <MenuItem to="/dashboard" label="Home Page" iconName="Home" />
             
             {/* Super Admin: vede tutto */}
@@ -236,6 +240,8 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       <div className='flex-1 flex flex-col overflow-hidden bg-black'>
+
+        <EnvironmentBanner />
         
         <header className='h-16 border-b border-gray-800 flex justify-between items-center px-6 bg-black'>
           

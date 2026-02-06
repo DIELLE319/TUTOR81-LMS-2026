@@ -1,0 +1,20 @@
+[Unit]
+Description=Tutor81 LMS (Node)
+After=network.target
+
+[Service]
+Type=simple
+User=tutor81
+Group=tutor81
+WorkingDirectory=__APP_DIR__
+EnvironmentFile=__ENV_FILE__
+ExecStart=/usr/bin/node __APP_DIR__/dist/index.cjs
+Restart=always
+RestartSec=3
+
+# Hardening base
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

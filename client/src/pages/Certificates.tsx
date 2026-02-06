@@ -161,7 +161,7 @@ export default function Certificates() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="bg-yellow-500 py-4 px-6">
+      <div className="bg-yellow-500 py-4 px-6 border-b-2 border-black/70">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-semibold text-gray-800" data-testid="text-page-title">
@@ -273,32 +273,32 @@ export default function Certificates() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-xl overflow-hidden border-2 border-black/70">
           <table className="w-full" data-testid="table-attestati">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-yellow-500 border-b border-yellow-600/30">
               <tr>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">
                   ID
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">
                   Cognome Nome
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">
                   Codice Fiscale
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">
                   Azienda
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">
                   Corso
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">
                   Data Fine
                 </th>
-                <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">
                   Ente Formativo
                 </th>
-                <th className="text-center p-3 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-center p-3 text-xs font-bold text-black uppercase">
                   Azioni
                 </th>
               </tr>

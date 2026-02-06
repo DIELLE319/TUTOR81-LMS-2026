@@ -1,13 +1,8 @@
 const mysql = require('mysql2/promise');
+const { getOvhDbConfig } = require('./ovh-db-config.cjs');
 
 async function main() {
-  const ovh = await mysql.createConnection({
-    host: '135.125.205.19',
-    port: 3306,
-    user: 'pro_tutor81',
-    password: 'hpm0?7C3',
-    database: 'pro_tutor81'
-  });
+  const ovh = await mysql.createConnection(getOvhDbConfig());
 
   // Dalla query originale: tutor → admin → cliente → corsista
   const [rows] = await ovh.execute(`
@@ -62,3 +57,6 @@ async function main() {
 }
 
 main().catch(console.error);
+
+
+

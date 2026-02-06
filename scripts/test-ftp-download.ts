@@ -1,12 +1,14 @@
 import * as ftp from "basic-ftp";
+import { networkInterfaces } from "os";
 import { Writable } from "stream";
 
 async function testDownload() {
   const client = new ftp.Client();
+  const host = process.env.FTP_HOST || "135.125.205.19";
   
   try {
     await client.access({
-      host: "135.125.205.19",
+      host,
       user: process.env.FTP_USERNAME!,
       password: process.env.FTP_PASSWORD!,
       secure: false,

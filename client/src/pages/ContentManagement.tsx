@@ -105,6 +105,20 @@ export default function ContentManagement() {
 
   const { data: tutors = [] } = useQuery<Company[]>({
     queryKey: ['/api/companies/tutors'],
+    queryFn: async () => {
+      const res = await fetch('/api/companies/tutors', { credentials: 'include', cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch tutors');
+      return res.json();
+    },
+    select: (data: any[]) =>
+      data.filter((t: any) => {
+        const normalized = String(t?.subscriptionType ?? '').trim().toLowerCase();
+        if (!normalized) return false;
+        if (normalized.includes('nessun abbonamento')) return false;
+        if (normalized.includes('nessuno')) return false;
+        if (normalized.startsWith('nessun')) return false;
+        return true;
+      }),
   });
 
   // Query per la struttura del corso (moduli, lezioni, learning objects)
@@ -516,7 +530,7 @@ export default function ContentManagement() {
       {activeTab === 'catalogo' && (
         <div className="flex h-[calc(100vh-52px)]">
           <aside className="w-[480px] bg-white border-r border-gray-300 flex flex-col shadow-sm">
-            <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="p-3 border-b border-black/20 bg-yellow-400">
               <div className="flex gap-1.5 mb-3">
                 <StatusButton 
                   active={statusFilter === 'attivi'} 
@@ -556,12 +570,12 @@ export default function ContentManagement() {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold text-gray-700 uppercase whitespace-nowrap">Filtra i corsi</span>
+                <span className="text-[11px] font-semibold text-black uppercase whitespace-nowrap">Filtra i corsi</span>
                 <input 
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-[#4a90a4] focus:ring-1 focus:ring-[#4a90a4]/30"
+                  className="flex-1 bg-white border border-yellow-600/30 rounded px-2 py-1 text-xs text-black placeholder-black/50 focus:outline-none focus:border-black/40"
                   data-testid="input-filter-courses"
                 />
               </div>
@@ -569,12 +583,12 @@ export default function ContentManagement() {
 
             <div className="flex-1 overflow-y-auto">
               <table className="w-full text-[11px]">
-                <thead className="bg-[#e8e8e8] sticky top-0 z-10">
-                  <tr className="border-b border-gray-300">
-                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 w-12">Tipo</th>
-                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700 w-10">ID</th>
-                    <th className="px-2 py-1.5 text-left font-semibold text-gray-700">Nome Corso</th>
-                    <th className="px-2 py-1.5 text-center font-semibold text-gray-700 w-14">Ore</th>
+                <thead className="bg-yellow-500 sticky top-0 z-10">
+                  <tr className="border-b border-yellow-600/30">
+                    <th className="px-2 py-1.5 text-left font-bold text-black uppercase w-12">Tipo</th>
+                    <th className="px-2 py-1.5 text-left font-bold text-black uppercase w-10">ID</th>
+                    <th className="px-2 py-1.5 text-left font-bold text-black uppercase">Nome Corso</th>
+                    <th className="px-2 py-1.5 text-center font-bold text-black uppercase w-14">Ore</th>
                   </tr>
                 </thead>
                 {loadingProjects ? (
@@ -1313,10 +1327,11 @@ export default function ContentManagement() {
             {loadingLOs ? (
               <div className="text-center py-8 text-gray-400">Caricamento...</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-200 text-left">
+              <div className="bg-white rounded-xl overflow-hidden border-2 border-black/70">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-yellow-500">
+                      <tr className="border-b border-yellow-600/30 text-left">
                       <th className="py-2 px-2 w-8">
                         <input 
                           type="checkbox"
@@ -1331,20 +1346,20 @@ export default function ContentManagement() {
                           className="w-3 h-3 accent-[#4a90a4]"
                         />
                       </th>
-                      <th className="py-2 px-2 font-medium text-gray-500 w-8"></th>
-                      <th className="py-2 px-2 font-medium text-gray-500">ID</th>
-                      <th className="py-2 px-2 font-medium text-gray-500">Tipo</th>
-                      <th className="py-2 px-2 font-medium text-gray-500">Titolo</th>
-                      <th className="py-2 px-2 font-medium text-gray-500">Durata</th>
-                      <th className="py-2 px-2 font-medium text-gray-500">Stato</th>
-                      <th className="py-2 px-2 font-medium text-gray-500">Azione</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      <th className="py-2 px-2 font-bold text-black uppercase w-8"></th>
+                      <th className="py-2 px-2 font-bold text-black uppercase">ID</th>
+                      <th className="py-2 px-2 font-bold text-black uppercase">Tipo</th>
+                      <th className="py-2 px-2 font-bold text-black uppercase">Titolo</th>
+                      <th className="py-2 px-2 font-bold text-black uppercase">Durata</th>
+                      <th className="py-2 px-2 font-bold text-black uppercase">Stato</th>
+                      <th className="py-2 px-2 font-bold text-black uppercase">Azione</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                     {learningObjects.slice(0, 100).map(lo => (
                       <tr 
                         key={lo.id} 
-                        className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!lo.inUse ? 'bg-red-50' : ''} ${selectedLOs.has(lo.id) ? 'bg-blue-50' : ''}`}
+                        className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${!lo.inUse ? 'bg-red-50' : ''} ${selectedLOs.has(lo.id) ? 'bg-blue-50' : ''}`}
                         onClick={() => navigate(`/learning-objects/${lo.id}`)}
                       >
                         <td className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
@@ -1400,11 +1415,12 @@ export default function ContentManagement() {
                         </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
-                {learningObjects.length > 100 && (
-                  <p className="text-center text-gray-400 text-xs py-2">Mostrati primi 100 di {learningObjects.length}</p>
-                )}
+                    </tbody>
+                  </table>
+                  {learningObjects.length > 100 && (
+                    <p className="text-center text-gray-400 text-xs py-2">Mostrati primi 100 di {learningObjects.length}</p>
+                  )}
+                </div>
               </div>
             )}
             

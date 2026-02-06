@@ -4,6 +4,7 @@ import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { Search, Plus, Users, ChevronRight, MapPin, Mail, ChevronDown, ChevronUp, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { TutorAdmins } from '@/components/TutorAdmins';
 
 type Client = {
   id: number;
@@ -133,6 +134,14 @@ export default function Clients() {
                         {group.tutorId && <span className="opacity-70 mr-2">#{group.tutorId}</span>}
                         {group.tutorName}
                       </span>
+                      {group.tutorId ? (
+                        <div className="text-[11px] text-white/80 mt-0.5">
+                          <span className="opacity-80">Admin:</span>{' '}
+                          <span className="inline-block">
+                            <TutorAdmins tutorId={group.tutorId} theme="dark" showManageLink={false} />
+                          </span>
+                        </div>
+                      ) : null}
                       <span className="ml-3 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">
                         {group.clients.length} aziende
                       </span>

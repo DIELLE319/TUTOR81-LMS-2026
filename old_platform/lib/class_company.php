@@ -106,14 +106,31 @@ class T81Company {
      * @return mixed array
      */
     public function getBusinessTutor() {
-        $query = "SELECT companies.*, 
-                    plans.short_desc_plan as short_desc_plan,
-                    company_plans.validity_end,
-                    company_plans.suspended
-                  FROM companies 
-                  LEFT JOIN company_plans ON companies.id = company_plans.company_id 
-                  LEFT JOIN plans ON company_plans.plan_id = plans.id 
-                  WHERE deleted = 0 AND is_tutor = 1 AND suspended = 0 ORDER BY business_name";
+                // NOTE: "attivi" = hanno un abbonamento (company_plan) valido e non sospeso.
+                // Prendiamo SEMPRE il piano più recente (max validity_end) per ogni azienda.
+                $query = "SELECT companies.*, 
+                                        plans.short_desc_plan as short_desc_plan,
+                                        cp.id as company_plan_id,
+                                        cp.validity_end,
+                                        cp.suspended
+                                    FROM companies 
+                                    LEFT JOIN (
+                                        SELECT *
+                                        FROM company_plans as cp1
+                                        WHERE validity_end = (
+                                                SELECT MAX(validity_end)
+                                                FROM company_plans AS cp2
+                                                WHERE cp1.company_id = cp2.company_id
+                                        )
+                                    ) as cp ON companies.id = cp.company_id 
+                                    LEFT JOIN plans ON cp.plan_id = plans.id 
+                                    WHERE companies.deleted = 0
+                                        AND companies.is_tutor = 1
+                                        AND companies.suspended = 0
+                                        AND cp.id IS NOT NULL
+                                        AND cp.suspended = 0
+                                        AND (cp.validity_end IS NULL OR cp.validity_end >= CURDATE())
+                                    ORDER BY business_name";
         $res = $this->db_conn->query($query);
         return isset($res[0]) ? $res : false;;
     }

@@ -3,10 +3,11 @@ import * as ftp from "basic-ftp";
 async function exploreFTP() {
   const client = new ftp.Client();
   client.ftp.verbose = false;
+  const host = process.env.FTP_HOST || "135.125.205.19";
   
   try {
     await client.access({
-      host: "135.125.205.19",
+      host,
       user: process.env.FTP_USERNAME!,
       password: process.env.FTP_PASSWORD!,
       secure: false,

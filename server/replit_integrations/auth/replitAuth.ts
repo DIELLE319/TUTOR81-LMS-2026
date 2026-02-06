@@ -138,9 +138,67 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  const authDisabled = /^(true|1|yes)$/i.test(process.env.DISABLE_AUTH ?? "");
+  if (authDisabled) {
+    if (!process.env.DATABASE_URL) {
+      return res.status(503).json({
+        message: "Auth bypass enabled but DATABASE_URL is missing",
+      });
+    }
+
+    const devUserId = process.env.DEV_USER_ID || "dev-user";
+    const devEmail = process.env.DEV_EMAIL || "dev@localhost";
+    const devFirstName = process.env.DEV_FIRST_NAME || "Dev";
+    const devLastName = process.env.DEV_LAST_NAME || "User";
+    const devProfileImageUrl = process.env.DEV_PROFILE_IMAGE_URL || null;
+
+    const roleRaw = process.env.DEV_ROLE || "1000";
+    const devRole = Number.isFinite(Number(roleRaw)) ? parseInt(roleRaw, 10) : 1000;
+
+    const idcompanyRaw = process.env.DEV_IDCOMPANY;
+    const devIdcompany =
+      idcompanyRaw && Number.isFinite(Number(idcompanyRaw))
+        ? parseInt(idcompanyRaw, 10)
+        : undefined;
+
+    // Ensure downstream code relying on req.user/claims works.
+    (req as any).isAuthenticated = () => true;
+    (req as any).user = {
+      claims: {
+        sub: devUserId,
+        email: devEmail,
+        first_name: devFirstName,
+        last_name: devLastName,
+        profile_image_url: devProfileImageUrl,
+      },
+      // "valid" for 10 years
+      expires_at: Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60,
+      access_token: null,
+      refresh_token: null,
+    };
+
+    // Upsert the user record so role-based checks can work in routes.
+    try {
+      await authStorage.upsertUser({
+        id: devUserId,
+        email: devEmail,
+        firstName: devFirstName,
+        lastName: devLastName,
+        profileImageUrl: devProfileImageUrl ?? undefined,
+        role: devRole,
+        idcompany: devIdcompany,
+      });
+    } catch (e) {
+      console.error("[auth] DEV user upsert failed:", e);
+      return res.status(500).json({ message: "Failed to init dev user" });
+    }
+
+    return next();
+  }
+
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated?.() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

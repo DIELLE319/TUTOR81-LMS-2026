@@ -6,6 +6,6 @@ if ( !defined('DBNAME') )
 if ( !defined('USERNAME') )
 	define('USERNAME', 'pro_tutor81');
 if ( !defined('PASSWORD') )
-	define('PASSWORD', 'hpm0?7C3');
+	define('PASSWORD', getenv('OVH_DB_PASSWORD') ?: '');
 
 define('COMMON_LIBRARY', dirname(__FILE__) . '/lib/');

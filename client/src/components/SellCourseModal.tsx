@@ -67,10 +67,11 @@ const validateItalianFiscalCode = (cf: string): boolean => {
 
 const getRoleLabel = (role: number | null) => {
   switch (role) {
-    case 0: return 'Lavoratore';
-    case 1: return 'Tutor';
-    case 2: return 'Company';
-    default: return 'Lavoratore';
+    case 1000: return 'Super Admin';
+    case 1: return 'Venditore (Ente)';
+    case 2: return 'Referente Azienda';
+    case 0: return 'Corsista';
+    default: return 'Sconosciuto';
   }
 };
 
@@ -124,7 +125,9 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   const enrollMutation = useMutation({
     mutationFn: async (data: { courseId: number; companyId: number; corsisti: CorsistaRow[] }) => {
-      const response = await apiRequest('POST', '/api/enrollments/activate', data);
+      const response = await apiRequest('POST', '/api/enrollments/activate', data, {
+        timeoutMs: 30000,
+      });
       return response.json();
     },
     onSuccess: (data) => {
@@ -139,11 +142,16 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
     onError: (error: Error) => {
       toast({
         title: "Errore",
-        description: error.message || "Si è verificato un errore nell'invio dei codici",
+        description:
+          error.name === 'AbortError'
+            ? "Richiesta troppo lenta: riprova tra qualche secondo."
+            : error.message || "Si è verificato un errore nell'invio dei codici",
         variant: "destructive",
       });
     },
   });
+
+  const isSubmitting = enrollMutation.isPending;
 
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ['/api/companies', { tutorId }],
@@ -486,7 +494,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] w-[1400px] bg-white border-yellow-500 border-2 text-black p-0 overflow-hidden max-h-[95vh]">
+      <DialogContent className="max-w-[95vw] w-[1400px] bg-white border-yellow-500 border-2 text-black p-0 overflow-hidden max-h-[95vh] shadow-xl">
         <form noValidate onSubmit={(e) => e.preventDefault()}>
         <DialogHeader className="bg-yellow-500 px-6 py-4">
           <DialogTitle className="text-black text-lg font-bold flex items-center gap-2">
@@ -496,7 +504,14 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
           <p className="text-black font-semibold mt-1">{formatCourseTitle(course.title)}</p>
         </DialogHeader>
 
-        <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(95vh-180px)]">
+        {isSubmitting && (
+          <div className="px-6 py-3 border-b border-yellow-200 bg-yellow-50 flex items-center gap-2 text-sm text-gray-800">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Invio in corso… non chiudere questa finestra.
+          </div>
+        )}
+
+        <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(95vh-220px)]">
           <div className={`border rounded-lg ${errors.company ? 'border-red-500' : 'border-gray-300'}`}>
             <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
               <PopoverTrigger asChild>
@@ -504,6 +519,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                   variant="outline"
                   role="combobox"
                   aria-expanded={companySearchOpen}
+                  disabled={isSubmitting}
                   className="w-full justify-between h-12 bg-white border border-gray-300 text-black hover:bg-yellow-50"
                   data-testid="select-company"
                 >
@@ -555,6 +571,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                   variant={userMode === 'new' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setUserMode('new')}
+                  disabled={isSubmitting}
                   className={userMode === 'new' ? 'bg-yellow-500 text-black hover:bg-yellow-400' : 'border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black'}
                   data-testid="btn-new-user"
                 >
@@ -566,6 +583,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                   variant={userMode === 'existing' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setUserMode('existing')}
+                  disabled={isSubmitting}
                   className={userMode === 'existing' ? 'bg-yellow-500 text-black hover:bg-yellow-400' : 'border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black'}
                   data-testid="btn-existing-user"
                 >
@@ -585,7 +603,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                     variant="outline"
                     className="h-8 w-8 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
                     onClick={removeRow}
-                    disabled={rows.length <= 1}
+                    disabled={isSubmitting || rows.length <= 1}
                     data-testid="btn-qty-minus"
                   >
                     <Minus size={14} />
@@ -597,6 +615,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                     variant="outline"
                     className="h-8 w-8 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
                     onClick={addRow}
+                    disabled={isSubmitting}
                     data-testid="btn-qty-plus"
                   >
                     <Plus size={14} />
@@ -629,6 +648,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           type="text"
                           value={row.email}
                           onChange={(e) => updateRow(idx, 'email', e.target.value)}
+                          disabled={isSubmitting}
                           placeholder="E-mail *"
                           className={`h-8 text-xs bg-white border-gray-300 text-black ${errors[`email_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-email-${idx}`}
@@ -639,6 +659,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           type="date"
                           value={row.startDate}
                           onChange={(e) => updateRow(idx, 'startDate', e.target.value)}
+                          disabled={isSubmitting}
                           className="h-8 text-xs bg-white border-gray-300 text-black w-[120px]"
                           data-testid={`input-start-${idx}`}
                         />
@@ -648,6 +669,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                           type="date"
                           value={row.endDate}
                           onChange={(e) => updateRow(idx, 'endDate', e.target.value)}
+                          disabled={isSubmitting}
                           className="h-8 text-xs bg-white border-gray-300 text-black w-[120px]"
                           data-testid={`input-end-${idx}`}
                         />
@@ -660,6 +682,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                             variant="ghost"
                             className="h-6 w-6"
                             onClick={() => updateRow(idx, 'daysToAlert', Math.max(1, row.daysToAlert - 1))}
+                            disabled={isSubmitting}
                           >
                             <Minus size={10} />
                           </Button>
@@ -670,6 +693,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                             variant="ghost"
                             className="h-6 w-6"
                             onClick={() => updateRow(idx, 'daysToAlert', row.daysToAlert + 1)}
+                            disabled={isSubmitting}
                           >
                             <Plus size={10} />
                           </Button>
@@ -679,6 +703,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                         <Input
                           value={row.lastName}
                           onChange={(e) => updateRow(idx, 'lastName', e.target.value)}
+                          disabled={isSubmitting}
                           placeholder="Cognome"
                           className={`h-8 text-xs bg-white border-gray-300 text-black ${errors[`lastName_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-lastname-${idx}`}
@@ -688,6 +713,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                         <Input
                           value={row.firstName}
                           onChange={(e) => updateRow(idx, 'firstName', e.target.value)}
+                          disabled={isSubmitting}
                           placeholder="Nome"
                           className={`h-8 text-xs bg-white border-gray-300 text-black ${errors[`firstName_${idx}`] ? 'border-red-500' : ''}`}
                           data-testid={`input-firstname-${idx}`}
@@ -706,6 +732,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                               }
                             }}
                             onBlur={(e) => checkFiscalCode(e.target.value, idx)}
+                            disabled={isSubmitting}
                             placeholder="Codice Fiscale"
                             maxLength={16}
                             className={`h-8 text-sm bg-white border-gray-300 text-black uppercase min-w-[180px] font-mono ${errors[`fiscalCode_${idx}`] ? 'border-red-500' : ''} ${cfMessages[idx]?.exists ? 'border-red-500 bg-red-50' : ''}`}
@@ -724,7 +751,11 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                         )}
                       </td>
                       <td className="px-2 py-2">
-                        <Select value={row.userType} onValueChange={(val) => updateRow(idx, 'userType', val)}>
+                        <Select
+                          value={row.userType}
+                          onValueChange={(val) => updateRow(idx, 'userType', val)}
+                          disabled={isSubmitting}
+                        >
                           <SelectTrigger 
                             className={`h-9 text-sm bg-white border-gray-300 text-black ${errors[`userType_${idx}`] ? 'border-red-500' : ''}`}
                             data-testid={`select-type-${idx}`}
@@ -762,6 +793,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                     placeholder="Cerca..."
                     value={existingUserSearch}
                     onChange={(e) => setExistingUserSearch(e.target.value)}
+                    disabled={isSubmitting}
                     className="h-8 w-48 text-xs t81-input"
                     data-testid="input-search-users"
                   />
@@ -833,12 +865,13 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
           )}
         </div>
 
-        <div className="bg-slate-900 border-t border-slate-700 px-6 py-4 flex justify-end gap-3">
+        <div className="bg-white border-t border-yellow-200 px-6 py-4 flex justify-end gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
-            className="border-slate-500 text-slate-300 hover:bg-slate-700"
+            disabled={isSubmitting}
+            className="border-yellow-500 text-yellow-700 hover:bg-yellow-50"
             data-testid="btn-close-modal"
           >
             Chiudi
@@ -846,11 +879,16 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
           <Button
             type="button"
             onClick={handleSubmit}
-            className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2"
+            disabled={isSubmitting}
+            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 gap-2 font-bold"
             data-testid="btn-submit-codes"
           >
-            <Send size={16} />
-            Invia Codici
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send size={16} />
+            )}
+            {isSubmitting ? 'Invio…' : 'Invia Codici'}
           </Button>
         </div>
         </form>
