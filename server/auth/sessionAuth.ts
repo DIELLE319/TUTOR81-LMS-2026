@@ -21,9 +21,13 @@ export function getSession() {
     tableName: "sessions",
   });
   const isProduction = process.env.NODE_ENV === "production";
+  const port = parseInt(process.env.PORT || "5000", 10);
+  // Staging (port 3003) runs behind plain HTTP — no secure cookie
+  const useSecureCookie = isProduction && port !== 3003;
   console.log("[Session] Config:", {
     NODE_ENV: process.env.NODE_ENV,
-    secure: isProduction,
+    port,
+    secure: useSecureCookie,
     proxy: isProduction,
   });
   return session({
@@ -33,7 +37,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: isProduction,
+      secure: useSecureCookie,
       sameSite: "lax",
       maxAge: sessionTtl,
     },
