@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { Building, ArrowLeft, Save, User, Mail, Phone, MapPin, FileText } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -34,10 +33,7 @@ export default function CreateCompany() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData & { isTutor: boolean }) => {
-      return apiRequest('/api/companies', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return apiRequest('POST', '/api/companies', data);
     },
     onSuccess: () => {
       toast({ title: 'Azienda creata con successo' });
@@ -85,11 +81,7 @@ export default function CreateCompany() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[#1e1e1e] rounded-xl border border-gray-800 p-6 space-y-6"
-          >
+          <div className="bg-[#1e1e1e] rounded-xl border border-gray-800 p-6 space-y-6">
             
             <div className="border-b border-gray-800 pb-4 mb-4">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -340,7 +332,7 @@ export default function CreateCompany() {
               </button>
             </div>
 
-          </motion.div>
+          </div>
         </form>
       </div>
     </div>

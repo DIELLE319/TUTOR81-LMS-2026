@@ -117,7 +117,7 @@ export default function Layout({ children }: LayoutProps) {
         
         <div className="p-5 border-b border-gray-800">
           <h1 className="font-bold text-lg text-yellow-500 uppercase tracking-wide">TUTOR 81 LMS</h1>
-          <span className="text-[10px] text-gray-600">v1.0.0</span>
+          <span className="text-[10px] text-gray-600">v1-clean</span>
           <div className="text-sm text-gray-400 mt-2 font-bold uppercase truncate">
             {user?.firstName} {user?.lastName}
           </div>

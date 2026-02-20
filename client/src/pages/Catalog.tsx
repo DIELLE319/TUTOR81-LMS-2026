@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ShoppingCart, ChevronDown, ChevronUp, Printer, Download } from 'lucide-react';
 import type { Course } from '@shared/schema';
@@ -509,9 +509,8 @@ export default function Catalog() {
               </thead>
               <tbody>
                 {groupedCourses.map(group => (
-                  <>
-                    <tr 
-                      key={`cat-${group.category}`}
+                  <React.Fragment key={`cat-${group.category}`}>
+                    <tr
                       className="bg-[#2d2d2d] cursor-pointer hover:bg-[#3d3d3d] transition-colors"
                       onClick={() => toggleCategory(group.category)}
                     >
@@ -580,7 +579,7 @@ export default function Catalog() {
                         </tr>
                       );
                     })}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

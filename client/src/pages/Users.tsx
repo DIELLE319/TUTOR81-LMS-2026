@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useSearch } from 'wouter';
 import { Search, Users as UsersIcon, X, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -223,24 +222,20 @@ export default function Users() {
                 </span>
               )}
 
-              <Button
-                size="sm"
-                variant="outline"
+              <button
                 disabled={selectedIds.size === 0}
-                className="h-10 bg-yellow-200 hover:bg-yellow-100 text-black border border-black/10 disabled:opacity-50"
+                className="h-10 px-3 text-sm rounded-lg bg-yellow-200 hover:bg-yellow-100 text-black border border-black/10 disabled:opacity-50"
                 data-testid="button-suspend-selected"
               >
                 Sospendi
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
+              </button>
+              <button
                 disabled={selectedIds.size === 0}
-                className="h-10 bg-orange-500 hover:bg-orange-600 text-black border border-black/10 disabled:opacity-50"
+                className="h-10 px-3 text-sm rounded-lg bg-orange-500 hover:bg-orange-600 text-black border border-black/10 disabled:opacity-50"
                 data-testid="button-delete-selected"
               >
                 Elimina
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -437,22 +432,18 @@ export default function Users() {
 
                   <div className="bg-white rounded-lg p-4 border border-gray-200">
                     <div className="flex gap-2">
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        className="bg-red-400 hover:bg-red-500"
+                      <button 
+                        className="px-3 py-1.5 text-sm rounded bg-red-400 hover:bg-red-500 text-white"
                         data-testid="button-delete-user"
                       >
                         Elimina
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="bg-orange-400 hover:bg-orange-500 text-white border-0"
+                      </button>
+                      <button 
+                        className="px-3 py-1.5 text-sm rounded bg-orange-400 hover:bg-orange-500 text-white"
                         data-testid="button-suspend-user"
                       >
                         Sospendi
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -499,21 +490,21 @@ export default function Users() {
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <Button
-                  variant="outline"
+                <button
                   onClick={() => setSelectedUser(null)}
+                  className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
                   data-testid="button-cancel-user"
                 >
                   Annulla
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={handleSave}
                   disabled={updateUserMutation.isPending}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                  className="px-4 py-2 text-sm rounded-lg bg-yellow-500 hover:bg-yellow-600 text-black font-bold disabled:opacity-50"
                   data-testid="button-save-user"
                 >
                   {updateUserMutation.isPending ? 'Salvataggio...' : 'Salva Modifiche'}
-                </Button>
+                </button>
               </div>
             </div>
           </div>

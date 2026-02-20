@@ -270,7 +270,7 @@ export default function Sales() {
               </div>
             </div>
 
-            <Popover open={tutorSearchOpen} onOpenChange={setTutorSearchOpen}>
+            <Popover open={tutorSearchOpen} onOpenChange={setTutorSearchOpen} modal={false}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -324,7 +324,7 @@ export default function Sales() {
               </PopoverContent>
             </Popover>
 
-            <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
+            <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen} modal={false}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"

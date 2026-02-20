@@ -4,7 +4,7 @@ import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
 import { users } from "@shared/models/auth";
-import { db } from "../../db";
+import { db } from "../db";
 import { eq } from "drizzle-orm";
 
 // In-memory cache to avoid DB lookup on every request
@@ -112,7 +112,57 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // GET /api/admin-logout
+  // GET /api/login — serve HTML login form (replaces old Replit OAuth redirect)
+  app.get("/api/login", (_req, res) => {
+    res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login — Tutor81 LMS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f172a;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0}
+.card{width:min(400px,calc(100vw - 32px));background:#1e293b;border-radius:16px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+h1{font-size:22px;margin-bottom:24px;text-align:center;color:#fbbf24}
+label{display:block;font-size:13px;margin-bottom:4px;color:#94a3b8}
+input{width:100%;padding:10px 12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:15px;margin-bottom:16px;outline:none}
+input:focus{border-color:#fbbf24}
+button{width:100%;padding:12px;border:none;border-radius:8px;background:#fbbf24;color:#0f172a;font-size:15px;font-weight:700;cursor:pointer}
+button:hover{background:#f59e0b}
+.error{background:#7f1d1d;color:#fca5a5;padding:10px;border-radius:8px;margin-bottom:16px;font-size:13px;display:none}
+</style></head><body>
+<div class="card">
+<h1>TUTOR 81 LMS</h1>
+<div class="error" id="err"></div>
+<form id="f">
+<label>Email</label><input type="email" id="u" required autofocus>
+<label>Password</label><input type="password" id="p" required>
+<button type="submit">Accedi</button>
+</form>
+</div>
+<script>
+document.getElementById('f').onsubmit=async e=>{
+  e.preventDefault();
+  const err=document.getElementById('err');
+  err.style.display='none';
+  try{
+    const r=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('u').value,password:document.getElementById('p').value})});
+    const d=await r.json();
+    if(r.ok){window.location.href='/';}else{err.textContent=d.error||'Errore';err.style.display='block';}
+  }catch(x){err.textContent='Errore di connessione';err.style.display='block';}
+};
+</script></body></html>`);
+  });
+
+  // GET /api/logout — destroy session and redirect
+  app.get("/api/logout", (req, res) => {
+    const userId = (req.session as any)?.passport?.user?.claims?.sub;
+    if (userId) userCache.delete(userId);
+    req.session.destroy((err) => {
+      if (err) console.error("[LOGOUT] Error:", err);
+      res.redirect("/api/login");
+    });
+  });
+
+  // GET /api/admin-logout (alias)
   app.get("/api/admin-logout", (req, res) => {
     const userId = (req.session as any)?.passport?.user?.claims?.sub;
     if (userId) {

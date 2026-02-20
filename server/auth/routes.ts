@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { authStorage } from "./storage";
-import { isAuthenticated } from "./replitAuth";
-import { db } from "../../db";
+import { isAuthenticated } from "./sessionAuth";
+import { db } from "../db";
 import { sql } from "drizzle-orm";
 
 // Register auth-specific routes
@@ -44,7 +44,8 @@ export function registerAuthRoutes(app: Express): void {
         console.warn(`[auth] Normalized legacy role for user ${user.id}: ${user.role} -> ${normalizedRole}`);
       }
 
-      res.json({ ...user, role: normalizedRole, tutorId, tutorName });
+      const { passwordHash, ...safeUser } = user as any;
+      res.json({ ...safeUser, role: normalizedRole, tutorId, tutorName });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });

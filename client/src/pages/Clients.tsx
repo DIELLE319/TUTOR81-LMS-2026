@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { motion } from 'framer-motion';
 import { Search, Plus, Users, ChevronRight, MapPin, Mail, ChevronDown, ChevronUp, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { TutorAdmins } from '@/components/TutorAdmins';
@@ -157,12 +156,9 @@ export default function Clients() {
                 {/* Clients List */}
                 {!isExpanded && (
                   <div className="divide-y divide-gray-800">
-                    {group.clients.map((client, index) => (
-                      <motion.div
+                    {group.clients.map((client) => (
+                      <div
                         key={client.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.02 }}
                         className="px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer"
                         data-testid={`card-client-${client.id}`}
                       >
@@ -194,7 +190,7 @@ export default function Clients() {
                           </div>
                           <ChevronRight size={16} className="text-gray-600" />
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 )}

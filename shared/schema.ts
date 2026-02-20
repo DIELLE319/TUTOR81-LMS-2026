@@ -304,7 +304,33 @@ export const quizResponses = pgTable("quiz_responses", {
 });
 
 // ============================================================
-// TABELLA 14: ADMIN USERS (per accesso al sistema)
+// TABELLA 14: FATTURE (Invoices)
+// ============================================================
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: integer("invoice_number").notNull(),
+  invoiceYear: integer("invoice_year").notNull(),
+  tutorCompanyId: integer("tutor_company_id").notNull(),
+  tutorCompanyName: text("tutor_company_name"),
+  tutorVatNumber: text("tutor_vat_number"),
+  tutorAddress: text("tutor_address"),
+  tutorCap: text("tutor_cap"),
+  tutorEmail: text("tutor_email"),
+  monthReference: integer("month_reference").notNull(),
+  yearReference: integer("year_reference").notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  orderIds: text("order_ids"),
+  status: text("status").default("draft"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true });
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+
+// ============================================================
+// TABELLA 15: ADMIN USERS (per accesso al sistema)
 // ============================================================
 export const adminUsers = pgTable("admin_users", {
   id: serial("id").primaryKey(),

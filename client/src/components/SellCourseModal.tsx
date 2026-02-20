@@ -5,10 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Checkbox } from '@/components/ui/checkbox';
+// All Radix UI components (Select, Popover, Command, Checkbox) removed
+// Replaced with native HTML to fix React infinite loop (error #185)
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -97,6 +95,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
   const { user } = useAuth();
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
+  const [companySearchTerm, setCompanySearchTerm] = useState('');
   const [userMode, setUserMode] = useState<'new' | 'existing'>('new');
   const [rows, setRows] = useState<CorsistaRow[]>([createEmptyRow()]);
   const [selectedExistingUsers, setSelectedExistingUsers] = useState<Set<string>>(new Set());
@@ -201,6 +200,8 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
       setSelectedExistingUsers(new Set());
       setExistingUserSearch('');
       setSuccessData(null);
+      setCompanySearchOpen(false);
+      setCompanySearchTerm('');
     }
   }, [isOpen]);
 
@@ -385,7 +386,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
     } else {
       // Per utenti esistenti, prepara i dati in formato corsista
       const existingUserData = companyUsers
-        .filter(u => selectedExistingUsers.has(u.id))
+        .filter(u => selectedExistingUsers.has(String(u.id)))
         .map(u => ({
           email: u.email || '',
           startDate: new Date().toISOString().split('T')[0],
@@ -512,54 +513,58 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
         )}
 
         <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(95vh-220px)]">
-          <div className={`border rounded-lg ${errors.company ? 'border-red-500' : 'border-gray-300'}`}>
-            <Popover open={companySearchOpen} onOpenChange={setCompanySearchOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={companySearchOpen}
-                  disabled={isSubmitting}
-                  className="w-full justify-between h-12 bg-white border border-gray-300 text-black hover:bg-yellow-50"
-                  data-testid="select-company"
-                >
-                  {selectedCompanyName || "--- Scegli il cliente ---"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[500px] p-0 bg-white border-gray-300" align="start">
-                <Command className="bg-white">
-                  <CommandInput 
-                    placeholder="Cerca azienda..." 
-                    className="text-black"
+          <div className={`border rounded-lg relative ${errors.company ? 'border-red-500' : 'border-gray-300'}`}>
+            <button
+              type="button"
+              onClick={() => { setCompanySearchOpen(!companySearchOpen); setCompanySearchTerm(''); }}
+              disabled={isSubmitting}
+              className="w-full flex items-center justify-between h-12 px-4 bg-white border border-gray-300 rounded-lg text-black hover:bg-yellow-50"
+              data-testid="select-company"
+            >
+              <span className={selectedCompanyName ? 'text-black' : 'text-gray-400'}>
+                {selectedCompanyName || '--- Scegli il cliente ---'}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </button>
+            {companySearchOpen && (
+              <div className="absolute z-50 top-full left-0 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1">
+                <div className="p-2 border-b border-gray-200">
+                  <input
+                    type="text"
+                    placeholder="Cerca azienda..."
+                    value={companySearchTerm}
+                    onChange={(e) => setCompanySearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 text-sm text-black border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-yellow-400"
+                    autoFocus
                   />
-                  <CommandList className="max-h-60">
-                    <CommandEmpty className="text-gray-500 py-4 text-center">Nessuna azienda trovata</CommandEmpty>
-                    <CommandGroup>
-                      {filteredCompanies.map(company => (
-                        <CommandItem
-                          key={company.id}
-                          value={company.businessName}
-                          onSelect={() => {
-                            setSelectedCompanyId(company.id.toString());
-                            setCompanySearchOpen(false);
-                          }}
-                          className="text-black hover:bg-yellow-100 cursor-pointer"
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedCompanyId === company.id.toString() ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {company.businessName}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {filteredCompanies
+                    .filter(c => !companySearchTerm || c.businessName.toLowerCase().includes(companySearchTerm.toLowerCase()))
+                    .map(company => (
+                    <div
+                      key={company.id}
+                      onClick={() => {
+                        setSelectedCompanyId(company.id.toString());
+                        setCompanySearchOpen(false);
+                        setCompanySearchTerm('');
+                      }}
+                      className={`px-4 py-2 text-sm cursor-pointer hover:bg-yellow-100 flex items-center gap-2 ${
+                        selectedCompanyId === company.id.toString() ? 'bg-yellow-50 font-semibold' : 'text-black'
+                      }`}
+                    >
+                      {selectedCompanyId === company.id.toString() && (
+                        <Check className="h-4 w-4 text-yellow-600" />
+                      )}
+                      {company.businessName}
+                    </div>
+                  ))}
+                  {filteredCompanies.filter(c => !companySearchTerm || c.businessName.toLowerCase().includes(companySearchTerm.toLowerCase())).length === 0 && (
+                    <div className="px-4 py-4 text-sm text-gray-400 text-center">Nessuna azienda trovata</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -751,29 +756,18 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                         )}
                       </td>
                       <td className="px-2 py-2">
-                        <Select
+                        <select
                           value={row.userType}
-                          onValueChange={(val) => updateRow(idx, 'userType', val)}
+                          onChange={(e) => updateRow(idx, 'userType', e.target.value)}
                           disabled={isSubmitting}
+                          className={`h-9 w-full text-sm bg-white border border-gray-300 text-black rounded-md px-2 ${errors[`userType_${idx}`] ? 'border-red-500' : ''}`}
+                          data-testid={`select-type-${idx}`}
                         >
-                          <SelectTrigger 
-                            className={`h-9 text-sm bg-white border-gray-300 text-black ${errors[`userType_${idx}`] ? 'border-red-500' : ''}`}
-                            data-testid={`select-type-${idx}`}
-                          >
-                            <SelectValue placeholder="Seleziona tipo..." />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-gray-300">
-                            {USER_TYPES.map(type => (
-                              <SelectItem 
-                                key={type.value} 
-                                value={type.value}
-                                className="text-black hover:bg-yellow-100 text-sm"
-                              >
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <option value="">Seleziona tipo...</option>
+                          {USER_TYPES.map(type => (
+                            <option key={type.value} value={type.value}>{type.label}</option>
+                          ))}
+                        </select>
                       </td>
                     </tr>
                   ))}
@@ -826,14 +820,15 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
                       {filteredExistingUsers.map((user, idx) => (
                         <tr 
                           key={user.id} 
-                          className={`cursor-pointer ${selectedExistingUsers.has(user.id) ? 'bg-yellow-500/20' : ''}`}
-                          onClick={() => toggleExistingUser(user.id)}
+                          className={`cursor-pointer ${selectedExistingUsers.has(String(user.id)) ? 'bg-yellow-500/20' : ''}`}
+                          onClick={() => toggleExistingUser(String(user.id))}
                         >
                           <td className="text-center">
-                            <Checkbox
-                              checked={selectedExistingUsers.has(user.id)}
-                              onCheckedChange={() => toggleExistingUser(user.id)}
-                              className="border-yellow-500"
+                            <input
+                              type="checkbox"
+                              checked={selectedExistingUsers.has(String(user.id))}
+                              onChange={() => toggleExistingUser(String(user.id))}
+                              className="h-4 w-4 accent-yellow-500 cursor-pointer"
                               data-testid={`checkbox-user-${user.id}`}
                             />
                           </td>

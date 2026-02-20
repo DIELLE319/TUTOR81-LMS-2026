@@ -3,7 +3,9 @@ import "dotenv/config";
 import dotenv from "dotenv";
 dotenv.config();
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import path from "path";
+import fs from "fs";
+import { registerRoutes } from "./routes/index";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 
@@ -170,6 +172,21 @@ app.use((req, res, next) => {
 
     return res.status(status).json({ message });
   });
+
+  // Serve uploaded files (logos, etc.) from the uploads directory.
+  // Try cwd/uploads, then ../uploads (staging), then ../../uploads (releases/xxx).
+  const uploadsCandidates = [
+    path.resolve(process.cwd(), "uploads"),
+    path.resolve(process.cwd(), "..", "uploads"),
+    path.resolve(process.cwd(), "..", "..", "uploads"),
+  ];
+  for (const candidate of uploadsCandidates) {
+    if (fs.existsSync(candidate)) {
+      console.log(`[uploads] Serving from ${candidate}`);
+      app.use("/uploads", express.static(candidate));
+      break;
+    }
+  }
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

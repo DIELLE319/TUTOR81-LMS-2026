@@ -3,15 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { useAuth } from "@/hooks/use-auth";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Search, Download, FileText, Printer, FileSpreadsheet } from "lucide-react";
 
 interface Attestato {
@@ -162,110 +153,102 @@ export default function Certificates() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-yellow-500 py-4 px-6 border-b-2 border-black/70">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-semibold text-gray-800" data-testid="text-page-title">
               Attestati
             </h1>
-            <Select value={selectedTutor} onValueChange={setSelectedTutor}>
-              <SelectTrigger className="w-64 bg-white" data-testid="select-tutor">
-                <SelectValue placeholder="Tutti gli enti formativi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tutti gli enti formativi</SelectItem>
-                {tutors.map((tutor) => (
-                  <SelectItem key={tutor} value={tutor}>
-                    {tutor}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={selectedTutor}
+              onChange={(e) => setSelectedTutor(e.target.value)}
+              className="h-9 w-64 bg-white border border-gray-300 rounded px-2 text-sm text-black"
+              data-testid="select-tutor"
+            >
+              <option value="all">Tutti gli enti formativi</option>
+              {tutors.map((tutor) => (
+                <option key={tutor} value={tutor}>{tutor}</option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-sm text-gray-700">
               {filteredAttestati.length.toLocaleString()} attestati disponibili
             </div>
-            <Button
-              size="sm"
+            <button
               onClick={handleExport}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-green-600 hover:bg-green-700 text-white font-bold"
               data-testid="button-export"
             >
-              <FileSpreadsheet className="w-4 h-4 mr-1" />
+              <FileSpreadsheet className="w-4 h-4" />
               Esporta
-            </Button>
-            <Button
-              size="sm"
+            </button>
+            <button
               onClick={handlePrint}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-700 text-white font-bold"
               data-testid="button-print"
             >
-              <Printer className="w-4 h-4 mr-1" />
+              <Printer className="w-4 h-4" />
               Stampa
-            </Button>
+            </button>
           </div>
         </div>
       </div>
 
       <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Azienda</span>
-              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                <SelectTrigger className="w-64 bg-white" data-testid="select-company">
-                  <SelectValue placeholder="Tutte le aziende" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tutte le aziende</SelectItem>
-                  {companies.map((company) => (
-                    <SelectItem key={company} value={company}>
-                      {company}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={selectedCompany}
+                onChange={(e) => setSelectedCompany(e.target.value)}
+                className="h-9 w-64 bg-white border border-gray-300 rounded px-2 text-sm text-black"
+                data-testid="select-company"
+              >
+                <option value="all">Tutte le aziende</option>
+                {companies.map((company) => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Corsista</span>
-              <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger className="w-56 bg-white" data-testid="select-user">
-                  <SelectValue placeholder="Tutti i corsisti" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tutti i corsisti</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user} value={user}>
-                      {user}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="h-9 w-56 bg-white border border-gray-300 rounded px-2 text-sm text-black"
+                data-testid="select-user"
+              >
+                <option value="all">Tutti i corsisti</option>
+                {users.map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Mostra</span>
-              <Select value={pageSize} onValueChange={setPageSize}>
-                <SelectTrigger className="w-20 bg-white" data-testid="select-page-size">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                  <SelectItem value="500">500</SelectItem>
-                </SelectContent>
-              </Select>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(e.target.value)}
+                className="h-9 w-20 bg-white border border-gray-300 rounded px-2 text-sm text-black"
+                data-testid="select-page-size"
+              >
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="500">500</option>
+              </select>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">Cerca:</span>
             <div className="relative">
-              <Input
+              <input
                 type="text"
                 placeholder="Nome, email, corso..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-64 bg-white pr-8"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                className="w-64 h-9 bg-white border border-gray-300 rounded pl-2 pr-8 text-sm text-black"
                 data-testid="input-search"
               />
               <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -277,30 +260,14 @@ export default function Certificates() {
           <table className="w-full" data-testid="table-attestati">
             <thead className="bg-yellow-500 border-b border-yellow-600/30">
               <tr>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">
-                  ID
-                </th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">
-                  Cognome Nome
-                </th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">
-                  Codice Fiscale
-                </th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">
-                  Azienda
-                </th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">
-                  Corso
-                </th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">
-                  Data Fine
-                </th>
-                <th className="text-left p-3 text-xs font-bold text-black uppercase">
-                  Ente Formativo
-                </th>
-                <th className="text-center p-3 text-xs font-bold text-black uppercase">
-                  Azioni
-                </th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">ID</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Cognome Nome</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Codice Fiscale</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Azienda</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Corso</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Data Fine</th>
+                <th className="text-left p-3 text-xs font-bold text-black uppercase">Ente Formativo</th>
+                <th className="text-center p-3 text-xs font-bold text-black uppercase">Azioni</th>
               </tr>
             </thead>
             <tbody>
@@ -325,38 +292,22 @@ export default function Certificates() {
                     className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
                     data-testid={`row-attestato-${attestato.legacy_id}`}
                   >
-                    <td className="p-3 text-sm text-gray-600">
-                      {attestato.legacy_id}
-                    </td>
-                    <td className="p-3 text-sm font-medium text-gray-900">
-                      {attestato.user_last_name} {attestato.user_first_name}
-                    </td>
-                    <td className="p-3 text-sm text-gray-600 font-mono">
-                      {attestato.user_fiscal_code || "-"}
-                    </td>
-                    <td className="p-3 text-sm text-gray-800">
-                      {attestato.company_name || "-"}
-                    </td>
-                    <td className="p-3 text-sm text-gray-800 max-w-xs truncate" title={formatCourseTitle(attestato.course_title)}>
-                      {formatCourseTitle(attestato.course_title)}
-                    </td>
-                    <td className="p-3 text-sm text-gray-600">
-                      {formatDate(attestato.end_date)}
-                    </td>
-                    <td className="p-3 text-sm text-gray-800">
-                      {attestato.tutor_name || "-"}
-                    </td>
+                    <td className="p-3 text-sm text-gray-600">{attestato.legacy_id}</td>
+                    <td className="p-3 text-sm font-medium text-gray-900">{attestato.user_last_name} {attestato.user_first_name}</td>
+                    <td className="p-3 text-sm text-gray-600 font-mono">{attestato.user_fiscal_code || "-"}</td>
+                    <td className="p-3 text-sm text-gray-800">{attestato.company_name || "-"}</td>
+                    <td className="p-3 text-sm text-gray-800 max-w-xs truncate" title={formatCourseTitle(attestato.course_title)}>{formatCourseTitle(attestato.course_title)}</td>
+                    <td className="p-3 text-sm text-gray-600">{formatDate(attestato.end_date)}</td>
+                    <td className="p-3 text-sm text-gray-800">{attestato.tutor_name || "-"}</td>
                     <td className="p-3 text-center">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-green-500 hover:bg-green-600 text-white border-0"
+                      <button
                         onClick={() => handleDownload(attestato.legacy_id)}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded bg-green-500 hover:bg-green-600 text-white font-bold"
                         data-testid={`button-download-${attestato.legacy_id}`}
                       >
-                        <Download className="w-4 h-4 mr-1" />
+                        <Download className="w-4 h-4" />
                         PDF
-                      </Button>
+                      </button>
                     </td>
                   </tr>
                 ))

@@ -1,7 +1,4 @@
 import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { User, Key, LogIn, ExternalLink } from "lucide-react";
 import EnvironmentBanner from "@/components/EnvironmentBanner";
@@ -21,7 +18,6 @@ export default function PlayerLogin() {
     setIsLoading(true);
 
     try {
-      // Validate license code exists
       const response = await fetch("/api/player/validate-license", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -35,8 +31,6 @@ export default function PlayerLogin() {
           title: "Reindirizzamento al corso...", 
           description: `Corso: ${data.enrollment.courseTitle}` 
         });
-        
-        // Submit form to old player via POST
         if (formRef.current) {
           formRef.current.submit();
         }
@@ -64,93 +58,93 @@ export default function PlayerLogin() {
       <PublicHeader showLoginCta />
 
       <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white shadow-2xl">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mb-4">
-            <LogIn className="w-8 h-8 text-gray-900" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">Accedi al Corso</CardTitle>
-          <CardDescription className="text-gray-600">
-            Inserisci il codice licenza e il codice fiscale
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form 
-            ref={formRef}
-            method="POST" 
-            action={OLD_PLAYER_URL}
-            onSubmit={handleLogin} 
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Codice Licenza</label>
-              <div className="relative">
-                <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                  type="text"
-                  name="course_code"
-                  value={licenseCode}
-                  onChange={(e) => setLicenseCode(e.target.value.toUpperCase())}
-                  placeholder="es: B8j4P"
-                  className="pl-10 uppercase"
-                  data-testid="input-license-code"
-                  required
-                />
-              </div>
+        <div className="w-full max-w-md bg-white shadow-2xl rounded-xl overflow-hidden">
+          <div className="text-center pt-8 pb-2 px-6">
+            <div className="mx-auto w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mb-4">
+              <LogIn className="w-8 h-8 text-gray-900" />
             </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Codice Fiscale</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                  type="text"
-                  name="tax_code"
-                  value={fiscalCode}
-                  onChange={(e) => setFiscalCode(e.target.value.toUpperCase())}
-                  placeholder="es: RSSMRA80A01H501U"
-                  className="pl-10 uppercase"
-                  data-testid="input-fiscal-code"
-                  required
-                />
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold"
-              disabled={isLoading}
-              data-testid="btn-login"
-            >
-              {isLoading ? (
-                <>Verifica in corso...</>
-              ) : (
-                <>
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Avvia Corso
-                </>
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-gray-700 text-center">
-              <strong>Come funziona:</strong><br />
-              Il codice licenza ti è stato inviato via email.<br />
-              Inseriscilo insieme al tuo codice fiscale per accedere al corso.
+            <h2 className="text-2xl font-bold text-gray-900">Accedi al Corso</h2>
+            <p className="text-gray-600 mt-1">
+              Inserisci il codice licenza e il codice fiscale
             </p>
           </div>
-
-          <div className="mt-4 text-center">
-            <a 
-              href="mailto:assistenza@tutor81.com" 
-              className="text-sm text-blue-600 hover:underline"
+          <div className="p-6">
+            <form 
+              ref={formRef}
+              method="POST" 
+              action={OLD_PLAYER_URL}
+              onSubmit={handleLogin} 
+              className="space-y-4"
             >
-              Non hai ricevuto il codice? Contatta l'assistenza
-            </a>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Codice Licenza</label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    name="course_code"
+                    value={licenseCode}
+                    onChange={(e) => setLicenseCode(e.target.value.toUpperCase())}
+                    placeholder="es: B8j4P"
+                    className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                    data-testid="input-license-code"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Codice Fiscale</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    name="tax_code"
+                    value={fiscalCode}
+                    onChange={(e) => setFiscalCode(e.target.value.toUpperCase())}
+                    placeholder="es: RSSMRA80A01H501U"
+                    className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                    data-testid="input-fiscal-code"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="w-full h-10 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold rounded-md flex items-center justify-center gap-2 disabled:opacity-50"
+                disabled={isLoading}
+                data-testid="btn-login"
+              >
+                {isLoading ? (
+                  "Verifica in corso..."
+                ) : (
+                  <>
+                    <ExternalLink className="w-4 h-4" />
+                    Avvia Corso
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-gray-700 text-center">
+                <strong>Come funziona:</strong><br />
+                Il codice licenza ti è stato inviato via email.<br />
+                Inseriscilo insieme al tuo codice fiscale per accedere al corso.
+              </p>
+            </div>
+
+            <div className="mt-4 text-center">
+              <a 
+                href="mailto:assistenza@tutor81.com" 
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Non hai ricevuto il codice? Contatta l'assistenza
+              </a>
+            </div>
           </div>
-        </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );

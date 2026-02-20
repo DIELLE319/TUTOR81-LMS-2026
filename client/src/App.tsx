@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import Layout from "@/components/Layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import EnvironmentBanner from "@/components/EnvironmentBanner";
 import PublicHeader from "@/components/PublicHeader";
 
@@ -19,13 +20,7 @@ import Certificates from "@/pages/Certificates";
 import CreateCompany from "@/pages/CreateCompany";
 import ActivatedCourses from "@/pages/ActivatedCourses";
 import Invoicing from "@/pages/Invoicing";
-import ContentManagement from "@/pages/ContentManagement";
 import EmailPreview from "@/pages/EmailPreview";
-import LearningObjects from "@/pages/LearningObjects";
-import LearningObjectDetail from "@/pages/LearningObjectDetail";
-import CourseStructure from "@/pages/CourseStructure";
-import CoursePlayer from "@/pages/CoursePlayer";
-import CoursePlayerVideo from "@/pages/CoursePlayerVideo";
 import PlayerLogin from "@/pages/PlayerLogin";
 import Videoconference from "@/pages/Videoconference";
 import Tracking from "@/pages/Tracking";
@@ -259,10 +254,6 @@ function Router() {
         <ProtectedRoute><CompanyUsers /></ProtectedRoute>
       </Route>
 
-      <Route path="/content-management">
-        <ProtectedRoute><ContentManagement /></ProtectedRoute>
-      </Route>
-
       <Route path="/videoconference">
         <ProtectedRoute><Videoconference /></ProtectedRoute>
       </Route>
@@ -275,42 +266,12 @@ function Router() {
         <ProtectedRoute><Feedback /></ProtectedRoute>
       </Route>
 
-      <Route path="/learning-objects">
-        <ProtectedRoute><LearningObjects /></ProtectedRoute>
-      </Route>
-
-      <Route path="/learning-objects/:id">
-        {(params) => (
-          <ProtectedRoute><LearningObjectDetail id={params.id} /></ProtectedRoute>
-        )}
-      </Route>
-
-      <Route path="/course-structure/:id">
-        <ProtectedRoute><CourseStructure /></ProtectedRoute>
-      </Route>
-
-      <Route path="/course-structure">
-        <ProtectedRoute><CourseStructure /></ProtectedRoute>
-      </Route>
-
       <Route path="/email-preview">
         <EmailPreview />
       </Route>
 
       <Route path="/player-login">
         <PlayerLogin />
-      </Route>
-
-      <Route path="/player/:enrollmentId">
-        <CoursePlayer />
-      </Route>
-
-      <Route path="/player">
-        <CoursePlayer />
-      </Route>
-
-      <Route path="/player/course/:id">
-        <CoursePlayerVideo />
       </Route>
 
       <Route path="/">
@@ -324,14 +285,16 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <Router />
-          <Toaster />
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <Router />
+            <Toaster />
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
