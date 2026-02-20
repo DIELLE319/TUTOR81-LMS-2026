@@ -111,12 +111,6 @@ export default function PlayerLogin() {
       <EnvironmentBanner />
       <PublicHeader showLoginCta />
 
-      {/* Hidden form for redirect to old player */}
-      <form ref={hiddenFormRef} method="POST" action={OLD_PLAYER_URL} style={{ display: 'none' }}>
-        <input type="hidden" name="course_code" value={resolvedLicenseCode} />
-        <input type="hidden" name="tax_code" value={resolvedFiscalCode} />
-      </form>
-
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white shadow-2xl rounded-xl overflow-hidden">
           <div className="text-center pt-8 pb-2 px-6">
@@ -145,7 +139,6 @@ export default function PlayerLogin() {
                       placeholder="nome.cognome"
                       className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
                       data-testid="input-username"
-                      autoFocus
                       required
                     />
                   </div>
@@ -262,6 +255,11 @@ export default function PlayerLogin() {
           </div>
         </div>
       </div>
+      {/* Hidden form for redirect to old player */}
+      <form ref={hiddenFormRef} method="POST" action={OLD_PLAYER_URL} style={{ display: 'none' }}>
+        <input type="hidden" name="course_code" value={resolvedLicenseCode} />
+        <input type="hidden" name="tax_code" value={resolvedFiscalCode} />
+      </form>
     </div>
   );
 }
