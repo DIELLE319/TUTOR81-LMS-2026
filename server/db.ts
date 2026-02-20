@@ -2,20 +2,15 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
 
-const { Pool } = pg;
+const hasDatabase = !!process.env.DATABASE_URL;
 
-export const hasDatabase = Boolean(process.env.DATABASE_URL);
+let db: ReturnType<typeof drizzle<typeof schema>>;
 
-if (!hasDatabase) {
-  console.warn(
-    "[db] DATABASE_URL is not set. Database-backed routes/auth will be disabled.",
-  );
+if (hasDatabase) {
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  db = drizzle(pool, { schema });
+} else {
+  db = null as any;
 }
 
-export const pool = hasDatabase
-  ? new Pool({ connectionString: process.env.DATABASE_URL })
-  : (null as unknown as pg.Pool);
-
-export const db = hasDatabase
-  ? drizzle(pool, { schema })
-  : (null as unknown as ReturnType<typeof drizzle>);
+export { db, hasDatabase };

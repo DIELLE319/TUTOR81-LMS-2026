@@ -4,51 +4,38 @@ import { isAuthenticated } from "./sessionAuth";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
-// Register auth-specific routes
 export function registerAuthRoutes(app: Express): void {
-  // Get current authenticated user with tutorId if admin
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await authStorage.getUser(userId);
-      
-      if (!user) {
-        return res.json(null);
-      }
-      
-      // Se l'utente è venditore (role=1), cerca il suo tutorId dalla tabella tutor_admins
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      let normalizedRole = user.role ?? 0;
+      if (normalizedRole >= 100 && normalizedRole < 1000) normalizedRole = Math.floor(normalizedRole / 100);
+
       let tutorId: number | null = null;
       let tutorName: string | null = null;
-      
-      if (user.role === 1 && user.idcompany) {
-        // idcompany contiene l'id del tutor_admin, cerchiamo il tutor collegato
-        try {
-          const result = await db.execute(sql.raw(`
-            SELECT ta.tutor_id, t.business_name as tutor_name
-            FROM tutor_admins ta
-            JOIN tutors t ON t.id = ta.tutor_id
-            WHERE ta.id = ${user.idcompany}
-          `));
-          if (result.rows.length > 0) {
-            tutorId = (result.rows[0] as any).tutor_id;
-            tutorName = (result.rows[0] as any).tutor_name;
-          }
-        } catch (e) {
-          console.error("Error fetching tutor info:", e);
+
+      if (normalizedRole >= 1) {
+        const result = await db.execute(sql`
+          SELECT au.tutor_id, t.business_name
+          FROM admin_users au
+          LEFT JOIN tutors t ON t.id = au.tutor_id
+          WHERE au.replit_user_id = ${userId} AND au.is_active = true
+          LIMIT 1
+        `);
+        if (result.rows.length > 0) {
+          tutorId = result.rows[0].tutor_id as number;
+          tutorName = result.rows[0].business_name as string;
         }
-      }
-      
-      const allowedRoles = new Set([0, 1, 2, 1000]);
-      const normalizedRole = allowedRoles.has(user.role ?? 0) ? user.role : 0;
-      if (normalizedRole !== user.role) {
-        console.warn(`[auth] Normalized legacy role for user ${user.id}: ${user.role} -> ${normalizedRole}`);
       }
 
       const { passwordHash, ...safeUser } = user as any;
       res.json({ ...safeUser, role: normalizedRole, tutorId, tutorName });
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 }

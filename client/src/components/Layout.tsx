@@ -1,296 +1,82 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link, useLocation } from 'wouter';
-import { useAuth } from '@/hooks/use-auth';
-import { useQuery } from '@tanstack/react-query';
-import * as Icons from 'lucide-react';
-import EnvironmentBanner from '@/components/EnvironmentBanner';
+import { ReactNode, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { LayoutDashboard, BookOpen, Users, Building2, GraduationCap, Award, FileText, BarChart3, MessageSquare, Video, LogOut, Menu, X, ChevronDown } from "lucide-react";
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
+const NAV_ITEMS = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/catalog", label: "Catalogo", icon: BookOpen },
+  { href: "/activated-courses", label: "Corsi Attivi", icon: GraduationCap },
+  { href: "/clients", label: "Elenco Clienti", icon: Building2 },
+  { href: "/users", label: "Utenti", icon: Users },
+  { href: "/certificates", label: "Attestati", icon: Award },
+  { href: "/sales", label: "Vendite", icon: FileText },
+  { href: "/tracking", label: "Tracciamento", icon: BarChart3 },
+  { href: "/feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/invoicing", label: "Fatturazione", icon: FileText },
+  { href: "/videoconference", label: "Videoconferenza", icon: Video },
+];
 
-interface User {
-  id: number;
-  firstName: string | null;
-  lastName: string | null;
-  email: string | null;
-  fiscalCode: string | null;
-  companyName: string | null;
-}
+export default function Layout({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const [location] = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-const getRoleName = (role: number | null | undefined): string => {
-  switch (role) {
-    case 1000: return 'SUPER ADMIN';
-    case 1: return 'VENDITORE';
-    case 2: return 'REFERENTE';
-    default: return 'UTENTE';
-  }
-};
-
-const getRoleColor = (role: number | null | undefined): string => {
-  switch (role) {
-    case 1000: return 'text-red-400';
-    case 1: return 'text-yellow-400';
-    case 2: return 'text-blue-400';
-    default: return 'text-gray-400';
-  }
-};
-
-export default function Layout({ children }: LayoutProps) {
-  const [location, setLocation] = useLocation();
-  const { user, logout } = useAuth();
-  const userRole = user?.role ?? 0;
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showResults, setShowResults] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  // Cerca utenti
-  const { data: searchResults = [] } = useQuery<User[]>({
-    queryKey: ['/api/users/search', searchTerm],
-    queryFn: async () => {
-      if (searchTerm.length < 2) return [];
-      const res = await fetch(`/api/users/search?q=${encodeURIComponent(searchTerm)}`, { credentials: 'include' });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: searchTerm.length >= 2,
+  const filteredNav = NAV_ITEMS.filter((item) => {
+    if (item.href === "/clients" && user?.role === 2) return false;
+    return true;
   });
 
-  // Chiudi dropdown quando si clicca fuori
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowResults(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleUserClick = (userId: string) => {
-    setShowResults(false);
-    setSearchTerm('');
-    setLocation(`/users?userId=${userId}`);
-  };
-
-  const getIcon = (name: keyof typeof Icons) => {
-    const IconComponent = Icons[name] as React.ComponentType<{ size?: number }>;
-    return IconComponent ? <IconComponent size={18} /> : null;
-  };
-
-  const MenuItem = ({ to, label, color = 'text-gray-400', badge, iconName }: {
-    to: string;
-    label: string;
-    color?: string;
-    badge?: string | number;
-    iconName: keyof typeof Icons;
-  }) => (
-    <li>
-      <Link 
-        href={to} 
-        className={`block py-2 px-4 text-sm hover:text-yellow-500 transition-colors ${location === to ? 'text-yellow-500 font-bold bg-yellow-500/10 border-l-4 border-yellow-500' : color} flex justify-between items-center`}
-        data-testid={`nav-${to.replace(/\//g, '-')}`}
-      >
-        <div className="flex items-center gap-3">
-          {getIcon(iconName)}
-          {label}
-        </div>
-        {badge && <span className="bg-red-600 text-white text-xs px-1.5 rounded-full">{badge}</span>}
-      </Link>
-    </li>
-  );
-
-  const SectionHeader = ({ title }: { title: string }) => (
-    <div className="px-4 py-2 mt-4 text-gray-500 uppercase text-[10px] font-bold tracking-widest">
-      {title}
-    </div>
-  );
-
-  const isSuperAdmin = userRole === 1000;
-  const isVenditore = userRole === 1;
-  const isReferente = userRole === 2;
-
   return (
-    <div className='flex h-screen bg-black font-sans text-gray-300'>
-      
-      <div className={`w-64 bg-black border-r border-gray-800 flex flex-col flex-shrink-0 overflow-hidden`}> 
-        
-        <div className="p-5 border-b border-gray-800">
-          <h1 className="font-bold text-lg text-yellow-500 uppercase tracking-wide">TUTOR 81 LMS</h1>
-          <span className="text-[10px] text-gray-600">v1-clean</span>
-          <div className="text-sm text-gray-400 mt-2 font-bold uppercase truncate">
-            {user?.firstName} {user?.lastName}
+    <div className="min-h-screen flex bg-gray-50">
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 text-white transform transition-transform lg:translate-x-0 lg:static ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-yellow-500 rounded flex items-center justify-center text-black font-black text-sm">T</div>
+            <span className="font-bold text-yellow-500">TUTOR 81</span>
           </div>
-          {isVenditore && (user as any)?.tutorName && (
-            <div className="text-xs text-yellow-400 mt-1 truncate">
-              {(user as any).tutorName}
-            </div>
-          )}
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-white"><X size={20} /></button>
         </div>
-
-        <div className="p-5 flex items-center gap-3 border-b border-gray-800">
-          <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-black font-bold overflow-hidden">
-            {user?.profileImageUrl ? (
-              <img src={user.profileImageUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              user?.firstName?.charAt(0) || 'U'
-            )}
-          </div>
-          <div className="overflow-hidden">
-            <div className="text-[10px] uppercase font-bold tracking-wider text-yellow-500">
-              {getRoleName(userRole)}
-            </div>
-            <div className="text-xs truncate text-gray-400">{user?.email || 'assistenza@tutor81.it'}</div>
-            <div className="flex gap-2 mt-1">
-              <Icons.LogOut 
-                size={12} 
-                className="cursor-pointer text-gray-400 hover:text-yellow-500" 
-                onClick={() => logout()}
-                data-testid="button-logout"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <nav className='flex-1 overflow-y-auto py-2'>
-          <ul className='space-y-0.5'>
-            
-            <SectionHeader title="HOME" />
-            {isSuperAdmin && (
-              <MenuItem to="/superadmin" label="Ingresso Super Admin" iconName="Sparkles" />
-            )}
-            <MenuItem to="/dashboard" label="Home Page" iconName="Home" />
-            
-            {/* Super Admin: vede tutto */}
-            {isSuperAdmin && (
-              <>
-                <MenuItem to="/tutors" label="Enti Formativi" iconName="Building" />
-                <MenuItem to="/clients" label="Aziende Clienti" iconName="Users" />
-              </>
-            )}
-            
-            {/* Venditore (Admin Tutor): menu completo ente formativo */}
-            {isVenditore && (
-              <>
-                <SectionHeader title="CLIENTI" />
-                <MenuItem to="/clients" label="Aziende Clienti" iconName="Building2" />
-                <MenuItem to="/companies/new" label="Crea Cliente" iconName="UserPlus" />
-                
-                <SectionHeader title="VENDITA" />
-                <MenuItem to="/catalog" label="Invia avvio corso" iconName="ShoppingCart" />
-                <MenuItem to="/sales" label="Corsi Venduti" iconName="FileText" />
-                
-                <SectionHeader title="CORSI (LMS)" />
-                <MenuItem to="/courses/active" label="In attività" iconName="Activity" />
-                <MenuItem to="/certificates" label="Attestati" iconName="CheckCircle" />
-                
-                <SectionHeader title="ARCHIVIO" />
-                <MenuItem to="/users" label="Elenco Utenti" iconName="User" />
-                <MenuItem to="/users/import" label="Importa Utenti" iconName="Upload" />
-                
-                <SectionHeader title="STRUMENTI" />
-                <MenuItem to="/videoconference" label="Videoconferenza" color="text-red-500" iconName="Video" />
-                <MenuItem to="/tracking" label="Tracciamento" iconName="BarChart2" />
-                <MenuItem to="/feedback" label="Feedback" iconName="MessageSquare" />
-              </>
-            )}
-            
-            {/* Referente: vede la sua azienda */}
-            {isReferente && (
-              <MenuItem to="/my-company" label="La Mia Azienda" iconName="Building2" />
-            )}
-
-            {/* Super Admin: menu completo */}
-            {isSuperAdmin && (
-              <>
-                <SectionHeader title="VENDITA" />
-                <MenuItem to="/companies/new" label="Crea Cliente" iconName="UserPlus" />
-                <MenuItem to="/catalog" label="Invia avvio corso" iconName="ShoppingCart" />
-                <MenuItem to="/sales" label="Corsi Venduti" iconName="FileText" />
-                <MenuItem to="/invoicing" label="Fatturazione" iconName="Receipt" />
-
-                <SectionHeader title="CORSI (LMS)" />
-                <MenuItem to="/courses/active" label="In attività" iconName="Activity" />
-                <MenuItem to="/certificates" label="Attestati" iconName="CheckCircle" />
-                <MenuItem to="/courses/expiring" label="Da Ripetere" iconName="Clock" />
-
-                <SectionHeader title="ARCHIVIO" />
-                <MenuItem to="/users" label="Elenco Utenti" iconName="User" />
-                <MenuItem to="/users/import" label="Importa Utenti" iconName="Upload" />
-                
-                <SectionHeader title="STRUMENTI" />
-                <MenuItem to="/videoconference" label="Videoconferenza" color="text-red-500" iconName="Video" />
-                <MenuItem to="/tracking" label="Tracciamento" iconName="BarChart2" />
-                <MenuItem to="/feedback" label="Feedback" iconName="MessageSquare" />
-                
-                <SectionHeader title="CONTENT MANAGEMENT" />
-                <MenuItem to="/content-management" label="Gestione Contenuti" iconName="Film" />
-              </>
-            )}
-            
-            {/* Referente: gestisce utenti della sua azienda */}
-            {isReferente && (
-              <>
-                <SectionHeader title="UTENTI AZIENDA" />
-                <MenuItem to="/company-users" label="Utenti Azienda" iconName="Users" />
-              </>
-            )}
-
-          </ul>
+        <nav className="p-3 space-y-1 overflow-y-auto" style={{ maxHeight: "calc(100vh - 8rem)" }}>
+          {filteredNav.map((item) => {
+            const Icon = item.icon;
+            const active = location === item.href || (item.href !== "/" && location.startsWith(item.href));
+            return (
+              <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-yellow-500/20 text-yellow-400" : "text-gray-300 hover:bg-gray-800 hover:text-white"}`}>
+                <Icon size={18} />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
-      </div>
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-800">
+          <a href="/api/admin-logout" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white">
+            <LogOut size={18} />
+            Esci
+          </a>
+        </div>
+      </aside>
 
-      <div className='flex-1 flex flex-col overflow-hidden bg-black'>
+      {/* Overlay */}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-        <EnvironmentBanner />
-        
-        <header className='h-16 border-b border-gray-800 flex justify-between items-center px-6 bg-black'>
-          
-          <div className="relative w-[600px]" ref={searchRef}>
-            <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 z-10" size={16} />
-            <input 
-              type="text" 
-              placeholder="Cerca Utente.." 
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setShowResults(true);
-              }}
-              onFocus={() => setShowResults(true)}
-              className="w-full bg-[#1e1e1e] border border-gray-700 rounded-md py-2 pl-10 pr-4 text-sm text-gray-300 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
-              data-testid="input-search"
-            />
-            {showResults && searchTerm.length >= 2 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-80 overflow-y-auto z-50">
-                {searchResults.length === 0 ? (
-                  <div className="p-3 text-gray-500 text-sm">Nessun utente trovato</div>
-                ) : (
-                  searchResults.slice(0, 10).map((u) => (
-                    <div
-                      key={u.id}
-                      onClick={() => handleUserClick(String(u.id))}
-                      className="p-3 hover:bg-yellow-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                    >
-                      <div className="font-medium text-black text-sm">
-                        {u.id} - {u.firstName} {u.lastName} {u.companyName ? `- ${u.companyName}` : ''}
-                      </div>
-                      <div className="text-xs text-gray-500">{u.email}</div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-600 hover:text-gray-900"><Menu size={24} /></button>
+          <div className="text-sm text-gray-500 hidden lg:block">
+            {user?.tutorName && <span className="font-semibold text-gray-700">{user.tutorName}</span>}
           </div>
-
-          <div className="flex items-center gap-4 text-sm font-medium text-gray-400">
-            <div className="flex items-center gap-2 cursor-pointer hover:text-white">
-              <Icons.HelpCircle size={16} />
-              <span>Assistenza</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">{user?.firstName} {user?.lastName}</span>
+            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+              {(user?.firstName?.[0] || "")}{(user?.lastName?.[0] || "")}
             </div>
           </div>
         </header>
-
-        <main className='flex-1 overflow-auto p-0 bg-black'>
+        <main className="flex-1 p-4 lg:p-6 overflow-auto">
           {children}
         </main>
       </div>

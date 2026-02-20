@@ -1,340 +1,119 @@
-import { useState } from 'react';
-import { useLocation } from 'wouter';
-import { useMutation } from '@tanstack/react-query';
-import { Building, ArrowLeft, Save, User, Mail, Phone, MapPin, FileText } from 'lucide-react';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 
 export default function CreateCompany() {
-  const [, navigate] = useLocation();
+  const { user } = useAuth();
   const { toast } = useToast();
-  
-  const searchParams = new URLSearchParams(window.location.search);
-  const companyType = searchParams.get('type') || 'client';
-  const isTutor = companyType === 'tutor';
+  const [, navigate] = useLocation();
 
   const [formData, setFormData] = useState({
-    businessName: '',
-    address: '',
-    city: '',
-    cap: '',
-    province: '',
-    vatNumber: '',
-    fiscalCode: '',
-    phone: '',
-    email: '',
-    pec: '',
-    website: '',
-    regionalAuthorization: '',
-    licenseType: '',
-    contactPerson: '',
-    notes: '',
+    businessName: "", vatNumber: "", fiscalCode: "", address: "", city: "", cap: "", province: "",
+    phone: "", email: "", pec: "", contactPerson: "", notes: "", tutorId: 0,
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData & { isTutor: boolean }) => {
-      return apiRequest('POST', '/api/companies', data);
-    },
+  const { data: tutors = [] } = useQuery<{ id: number; businessName: string }[]>({
+    queryKey: ["tutors-for-companies"],
+    queryFn: () => fetch("/api/tutors-for-companies", { credentials: "include" }).then((r) => r.json()),
+    enabled: (user?.role ?? 0) >= 1000,
+  });
+
+  const createMut = useMutation({
+    mutationFn: (data: typeof formData & { isTutor: boolean }) => apiRequest("POST", "/api/companies", data),
     onSuccess: () => {
-      toast({ title: 'Azienda creata con successo' });
-      queryClient.invalidateQueries({ queryKey: ['/api/tutors'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/clients'] });
-      navigate(isTutor ? '/tutors' : '/clients');
+      toast({ title: "Azienda creata con successo" });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      navigate("/clients");
     },
-    onError: (error: Error) => {
-      toast({ title: 'Errore', description: error.message, variant: 'destructive' });
-    },
+    onError: (e: Error) => toast({ title: "Errore", description: e.message, variant: "destructive" }),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({ ...formData, isTutor });
+    if (!formData.businessName.trim()) { toast({ title: "Inserisci la ragione sociale", variant: "destructive" }); return; }
+    createMut.mutate({ ...formData, isTutor: false });
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const update = (field: string, value: string | number) => setFormData((p) => ({ ...p, [field]: value }));
 
   return (
-    <div className="p-6 bg-black min-h-screen">
-      <div className="max-w-4xl mx-auto">
-        
-        <button 
-          onClick={() => navigate(isTutor ? '/tutors' : '/clients')}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
-          data-testid="button-back"
-        >
-          <ArrowLeft size={18} />
-          Indietro
-        </button>
-
-        <div className="flex items-center gap-4 mb-8">
-          <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${isTutor ? 'bg-yellow-500/20' : 'bg-blue-500/20'}`}>
-            <Building size={28} className={isTutor ? 'text-yellow-500' : 'text-blue-500'} />
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Nuova Azienda</h1>
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        {(user?.role ?? 0) >= 1000 && tutors.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ente Formativo</label>
+            <select value={formData.tutorId} onChange={(e) => update("tutorId", parseInt(e.target.value))} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm">
+              <option value={0}>Seleziona ente...</option>
+              {tutors.map((t) => <option key={t.id} value={t.id}>{t.businessName}</option>)}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Ragione Sociale *</label>
+          <input type="text" value={formData.businessName} onChange={(e) => update("businessName", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" required />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">P. IVA</label>
+            <input type="text" value={formData.vatNumber} onChange={(e) => update("vatNumber", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white" data-testid="text-create-title">
-              {isTutor ? 'Nuovo Ente Formativo' : 'Nuova Azienda Cliente'}
-            </h1>
-            <p className="text-gray-500">Compila i dati dell'azienda</p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Codice Fiscale</label>
+            <input type="text" value={formData.fiscalCode} onChange={(e) => update("fiscalCode", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
           </div>
         </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="bg-[#1e1e1e] rounded-xl border border-gray-800 p-6 space-y-6">
-            
-            <div className="border-b border-gray-800 pb-4 mb-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Building size={18} className="text-gray-500" />
-                Dati Azienda
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm text-gray-400 mb-1">Ragione Sociale *</label>
-                <input
-                  type="text"
-                  name="businessName"
-                  value={formData.businessName}
-                  onChange={handleChange}
-                  required
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-business-name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">P.IVA</label>
-                <input
-                  type="text"
-                  name="vatNumber"
-                  value={formData.vatNumber}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-vat"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Codice Fiscale</label>
-                <input
-                  type="text"
-                  name="fiscalCode"
-                  value={formData.fiscalCode}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-fiscal-code"
-                />
-              </div>
-            </div>
-
-            <div className="border-b border-gray-800 pb-4 mb-4 mt-8">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <MapPin size={18} className="text-gray-500" />
-                Indirizzo
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm text-gray-400 mb-1">Indirizzo</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-address"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Città</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-city"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">CAP</label>
-                  <input
-                    type="text"
-                    name="cap"
-                    value={formData.cap}
-                    onChange={handleChange}
-                    className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                    data-testid="input-cap"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Provincia</label>
-                  <input
-                    type="text"
-                    name="province"
-                    value={formData.province}
-                    onChange={handleChange}
-                    className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                    data-testid="input-province"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="border-b border-gray-800 pb-4 mb-4 mt-8">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Mail size={18} className="text-gray-500" />
-                Contatti
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-email"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">PEC</label>
-                <input
-                  type="email"
-                  name="pec"
-                  value={formData.pec}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-pec"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Telefono</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-phone"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Sito Web</label>
-                <input
-                  type="url"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-website"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm text-gray-400 mb-1">Referente</label>
-                <input
-                  type="text"
-                  name="contactPerson"
-                  value={formData.contactPerson}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                  data-testid="input-contact-person"
-                />
-              </div>
-            </div>
-
-            {isTutor && (
-              <>
-                <div className="border-b border-gray-800 pb-4 mb-4 mt-8">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <FileText size={18} className="text-gray-500" />
-                    Autorizzazioni
-                  </h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1">Autorizzazione Regionale</label>
-                    <input
-                      type="text"
-                      name="regionalAuthorization"
-                      value={formData.regionalAuthorization}
-                      onChange={handleChange}
-                      className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                      data-testid="input-auth"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1">Tipo Licenza</label>
-                    <select
-                      name="licenseType"
-                      value={formData.licenseType}
-                      onChange={handleChange}
-                      className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none"
-                      data-testid="select-license-type"
-                    >
-                      <option value="">Seleziona...</option>
-                      <option value="TUTOR BASIC">Tutor Basic</option>
-                      <option value="TUTOR PRO">Tutor Pro</option>
-                      <option value="TUTOR ENTERPRISE">Tutor Enterprise</option>
-                    </select>
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="mt-8">
-              <label className="block text-sm text-gray-400 mb-1">Note</label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows={3}
-                className="w-full bg-black border border-gray-700 rounded-lg py-2.5 px-4 text-white focus:border-yellow-500 focus:outline-none resize-none"
-                data-testid="textarea-notes"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-800">
-              <button
-                type="button"
-                onClick={() => navigate(isTutor ? '/tutors' : '/clients')}
-                className="px-6 py-2.5 text-gray-400 hover:text-white transition-colors"
-              >
-                Annulla
-              </button>
-              <button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-6 py-2.5 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
-                data-testid="button-save"
-              >
-                {createMutation.isPending ? (
-                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Save size={18} />
-                )}
-                Salva
-              </button>
-            </div>
-
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Indirizzo</label>
+          <input type="text" value={formData.address} onChange={(e) => update("address", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Città</label>
+            <input type="text" value={formData.city} onChange={(e) => update("city", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
           </div>
-        </form>
-      </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">CAP</label>
+            <input type="text" value={formData.cap} onChange={(e) => update("cap", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+            <input type="text" value={formData.province} onChange={(e) => update("province", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" maxLength={2} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Telefono</label>
+            <input type="text" value={formData.phone} onChange={(e) => update("phone", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" value={formData.email} onChange={(e) => update("email", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">PEC</label>
+          <input type="email" value={formData.pec} onChange={(e) => update("pec", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Referente</label>
+          <input type="text" value={formData.contactPerson} onChange={(e) => update("contactPerson", e.target.value)} className="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+          <textarea value={formData.notes} onChange={(e) => update("notes", e.target.value)} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button type="submit" disabled={createMut.isPending} className="h-10 px-6 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-lg text-sm disabled:opacity-50">
+            {createMut.isPending ? "Creazione..." : "Crea Azienda"}
+          </button>
+          <button type="button" onClick={() => navigate("/clients")} className="h-10 px-6 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Annulla</button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -1,23 +1,15 @@
-import express, { type Express } from "express";
-import fs from "fs";
+import express from "express";
 import path from "path";
+import fs from "fs";
 
-export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+export function serveStatic(app: express.Express) {
+  const distPath = path.resolve(process.cwd(), "dist", "public");
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
+    console.warn("[static] dist/public not found, skipping static serving");
+    return;
   }
-
-  const indexHtmlPath = path.resolve(distPath, "index.html");
-
-  // Serve built assets (and index.html when requesting "/").
-  app.use(express.static(distPath, { index: "index.html" }));
-
-  // SPA fallback: for any non-API route that isn't a real static file, return index.html.
-  // Using a RegExp avoids path-pattern edge-cases across Express versions.
-  app.get(/^\/(?!api\b).*/, (_req, res) => {
-    res.sendFile(indexHtmlPath);
+  app.use(express.static(distPath, { maxAge: "1y", immutable: true }));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
   });
 }
