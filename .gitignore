@@ -7,4 +7,5 @@ vite.config.ts.*
 
 # Local environment files (never commit secrets)
 .env
-.env.*
+.env.*TUTOR81-LMS-2026/
+tutor81.it/

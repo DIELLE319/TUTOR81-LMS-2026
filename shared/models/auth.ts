@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  passwordHash: varchar("password_hash"),
   role: integer("role").default(0),
   idcompany: integer("idcompany"),
   fiscalCode: varchar("fiscal_code"),

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -98,7 +98,16 @@ export default function CoursePlayerVideo() {
   const [triggeredPoints, setTriggeredPoints] = useState<Set<number>>(new Set());
   const [totalQuestionsCount, setTotalQuestionsCount] = useState(0);
 
-  // Load course structure from API
+  // Persistent tracking state
+  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [completedLos, setCompletedLos] = useState<Set<number>>(new Set());
+  const [courseCompleted, setCourseCompleted] = useState(false);
+  const [showFinalResult, setShowFinalResult] = useState(false);
+  const [quizStartTime, setQuizStartTime] = useState<number>(0);
+  const enrollmentRef = useRef<any>(null);
+  const sessionIdRef = useRef<number | null>(null);
+
+  // Load course structure from API + start session
   useEffect(() => {
     const loadCourseStructure = async () => {
       const enrollment = localStorage.getItem("playerEnrollment");
@@ -109,6 +118,7 @@ export default function CoursePlayerVideo() {
 
       try {
         const enrollmentData = JSON.parse(enrollment);
+        enrollmentRef.current = enrollmentData;
         const courseId = enrollmentData.learningProjectId || enrollmentData.courseId;
         
         const response = await fetch(`/api/player/course/${courseId}/structure`);
@@ -138,6 +148,38 @@ export default function CoursePlayerVideo() {
           title: data.title,
           modules: transformedModules
         });
+
+        // Start session log (entrata)
+        try {
+          const sessionRes = await fetch("/api/player/session/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              enrollmentId: enrollmentData.id,
+              studentId: enrollmentData.studentId || userData.id,
+              courseId,
+            }),
+          });
+          const sessionData = await sessionRes.json();
+          if (sessionData.sessionId) {
+            setSessionId(sessionData.sessionId);
+            sessionIdRef.current = sessionData.sessionId;
+          }
+        } catch (e) {
+          console.error("Failed to start session:", e);
+        }
+
+        // Load existing LO progress
+        try {
+          const progRes = await fetch(`/api/player/lo-progress/${enrollmentData.id}`);
+          if (progRes.ok) {
+            const progData = await progRes.json();
+            const completedIds = new Set<number>(progData.filter((p: any) => p.completed).map((p: any) => p.learningObjectId));
+            setCompletedLos(completedIds);
+          }
+        } catch (e) {
+          console.error("Failed to load LO progress:", e);
+        }
       } catch (error) {
         console.error("Failed to load course structure:", error);
       } finally {
@@ -173,10 +215,25 @@ export default function CoursePlayerVideo() {
     }
   }, [isPaused, showQuiz, currentTime, loDuration]);
 
-  // Auto-advance to next learning object when current one ends
+  // Auto-advance to next learning object when current one ends + save LO progress
   useEffect(() => {
     if (!courseData || currentTime < loDuration || showQuiz) return;
     
+    // Mark current LO as completed in DB
+    if (currentLo && enrollmentRef.current && !completedLos.has(currentLo.id)) {
+      setCompletedLos(prev => new Set(prev).add(currentLo.id));
+      fetch("/api/player/lo-progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrollmentId: enrollmentRef.current.id,
+          learningObjectId: currentLo.id,
+          watchedSeconds: loDuration,
+          completed: true,
+        }),
+      }).catch(e => console.error("Failed to save LO progress:", e));
+    }
+
     const lessons = courseData.modules.flatMap(m => m.lessons);
     const currentLessonObj = lessons[currentLessonIndex];
     
@@ -189,8 +246,22 @@ export default function CoursePlayerVideo() {
       setCurrentLessonIndex(prev => prev + 1);
       setCurrentLoIndex(0);
       setCurrentTime(0);
+    } else {
+      // All LOs/lessons done — course complete, show final result
+      setCourseCompleted(true);
+      setShowFinalResult(true);
+      // Save overall progress as 100%
+      if (enrollmentRef.current) {
+        fetch("/api/player/save-progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            enrollmentId: enrollmentRef.current.id,
+            progress: 100,
+          }),
+        }).catch(e => console.error("Failed to save final progress:", e));
+      }
     }
-    // If no more LOs/lessons, course is complete
   }, [currentTime, loDuration, showQuiz, currentLessonIndex, currentLoIndex, courseData]);
 
   const formatTime = (seconds: number) => {
@@ -199,9 +270,33 @@ export default function CoursePlayerVideo() {
     return mins > 0 ? `${mins} min ${secs} sec` : `${secs} sec.`;
   };
 
-  const handleExit = () => {
+  const handleExit = async () => {
+    await endSession();
     window.location.href = "/player";
   };
+
+  // Log uscita se il browser viene chiuso
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const sid = sessionIdRef.current;
+      if (sid) {
+        navigator.sendBeacon(
+          "/api/player/session/end",
+          new Blob(
+            [JSON.stringify({
+              sessionId: sid,
+              lastLessonIndex: currentLessonIndex,
+              lastLoIndex: currentLoIndex,
+              lastLoId: currentLo?.id || null,
+            })],
+            { type: "application/json" }
+          )
+        );
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [currentLessonIndex, currentLoIndex, currentLo]);
 
   // Load interruption points when learning object changes
   useEffect(() => {
@@ -211,12 +306,19 @@ export default function CoursePlayerVideo() {
       try {
         const response = await fetch(`/api/learning-objects/${currentLo.id}/interruptions`);
         if (response.ok) {
-          const data = await response.json();
-          setInterruptionPoints(data);
+          const rawData = await response.json();
+          // Map backend fields to frontend interface
+          const mapped: InterruptionPoint[] = rawData.map((p: any, idx: number) => ({
+            id: p.id || idx + 1,
+            time: p.triggerTime || p.time || 0,
+            timeSeconds: p.triggerTime || p.timeSeconds || 0,
+            questions: p.questions || [],
+          }));
+          setInterruptionPoints(mapped);
           setTriggeredPoints(new Set());
           
           // Count total questions
-          const total = data.reduce((sum: number, point: InterruptionPoint) => 
+          const total = mapped.reduce((sum: number, point: InterruptionPoint) => 
             sum + point.questions.length, 0);
           setTotalQuestionsCount(total);
         }
@@ -250,6 +352,7 @@ export default function CoursePlayerVideo() {
         setShowQuiz(true);
         setQuizTimer(30);
         setSelectedAnswer("");
+        setQuizStartTime(Date.now());
       }
     }
   }, [currentTime, showQuiz, interruptionPoints, triggeredPoints]);
@@ -262,41 +365,83 @@ export default function CoursePlayerVideo() {
       }, 1000);
       return () => clearInterval(timer);
     } else if (showQuiz && quizTimer === 0) {
-      // Time expired - show timeout popup (user must exit)
+      // Time expired — conta come risposta sbagliata e salva nel DB
+      setWrongAnswers(prev => prev + 1);
+      if (enrollmentRef.current && currentQuestion) {
+        fetch("/api/player/quiz/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            enrollmentId: enrollmentRef.current.id,
+            studentId: enrollmentRef.current.studentId || userData.id,
+            questionId: currentQuestion.id,
+            answerId: null,
+            isCorrect: false,
+            timedOut: true,
+            responseTimeSeconds: 30,
+            learningObjectId: currentLo?.id || null,
+            sessionLogId: sessionIdRef.current,
+          }),
+        }).catch(() => {});
+      }
       setShowQuiz(false);
       setShowTimeoutPopup(true);
     }
   }, [showQuiz, quizTimer]);
 
-  const handleExitCourse = () => {
+  // End session helper — logs uscita nel DB
+  const endSession = useCallback(async () => {
+    const sid = sessionIdRef.current;
+    if (!sid) return;
+    try {
+      await fetch("/api/player/session/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: sid,
+          lastLessonIndex: currentLessonIndex,
+          lastLoIndex: currentLoIndex,
+          lastLoId: currentLo?.id || null,
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to end session:", e);
+    }
+  }, [currentLessonIndex, currentLoIndex, currentLo]);
+
+  // Save progress percentage periodically
+  useEffect(() => {
+    if (!courseData || !enrollmentRef.current) return;
+    const allLos = courseData.modules.flatMap(m => m.lessons.flatMap(l => l.learningObjects));
+    if (allLos.length === 0) return;
+    const pct = Math.round((completedLos.size / allLos.length) * 100);
+    fetch("/api/player/save-progress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enrollmentId: enrollmentRef.current.id, progress: Math.min(pct, 99) }),
+    }).catch(() => {});
+  }, [completedLos, courseData]);
+
+  const handleExitCourse = async () => {
+    // End session (uscita)
+    await endSession();
+
     const enrollment = localStorage.getItem("playerEnrollment");
     const user = localStorage.getItem("playerUser");
     
     if (enrollment) {
       const enrollmentData = JSON.parse(enrollment);
-      const userData = user ? JSON.parse(user) : null;
+      const uData = user ? JSON.parse(user) : null;
       
       // Check if demo user (demo.demo with CF 1)
-      const isDemo = userData?.firstName?.toLowerCase() === "demo" && 
-                     userData?.lastName?.toLowerCase() === "demo";
+      const isDemo = uData?.firstName?.toLowerCase() === "demo" && 
+                     uData?.lastName?.toLowerCase() === "demo";
       
       if (isDemo) {
-        // Demo user: reset progress for testing
         fetch("/api/player/demo/reset", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ enrollmentId: enrollmentData.id })
-        });
-      } else {
-        // Normal user: save progress to resume later
-        fetch("/api/player/progress", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            enrollmentId: enrollmentData.id,
-            lessonId: currentLessonIndex,
-            completed: false
-          })
         });
       }
     }
@@ -305,12 +450,13 @@ export default function CoursePlayerVideo() {
     window.location.href = "/player-login";
   };
 
-  const handleConfirmAnswer = () => {
+  const handleConfirmAnswer = async () => {
     if (!currentQuestion || !selectedAnswer) return;
     
     const selectedAnswerId = parseInt(selectedAnswer);
     const selectedAnswerObj = currentQuestion.answers.find(a => a.id === selectedAnswerId);
     const isCorrect = selectedAnswerObj?.isCorrect || false;
+    const responseTime = 30 - quizTimer;
     
     if (isCorrect) {
       setCorrectAnswers(prev => prev + 1);
@@ -320,6 +466,29 @@ export default function CoursePlayerVideo() {
     
     setLastAnswerCorrect(isCorrect);
     setShowFeedback(true);
+
+    // Salva risposta nel DB
+    if (enrollmentRef.current) {
+      try {
+        await fetch("/api/player/quiz/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            enrollmentId: enrollmentRef.current.id,
+            studentId: enrollmentRef.current.studentId || userData.id,
+            questionId: currentQuestion.id,
+            answerId: selectedAnswerId,
+            isCorrect,
+            timedOut: false,
+            responseTimeSeconds: responseTime,
+            learningObjectId: currentLo?.id || null,
+            sessionLogId: sessionIdRef.current,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to save quiz answer:", e);
+      }
+    }
   };
 
   const handleContinueFromFeedback = () => {
@@ -365,6 +534,65 @@ export default function CoursePlayerVideo() {
           <Button onClick={() => window.location.href = "/player"}>
             Torna ai corsi
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show final result screen — soglia 80%
+  if (showFinalResult) {
+    const totalAnswered = correctAnswers + wrongAnswers;
+    const percentage = totalAnswered > 0 ? Math.round((correctAnswers / totalAnswered) * 100) : 0;
+    const passed = percentage >= 80;
+
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+          <div className={`px-8 py-6 ${passed ? "bg-green-500" : "bg-red-500"} text-white text-center`}>
+            <GraduationCap className="h-16 w-16 mx-auto mb-3" />
+            <h1 className="text-3xl font-bold">
+              {passed ? "CORSO SUPERATO!" : "CORSO NON SUPERATO"}
+            </h1>
+          </div>
+          <div className="p-8 text-center">
+            <div className="text-6xl font-bold mb-2" style={{ color: passed ? "#22c55e" : "#ef4444" }}>
+              {percentage}%
+            </div>
+            <p className="text-gray-500 mb-6">Soglia minima: 80%</p>
+            
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-gray-800">{totalAnswered}</div>
+                <div className="text-xs text-gray-500">Domande</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-green-600">{correctAnswers}</div>
+                <div className="text-xs text-green-600">Corrette</div>
+              </div>
+              <div className="bg-red-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-red-600">{wrongAnswers}</div>
+                <div className="text-xs text-red-600">Errate</div>
+              </div>
+            </div>
+
+            {passed ? (
+              <p className="text-gray-700 mb-6">
+                Complimenti! Hai completato il corso con successo. L'attestato sarà disponibile nella tua area personale.
+              </p>
+            ) : (
+              <p className="text-gray-700 mb-6">
+                Non hai raggiunto la soglia minima dell'80%. Dovrai ripetere il corso.
+              </p>
+            )}
+
+            <Button
+              onClick={handleExitCourse}
+              className={`px-8 py-3 text-white font-semibold ${passed ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Esci dal corso
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -461,10 +689,17 @@ export default function CoursePlayerVideo() {
                       }`}
                       data-testid={`lo-${lo.id}`}
                     >
-                      {getLoIcon(lo.type)}
-                      <span className={lo.completed ? "text-green-700" : "text-gray-700"}>
+                      {completedLos.has(lo.id) ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        getLoIcon(lo.type)
+                      )}
+                      <span className={completedLos.has(lo.id) ? "text-green-700 line-through" : "text-gray-700"}>
                         {lo.title}
                       </span>
+                      {completedLos.has(lo.id) && (
+                        <span className="ml-auto text-green-600 text-[10px] font-bold">✓</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -545,8 +780,16 @@ export default function CoursePlayerVideo() {
                             <span className="font-bold">Risposta Corretta!</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-red-600 text-xl">
-                            <span className="font-bold">Risposta Errata</span>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-red-600 text-xl">
+                              <span className="font-bold">Risposta Errata</span>
+                            </div>
+                            <div className="bg-green-50 border border-green-300 rounded-lg p-4">
+                              <p className="text-green-800 font-semibold text-sm mb-1">La risposta corretta era:</p>
+                              <p className="text-green-900 font-bold">
+                                {currentQuestion?.answers.find(a => a.isCorrect)?.text || ""}
+                              </p>
+                            </div>
                           </div>
                         )}
                         

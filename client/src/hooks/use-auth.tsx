@@ -19,18 +19,27 @@ async function fetchUser(): Promise<User | null> {
 }
 
 async function logoutFn(): Promise<void> {
-  window.location.href = "/api/logout";
+  await fetch("/api/logout", { method: "POST", credentials: "include" });
+  window.location.href = "/";
 }
 
-function loginFn(): void {
-  window.location.href = "/api/login";
+async function loginFn(email: string, password: string): Promise<{ ok: boolean; message?: string }> {
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) return { ok: false, message: data.message || "Errore login" };
+  return { ok: true };
 }
 
 interface AuthContextType {
   user: User | null | undefined;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: () => void;
+  login: (email: string, password: string) => Promise<{ ok: boolean; message?: string }>;
   logout: () => void;
   isLoggingOut: boolean;
 }

@@ -1,3 +1,7 @@
+import "dotenv/config";
+// Forza la lettura .env anche in produzione
+import dotenv from "dotenv";
+dotenv.config();
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";

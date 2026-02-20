@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
@@ -58,6 +59,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function LoginPage() {
   const { user, isLoading, login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return (
@@ -70,6 +76,19 @@ function LoginPage() {
   if (user) {
     return <Redirect to={user.role === 1000 ? "/superadmin" : "/dashboard"} />;
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    const result = await login(email, password);
+    setLoading(false);
+    if (result.ok) {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    } else {
+      setError(result.message || "Credenziali non valide");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black flex flex-col relative overflow-hidden font-sans">
@@ -93,16 +112,36 @@ function LoginPage() {
           <p className="text-zinc-400">Accedi alla piattaforma Tutor81 LMS</p>
         </div>
 
-        <button
-          onClick={login}
-          className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/40 transition-all active:scale-95 flex items-center justify-center gap-2"
-          data-testid="button-login"
-        >
-          Accedi con Replit
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        </button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-500 transition-colors"
+            />
+          </div>
+          <div>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-500 transition-colors"
+            />
+          </div>
+          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-xl shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/40 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {loading ? "Accesso..." : "Accedi"}
+          </button>
+        </form>
 
         <div className="mt-8 text-center text-zinc-500 text-xs">
           &copy; {new Date().getFullYear()} Tutor81. Tutti i diritti riservati.

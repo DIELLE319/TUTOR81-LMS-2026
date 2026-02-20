@@ -1,8 +1,9 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth, registerAuthRoutes, isAuthenticated, authStorage } from "./replit_integrations/auth";
+import session from "express-session";
 import { db, hasDatabase } from "./db";
 import * as schema from "@shared/schema";
+import { users } from "@shared/models/auth";
 import { eq, and, desc, sql, ilike, or, isNotNull, inArray } from "drizzle-orm";
 import { z } from "zod";
 import mysql from "mysql2/promise";
@@ -33,17 +34,12 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 // Helper per ottenere tutorId dall'utente autenticato (sicurezza lato server)
 async function getAuthenticatedUserTutorId(req: Request): Promise<{ role: number | null; tutorId: number | null }> {
   try {
-    const user = req.user as any;
-    if (!user?.claims?.sub) {
-      return { role: null, tutorId: null };
-    }
+    const userId = (req.session as any)?.userId;
+    if (!userId) return { role: null, tutorId: null };
     
-    const dbUser = await authStorage.getUser(user.claims.sub);
-    if (!dbUser) {
-      return { role: null, tutorId: null };
-    }
+    const [dbUser] = await db.select().from(users).where(eq(users.id, userId));
+    if (!dbUser) return { role: null, tutorId: null };
     
-    // Se l'utente è admin tutor (role=1), cerca il suo tutorId
     if (dbUser.role === 1 && dbUser.idcompany) {
       const result = await db.execute(sql`
         SELECT ta.tutor_id
@@ -63,9 +59,10 @@ async function getAuthenticatedUserTutorId(req: Request): Promise<{ role: number
 }
 
 async function getAuthenticatedDbUser(req: Request) {
-  const user = req.user as any;
-  if (!user?.claims?.sub) return null;
-  return await authStorage.getUser(user.claims.sub);
+  const userId = (req.session as any)?.userId;
+  if (!userId) return null;
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  return user || null;
 }
 
 // Connessione al database OVH
@@ -414,35 +411,78 @@ async function syncEnrollmentToOvh(data: {
   }
 }
 
+// Middleware: verifica sessione autenticata
+function isAuthenticated(req: any, res: any, next: any) {
+  if (req.session?.userId) return next();
+  res.status(401).json({ message: "Non autenticato" });
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  const authDisabled = /^(true|1|yes)$/i.test(process.env.DISABLE_AUTH ?? "");
+  // ─── Session + Auth (local email/password) ────────────────────────
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'tutor81-lms-secret-2026',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'lax' },
+  }));
 
-  const hasAuthEnv = Boolean(
-    process.env.REPL_ID &&
-      process.env.SESSION_SECRET &&
-      process.env.DATABASE_URL,
-  );
+  // POST /api/login — email + password
+  app.post("/api/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) return res.status(400).json({ message: "Email e password obbligatori" });
+      const hash = crypto.createHash('sha256').update(password).digest('hex');
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      if (!user || user.passwordHash !== hash) return res.status(401).json({ message: "Credenziali non valide" });
+      (req.session as any).userId = user.id;
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[auth] Login error:", err);
+      res.status(500).json({ message: "Errore server" });
+    }
+  });
 
-  if (authDisabled) {
-    console.warn(
-      "[auth] DISABLE_AUTH is enabled. Replit/OIDC login is bypassed (use only on staging).",
-    );
-    registerAuthRoutes(app);
-    app.get("/api/login", (_req, res) => res.redirect("/"));
-    app.get("/api/logout", (_req, res) => res.status(204).end());
-  } else if (hasAuthEnv) {
-    await setupAuth(app);
-    registerAuthRoutes(app);
-  } else {
-    console.warn(
-      "[auth] Missing REPL_ID / SESSION_SECRET / DATABASE_URL. Auth routes are disabled.",
-    );
-    // Provide a minimal endpoint so the client can boot in local/dev without crashing.
-    app.get("/api/auth/user", (_req, res) => res.json(null));
-  }
+  // GET /api/auth/user — utente corrente dalla sessione
+  app.get("/api/auth/user", async (req: any, res) => {
+    try {
+      if (!req.session?.userId) return res.json(null);
+      const [user] = await db.select().from(users).where(eq(users.id, req.session.userId));
+      if (!user) return res.json(null);
+      // Se venditore (role=1), cerca tutorId
+      let tutorId: number | null = null;
+      let tutorName: string | null = null;
+      if (user.role === 1 && user.idcompany) {
+        try {
+          const result = await db.execute(sql.raw(`
+            SELECT ta.tutor_id, t.business_name as tutor_name
+            FROM tutor_admins ta JOIN tutors t ON t.id = ta.tutor_id
+            WHERE ta.id = ${user.idcompany}
+          `));
+          if (result.rows.length > 0) {
+            tutorId = (result.rows[0] as any).tutor_id;
+            tutorName = (result.rows[0] as any).tutor_name;
+          }
+        } catch (e) { /* ignore */ }
+      }
+      const allowedRoles = new Set([0, 1, 2, 1000]);
+      const normalizedRole = allowedRoles.has(user.role ?? 0) ? user.role : 0;
+      res.json({ ...user, role: normalizedRole, tutorId, tutorName });
+    } catch (err) {
+      console.error("[auth] User fetch error:", err);
+      res.status(500).json({ message: "Errore server" });
+    }
+  });
+
+  // POST /api/logout
+  app.post("/api/logout", (req, res) => {
+    req.session.destroy(() => res.json({ ok: true }));
+  });
+  app.get("/api/logout", (req, res) => {
+    req.session.destroy(() => res.redirect("/"));
+  });
 
   // Lightweight health check (useful for reverse-proxy/DNS validation)
   app.get("/api/health", (_req, res) => {
@@ -1725,12 +1765,7 @@ export async function registerRoutes(
 
       const tutorId = company[0].tutorId;
       let created = 0;
-      let ovhSynced = 0;
-      const results: { studentId: number; licenseCode: string; email: string; firstName: string; lastName: string; fiscalCode: string; username: string; ovhSync: boolean }[] = [];
-
-      // Usa l'ID direttamente (Replit e OVH usano gli stessi ID)
-      const ovhCourseId = courseId;
-      const ovhCompanyId = companyId;
+      const results: { studentId: number; licenseCode: string; email: string; firstName: string; lastName: string; fiscalCode: string; username: string }[] = [];
 
       // Trova l'admin tutor per creare la vendita locale
       let adminTutorId = 1; // default
@@ -1804,36 +1839,6 @@ export async function registerRoutes(
           status: "active",
         }).returning();
 
-        // Sincronizza con OVH (non deve bloccare indefinitamente la risposta)
-        let ovhSyncResult = { success: false };
-        const ovhTimeoutMs = parseInt(process.env.OVH_SYNC_TIMEOUT_MS || "6000", 10);
-        if (hasOvhSyncEnv()) {
-          try {
-            ovhSyncResult = await withTimeout(
-              syncEnrollmentToOvh({
-                firstName,
-                lastName,
-                fiscalCode,
-                email,
-                companyId: ovhCompanyId,
-                courseId: ovhCourseId,
-                licenseCode,
-                startDate: enrollStartDate,
-                endDate: enrollEndDate,
-                tutorId: tutorId || 2, // Usato per cercare l'admin OVH corretto
-              }),
-              ovhTimeoutMs,
-            );
-            if ((ovhSyncResult as any).success) ovhSynced++;
-          } catch (err) {
-            console.error("[OVH Sync] Errore/timeout sincronizzazione:", err);
-          }
-        } else {
-          console.warn(
-            "[OVH Sync] Skipped: missing OVH DB env vars (OVH_DB_HOST/USER/PASSWORD/NAME).",
-          );
-        }
-
         const student = await db.select().from(schema.students).where(eq(schema.students.id, studentId)).limit(1);
         results.push({ 
           studentId, 
@@ -1843,7 +1848,6 @@ export async function registerRoutes(
           lastName: student[0]?.lastName || lastName,
           fiscalCode: student[0]?.fiscalCode || fiscalCode,
           username,
-          ovhSync: ovhSyncResult.success,
         });
         created++;
       }
@@ -1851,8 +1855,7 @@ export async function registerRoutes(
       res.json({ 
         success: true, 
         created,
-        ovhSynced,
-        message: `${created} iscrizioni create, ${ovhSynced} sincronizzate con OVH`,
+        message: `${created} iscrizioni create`,
         courseTitle: course[0].title,
         enrollments: results 
       });
@@ -2458,6 +2461,195 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Save progress error:", error);
       res.status(500).json({ error: "Failed to save progress" });
+    }
+  });
+
+  // ============================================================
+  // SESSION LOGS (entrate/uscite dal corso)
+  // ============================================================
+
+  // Start session (called on player login/entry)
+  app.post("/api/player/session/start", async (req, res) => {
+    try {
+      const { enrollmentId, studentId, courseId } = req.body;
+      if (!enrollmentId || !studentId || !courseId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const ipAddress = req.headers["x-forwarded-for"] as string || req.socket.remoteAddress || "";
+
+      const [session] = await db.insert(schema.sessionLogs)
+        .values({
+          enrollmentId,
+          studentId,
+          courseId,
+          loginAt: new Date(),
+          ipAddress,
+        })
+        .returning();
+
+      res.json({ success: true, sessionId: session.id });
+    } catch (error) {
+      console.error("Session start error:", error);
+      res.status(500).json({ error: "Failed to start session" });
+    }
+  });
+
+  // End session (called on player exit/logout)
+  app.post("/api/player/session/end", async (req, res) => {
+    try {
+      const { sessionId, lastLessonIndex, lastLoIndex, lastLoId } = req.body;
+      if (!sessionId) return res.status(400).json({ error: "Session ID required" });
+
+      // Get the session to calculate duration
+      const [session] = await db.select()
+        .from(schema.sessionLogs)
+        .where(eq(schema.sessionLogs.id, sessionId))
+        .limit(1);
+
+      if (!session) return res.status(404).json({ error: "Session not found" });
+
+      const now = new Date();
+      const durationSeconds = session.loginAt
+        ? Math.floor((now.getTime() - new Date(session.loginAt).getTime()) / 1000)
+        : 0;
+
+      await db.update(schema.sessionLogs)
+        .set({
+          logoutAt: now,
+          durationSeconds,
+          lastLoId: lastLoId || null,
+          lastLessonIndex: lastLessonIndex ?? null,
+          lastLoIndex: lastLoIndex ?? null,
+        })
+        .where(eq(schema.sessionLogs.id, sessionId));
+
+      res.json({ success: true, durationSeconds });
+    } catch (error) {
+      console.error("Session end error:", error);
+      res.status(500).json({ error: "Failed to end session" });
+    }
+  });
+
+  // ============================================================
+  // QUIZ RESPONSES (salvataggio risposte)
+  // ============================================================
+
+  // Save a quiz answer
+  app.post("/api/player/quiz/answer", async (req, res) => {
+    try {
+      const { enrollmentId, studentId, questionId, answerId, isCorrect, timedOut, responseTimeSeconds, learningObjectId, sessionLogId } = req.body;
+      if (!enrollmentId || !studentId || !questionId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const [response] = await db.insert(schema.quizResponses)
+        .values({
+          enrollmentId,
+          studentId,
+          questionId,
+          answerId: answerId || null,
+          isCorrect: isCorrect || false,
+          timedOut: timedOut || false,
+          responseTimeSeconds: responseTimeSeconds || null,
+          learningObjectId: learningObjectId || null,
+          sessionLogId: sessionLogId || null,
+        })
+        .returning();
+
+      res.json({ success: true, responseId: response.id });
+    } catch (error) {
+      console.error("Quiz answer save error:", error);
+      res.status(500).json({ error: "Failed to save quiz answer" });
+    }
+  });
+
+  // Get quiz results summary for an enrollment
+  app.get("/api/player/quiz/results/:enrollmentId", async (req, res) => {
+    try {
+      const enrollmentId = parseInt(req.params.enrollmentId);
+      if (isNaN(enrollmentId)) return res.status(400).json({ error: "Invalid enrollment ID" });
+
+      const responses = await db.select()
+        .from(schema.quizResponses)
+        .where(eq(schema.quizResponses.enrollmentId, enrollmentId));
+
+      const total = responses.length;
+      const correct = responses.filter(r => r.isCorrect).length;
+      const wrong = responses.filter(r => !r.isCorrect && !r.timedOut).length;
+      const timedOut = responses.filter(r => r.timedOut).length;
+      const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+      res.json({ total, correct, wrong, timedOut, percentage });
+    } catch (error) {
+      console.error("Quiz results error:", error);
+      res.status(500).json({ error: "Failed to get quiz results" });
+    }
+  });
+
+  // ============================================================
+  // ENROLLMENT PROGRESS per singolo LO
+  // ============================================================
+
+  // Save/update progress for a specific learning object
+  app.post("/api/player/lo-progress", async (req, res) => {
+    try {
+      const { enrollmentId, learningObjectId, watchedSeconds, completed } = req.body;
+      if (!enrollmentId || !learningObjectId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Check if progress entry exists
+      const existing = await db.select()
+        .from(schema.enrollmentProgress)
+        .where(
+          and(
+            eq(schema.enrollmentProgress.enrollmentId, enrollmentId),
+            eq(schema.enrollmentProgress.learningObjectId, learningObjectId)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db.update(schema.enrollmentProgress)
+          .set({
+            watchedSeconds: watchedSeconds || existing[0].watchedSeconds,
+            completed: completed ?? existing[0].completed,
+            completedAt: completed ? new Date() : existing[0].completedAt,
+          })
+          .where(eq(schema.enrollmentProgress.id, existing[0].id));
+      } else {
+        await db.insert(schema.enrollmentProgress)
+          .values({
+            enrollmentId,
+            learningObjectId,
+            watchedSeconds: watchedSeconds || 0,
+            completed: completed || false,
+            completedAt: completed ? new Date() : null,
+          });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("LO progress error:", error);
+      res.status(500).json({ error: "Failed to save LO progress" });
+    }
+  });
+
+  // Get all LO progress for an enrollment
+  app.get("/api/player/lo-progress/:enrollmentId", async (req, res) => {
+    try {
+      const enrollmentId = parseInt(req.params.enrollmentId);
+      if (isNaN(enrollmentId)) return res.status(400).json({ error: "Invalid enrollment ID" });
+
+      const progress = await db.select()
+        .from(schema.enrollmentProgress)
+        .where(eq(schema.enrollmentProgress.enrollmentId, enrollmentId));
+
+      res.json(progress);
+    } catch (error) {
+      console.error("LO progress fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch LO progress" });
     }
   });
 
