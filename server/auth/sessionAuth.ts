@@ -75,22 +75,40 @@ export async function setupAuth(app: Express) {
 <title>Login — Tutor81 LMS</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f172a;font-family:system-ui,sans-serif;color:#e2e8f0}
-.card{width:min(400px,calc(100vw - 32px));background:#1e293b;border-radius:16px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-h1{font-size:22px;margin-bottom:24px;text-align:center;color:#fbbf24}
-label{display:block;font-size:13px;margin-bottom:4px;color:#94a3b8}
-input{width:100%;padding:10px 12px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:15px;margin-bottom:16px;outline:none}
-input:focus{border-color:#fbbf24}
-button{width:100%;padding:12px;border:none;border-radius:8px;background:#fbbf24;color:#0f172a;font-size:15px;font-weight:700;cursor:pointer}
-button:hover{background:#f59e0b}
-.error{background:#7f1d1d;color:#fca5a5;padding:10px;border-radius:8px;margin-bottom:16px;font-size:13px;display:none}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#030712;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;overflow:hidden;position:relative}
+body::before{content:'';position:absolute;top:-50%;right:-30%;width:80vw;height:80vw;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,.08) 0%,transparent 70%)}
+body::after{content:'';position:absolute;bottom:-40%;left:-20%;width:60vw;height:60vw;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,.04) 0%,transparent 70%)}
+.wrap{position:relative;z-index:1;width:min(420px,calc(100vw - 32px))}
+.card{background:linear-gradient(145deg,#111827,#1e293b);border-radius:24px;padding:40px;box-shadow:0 25px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.05);backdrop-filter:blur(20px)}
+.logo{width:56px;height:56px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#0f172a;margin:0 auto 16px;box-shadow:0 8px 30px rgba(251,191,36,.3)}
+h1{font-size:20px;text-align:center;color:#fff;font-weight:700;letter-spacing:.5px}
+.sub{text-align:center;color:#64748b;font-size:12px;margin-top:4px;margin-bottom:28px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
+label{display:block;font-size:12px;margin-bottom:6px;color:#94a3b8;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+input{width:100%;padding:12px 14px;border:2px solid #1e293b;border-radius:12px;background:#0f172a;color:#f1f5f9;font-size:15px;margin-bottom:18px;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+input::placeholder{color:#475569}
+button{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f172a;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.5px;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 20px rgba(251,191,36,.3)}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(251,191,36,.4)}
+button:active{transform:translateY(0)}
+.error{background:rgba(127,29,29,.6);color:#fca5a5;padding:12px;border-radius:10px;margin-bottom:16px;font-size:13px;display:none;border:1px solid rgba(239,68,68,.2)}
+.footer{text-align:center;margin-top:24px;font-size:12px;color:#475569}
+.footer a{color:#fbbf24;text-decoration:none}
+.footer a:hover{text-decoration:underline}
 </style></head><body>
-<div class="card"><h1>TUTOR 81 LMS</h1><div class="error" id="err"></div>
-<form id="f"><label>Email</label><input type="email" id="u" required autofocus>
-<label>Password</label><input type="password" id="p" required>
-<button type="submit">Accedi</button></form></div>
+<div class="wrap"><div class="card">
+<div class="logo">T</div>
+<h1>TUTOR 81</h1>
+<div class="sub">Piattaforma LMS</div>
+<div class="error" id="err"></div>
+<form id="f">
+<label>Email</label><input type="email" id="u" required autofocus placeholder="admin@tutor81.com">
+<label>Password</label><input type="password" id="p" required placeholder="••••••••">
+<button type="submit">Accedi alla piattaforma</button>
+</form>
+<div class="footer">Problemi di accesso? <a href="mailto:assistenza@tutor81.com">Contatta l'assistenza</a></div>
+</div></div>
 <script>
-document.getElementById('f').onsubmit=async e=>{e.preventDefault();const err=document.getElementById('err');err.style.display='none';try{const r=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('u').value,password:document.getElementById('p').value})});const d=await r.json();if(r.ok){window.location.href='/';}else{err.textContent=d.error||'Errore';err.style.display='block';}}catch(x){err.textContent='Errore di connessione';err.style.display='block';}};
+document.getElementById('f').onsubmit=async e=>{e.preventDefault();const err=document.getElementById('err');const btn=e.target.querySelector('button');err.style.display='none';btn.textContent='Accesso in corso...';btn.disabled=true;try{const r=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('u').value,password:document.getElementById('p').value})});const d=await r.json();if(r.ok){window.location.href='/';}else{err.textContent=d.error||'Errore';err.style.display='block';btn.textContent='Accedi alla piattaforma';btn.disabled=false;}}catch(x){err.textContent='Errore di connessione';err.style.display='block';btn.textContent='Accedi alla piattaforma';btn.disabled=false;}};
 </script></body></html>`);
   });
 
