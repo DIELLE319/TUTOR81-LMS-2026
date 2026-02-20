@@ -1,43 +1,48 @@
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { User, Key, LogIn, ExternalLink } from "lucide-react";
+import { User, LogIn, ExternalLink } from "lucide-react";
 import EnvironmentBanner from "@/components/EnvironmentBanner";
 import PublicHeader from "@/components/PublicHeader";
 
 const OLD_PLAYER_URL = "https://avviacorso.tutor81.com/prelogin.php";
 
 export default function PlayerLogin() {
-  const [licenseCode, setLicenseCode] = useState("");
+  const [username, setUsername] = useState("");
   const [fiscalCode, setFiscalCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [resolvedLicenseCode, setResolvedLicenseCode] = useState("");
   const { toast } = useToast();
-  const formRef = useRef<HTMLFormElement>(null);
+  const hiddenFormRef = useRef<HTMLFormElement>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/player/validate-license", {
+      const response = await fetch("/api/player/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ licenseCode }),
+        body: JSON.stringify({ username: username.trim().toLowerCase(), fiscalCode: fiscalCode.trim().toUpperCase() }),
       });
 
       const data = await response.json();
 
-      if (response.ok && data.valid) {
+      if (response.ok && data.success) {
         toast({ 
           title: "Reindirizzamento al corso...", 
-          description: `Corso: ${data.enrollment.courseTitle}` 
+          description: `Corso: ${data.enrollment.courseName}` 
         });
-        if (formRef.current) {
-          formRef.current.submit();
-        }
+        setResolvedLicenseCode(data.enrollment.licenseCode);
+        // Wait for state update, then submit hidden form to old player
+        setTimeout(() => {
+          if (hiddenFormRef.current) {
+            hiddenFormRef.current.submit();
+          }
+        }, 100);
       } else {
         toast({ 
-          title: "Codice licenza non valido", 
-          description: data.error || "Verifica il codice inserito", 
+          title: "Accesso negato", 
+          description: data.error || "Verifica nome utente e codice fiscale", 
           variant: "destructive" 
         });
         setIsLoading(false);
@@ -45,7 +50,7 @@ export default function PlayerLogin() {
     } catch (error) {
       toast({ 
         title: "Errore", 
-        description: "Impossibile verificare la licenza", 
+        description: "Impossibile verificare le credenziali", 
         variant: "destructive" 
       });
       setIsLoading(false);
@@ -57,6 +62,12 @@ export default function PlayerLogin() {
       <EnvironmentBanner />
       <PublicHeader showLoginCta />
 
+      {/* Hidden form for redirect to old player */}
+      <form ref={hiddenFormRef} method="POST" action={OLD_PLAYER_URL} style={{ display: 'none' }}>
+        <input type="hidden" name="course_code" value={resolvedLicenseCode} />
+        <input type="hidden" name="tax_code" value={fiscalCode.trim().toUpperCase()} />
+      </form>
+
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white shadow-2xl rounded-xl overflow-hidden">
           <div className="text-center pt-8 pb-2 px-6">
@@ -65,29 +76,22 @@ export default function PlayerLogin() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Accedi al Corso</h2>
             <p className="text-gray-600 mt-1">
-              Inserisci il codice licenza e il codice fiscale
+              Inserisci il tuo nome utente e codice fiscale
             </p>
           </div>
           <div className="p-6">
-            <form 
-              ref={formRef}
-              method="POST" 
-              action={OLD_PLAYER_URL}
-              onSubmit={handleLogin} 
-              className="space-y-4"
-            >
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Codice Licenza</label>
+                <label className="text-sm font-medium text-gray-700">Nome Utente</label>
                 <div className="relative">
-                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    name="course_code"
-                    value={licenseCode}
-                    onChange={(e) => setLicenseCode(e.target.value.toUpperCase())}
-                    placeholder="es: B8j4P"
-                    className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md text-sm uppercase focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
-                    data-testid="input-license-code"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="es: mario.rossi"
+                    className="w-full h-10 pl-10 pr-3 border border-gray-300 rounded-md text-sm lowercase focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                    data-testid="input-username"
                     required
                   />
                 </div>
@@ -96,10 +100,9 @@ export default function PlayerLogin() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Codice Fiscale</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">CF</span>
                   <input
                     type="text"
-                    name="tax_code"
                     value={fiscalCode}
                     onChange={(e) => setFiscalCode(e.target.value.toUpperCase())}
                     placeholder="es: RSSMRA80A01H501U"
@@ -130,7 +133,7 @@ export default function PlayerLogin() {
             <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-gray-700 text-center">
                 <strong>Come funziona:</strong><br />
-                Il codice licenza ti è stato inviato via email.<br />
+                Il nome utente ti è stato comunicato via email nel formato <strong>nome.cognome</strong>.<br />
                 Inseriscilo insieme al tuo codice fiscale per accedere al corso.
               </p>
             </div>
@@ -140,7 +143,7 @@ export default function PlayerLogin() {
                 href="mailto:assistenza@tutor81.com" 
                 className="text-sm text-blue-600 hover:underline"
               >
-                Non hai ricevuto il codice? Contatta l'assistenza
+                Non riesci ad accedere? Contatta l'assistenza
               </a>
             </div>
           </div>
