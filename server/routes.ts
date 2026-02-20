@@ -1,44 +1,25 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
-import session from "express-session";
+import { setupAuth, registerAuthRoutes, isAuthenticated, authStorage } from "./replit_integrations/auth";
 import { db, hasDatabase } from "./db";
 import * as schema from "@shared/schema";
-import { users } from "@shared/models/auth";
 import { eq, and, desc, sql, ilike, or, isNotNull, inArray } from "drizzle-orm";
 import { z } from "zod";
-import mysql from "mysql2/promise";
 import crypto from "crypto";
 
-function hasOvhSyncEnv() {
-  return Boolean(
-    process.env.OVH_DB_HOST &&
-      process.env.OVH_DB_USER &&
-      process.env.OVH_DB_PASSWORD &&
-      process.env.OVH_DB_NAME,
-  );
-}
-
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timeoutId: NodeJS.Timeout | undefined;
-  const timeoutPromise = new Promise<T>((_resolve, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
-  });
-
-  try {
-    return await Promise.race([promise, timeoutPromise]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-}
 
 // Helper per ottenere tutorId dall'utente autenticato (sicurezza lato server)
 async function getAuthenticatedUserTutorId(req: Request): Promise<{ role: number | null; tutorId: number | null }> {
   try {
-    const userId = (req.session as any)?.userId;
-    if (!userId) return { role: null, tutorId: null };
+    const user = req.user as any;
+    if (!user?.claims?.sub) {
+      return { role: null, tutorId: null };
+    }
     
-    const [dbUser] = await db.select().from(users).where(eq(users.id, userId));
-    if (!dbUser) return { role: null, tutorId: null };
+    const dbUser = await authStorage.getUser(user.claims.sub);
+    if (!dbUser) {
+      return { role: null, tutorId: null };
+    }
     
     if (dbUser.role === 1 && dbUser.idcompany) {
       const result = await db.execute(sql`
@@ -59,430 +40,40 @@ async function getAuthenticatedUserTutorId(req: Request): Promise<{ role: number
 }
 
 async function getAuthenticatedDbUser(req: Request) {
-  const userId = (req.session as any)?.userId;
-  if (!userId) return null;
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
-  return user || null;
+  const user = req.user as any;
+  if (!user?.claims?.sub) return null;
+  return await authStorage.getUser(user.claims.sub);
 }
 
-// Connessione al database OVH
-function getOvhDbConfig() {
-  const host = process.env.OVH_DB_HOST;
-  const port = parseInt(process.env.OVH_DB_PORT || "3306", 10);
-  const user = process.env.OVH_DB_USER;
-  const password = process.env.OVH_DB_PASSWORD;
-  const database = process.env.OVH_DB_NAME;
-  const connectTimeout = parseInt(process.env.OVH_DB_CONNECT_TIMEOUT || "10000", 10);
-
-  const missing: string[] = [];
-  if (!host) missing.push("OVH_DB_HOST");
-  if (!user) missing.push("OVH_DB_USER");
-  if (!password) missing.push("OVH_DB_PASSWORD");
-  if (!database) missing.push("OVH_DB_NAME");
-
-  if (missing.length) {
-    throw new Error(`Missing OVH DB env vars: ${missing.join(", ")}`);
-  }
-
-  return { host, port, user, password, database, connectTimeout };
-}
-
-async function getOvhConnection() {
-  return mysql.createConnection(getOvhDbConfig());
-}
-
-type OvhActiveTutorIdsCache = { fetchedAt: number; ids: Set<number> };
-let ovhActiveTutorIdsCache: OvhActiveTutorIdsCache | null = null;
-
-type OvhActiveTutorKeysCache = { fetchedAt: number; vatKeys: Set<string>; nameKeys: Set<string> };
-let ovhActiveTutorKeysCache: OvhActiveTutorKeysCache | null = null;
-
-type OvhActiveTutorPgIdsCache = { fetchedAt: number; ids: Set<number> };
-let ovhActiveTutorPgIdsCache: OvhActiveTutorPgIdsCache | null = null;
-
-type PlatformTutorIdsCache = { fetchedAt: number; ids: Set<number> };
-let platformTutorIdsCache: PlatformTutorIdsCache | null = null;
-
-function looksLikePlatformTutor(input: { businessName?: string | null; email?: string | null }) {
-  const name = (input.businessName || "").toLowerCase();
-  const email = (input.email || "").toLowerCase();
-  return name.includes("tutor81") || email.includes("tutor81");
-}
-
-function normalizeVatKey(input: string | null | undefined) {
-  return (input || "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .trim();
-}
-
-function normalizeBusinessNameKey(input: string | null | undefined) {
-  return (input || "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .trim();
-}
-
-async function getOvhActiveTutorKeysCached(): Promise<{ vatKeys: Set<string>; nameKeys: Set<string> } | null> {
-  if (!hasOvhSyncEnv()) return null;
-
-  const ttlMs = parseInt(process.env.OVH_ACTIVE_TUTORS_TTL_MS || "60000", 10);
-  const now = Date.now();
-  if (ovhActiveTutorKeysCache && now - ovhActiveTutorKeysCache.fetchedAt < ttlMs) {
-    return { vatKeys: ovhActiveTutorKeysCache.vatKeys, nameKeys: ovhActiveTutorKeysCache.nameKeys };
-  }
-
-  let conn;
-  try {
-    conn = await withTimeout(getOvhConnection(), 10_000);
-    const [rows] = await conn.execute(
-      `
-      SELECT c.id, c.vat, c.business_name
-      FROM companies c
-      INNER JOIN (
-        SELECT company_id, MAX(COALESCE(validity_end, '9999-12-31')) AS max_end
-        FROM company_plans
-        GROUP BY company_id
-      ) latest ON latest.company_id = c.id
-      INNER JOIN company_plans cp
-        ON cp.company_id = c.id
-       AND COALESCE(cp.validity_end, '9999-12-31') = latest.max_end
-      WHERE c.deleted = 0
-        AND c.is_tutor = 1
-        AND c.suspended = 0
-        AND cp.suspended = 0
-        AND (cp.validity_end IS NULL OR cp.validity_end >= CURDATE())
-      `,
-    );
-
-    const vatKeys = new Set<string>();
-    const nameKeys = new Set<string>();
-    for (const r of rows as any[]) {
-      const vatKey = normalizeVatKey(r.vat);
-      if (vatKey) vatKeys.add(vatKey);
-      const nameKey = normalizeBusinessNameKey(r.business_name);
-      if (nameKey) nameKeys.add(nameKey);
-    }
-
-    ovhActiveTutorKeysCache = { fetchedAt: now, vatKeys, nameKeys };
-    return { vatKeys, nameKeys };
-  } catch (e) {
-    console.error("[OVH Sync] Failed to fetch active tutor keys:", e);
-    return null;
-  } finally {
-    if (conn) {
-      try {
-        await conn.end();
-      } catch {
-        // ignore
-      }
-    }
-  }
-}
-
-async function getOvhActiveTutorPgIdsCached(): Promise<Set<number> | null> {
-  const keys = await getOvhActiveTutorKeysCached();
-  if (!keys) return null;
-
-  const ttlMs = parseInt(process.env.OVH_ACTIVE_TUTORS_TTL_MS || "60000", 10);
-  const now = Date.now();
-  if (ovhActiveTutorPgIdsCache && now - ovhActiveTutorPgIdsCache.fetchedAt < ttlMs) {
-    return ovhActiveTutorPgIdsCache.ids;
-  }
-
-  // Match OVH active tutors to Postgres tutors by VAT (preferred) or normalized business name.
-  // This avoids relying on numeric IDs that often don't coincide between the two DBs.
-  const pgTutors = await db
-    .select({ id: schema.tutors.id, vatNumber: schema.tutors.vatNumber, businessName: schema.tutors.businessName })
-    .from(schema.tutors)
-    .where(sql`coalesce(${schema.tutors.isActive}, true) = true`);
-
-  const ids = new Set<number>();
-  for (const t of pgTutors) {
-    const vatKey = normalizeVatKey(t.vatNumber);
-    if (vatKey && keys.vatKeys.has(vatKey)) {
-      ids.add(t.id);
-      continue;
-    }
-
-    const nameKey = normalizeBusinessNameKey(t.businessName);
-    if (nameKey && keys.nameKeys.has(nameKey)) {
-      ids.add(t.id);
-      continue;
-    }
-  }
-
-  ovhActiveTutorPgIdsCache = { fetchedAt: now, ids };
-  return ids;
-}
-
-async function getPlatformTutorIdsCached(): Promise<Set<number>> {
-  const ttlMs = parseInt(process.env.PLATFORM_TUTORS_TTL_MS || "60000", 10);
-  const now = Date.now();
-  if (platformTutorIdsCache && now - platformTutorIdsCache.fetchedAt < ttlMs) {
-    return platformTutorIdsCache.ids;
-  }
-
-  const rows = await db
-    .select({ id: schema.tutors.id })
-    .from(schema.tutors)
-    .where(
-      and(
-        sql`coalesce(${schema.tutors.isActive}, true) = true`,
-        or(
-          ilike(schema.tutors.businessName, "%tutor81%"),
-          ilike(sql`coalesce(${schema.tutors.email}, '')`, "%tutor81%"),
-        ),
-      ),
-    );
-
-  const ids = new Set<number>();
-  for (const r of rows) ids.add(r.id);
-  platformTutorIdsCache = { fetchedAt: now, ids };
-  return ids;
-}
-
-async function getOvhActiveTutorIdsCached(): Promise<Set<number> | null> {
-  if (!hasOvhSyncEnv()) return null;
-
-  const ttlMs = parseInt(process.env.OVH_ACTIVE_TUTORS_TTL_MS || "60000", 10);
-  const now = Date.now();
-  if (ovhActiveTutorIdsCache && now - ovhActiveTutorIdsCache.fetchedAt < ttlMs) {
-    return ovhActiveTutorIdsCache.ids;
-  }
-
-  let conn;
-  try {
-    conn = await withTimeout(getOvhConnection(), 10_000);
-    const [rows] = await conn.execute(
-      `
-      SELECT c.id
-      FROM companies c
-      INNER JOIN (
-        SELECT company_id, MAX(COALESCE(validity_end, '9999-12-31')) AS max_end
-        FROM company_plans
-        GROUP BY company_id
-      ) latest ON latest.company_id = c.id
-      INNER JOIN company_plans cp
-        ON cp.company_id = c.id
-       AND COALESCE(cp.validity_end, '9999-12-31') = latest.max_end
-      WHERE c.deleted = 0
-        AND c.is_tutor = 1
-        AND c.suspended = 0
-        AND cp.suspended = 0
-        AND (cp.validity_end IS NULL OR cp.validity_end >= CURDATE())
-      `,
-    );
-
-    const ids = new Set<number>();
-    for (const r of rows as any[]) {
-      const id = Number(r.id);
-      if (Number.isFinite(id)) ids.add(id);
-    }
-
-    ovhActiveTutorIdsCache = { fetchedAt: now, ids };
-    return ids;
-  } catch (e) {
-    console.error("[OVH Sync] Failed to fetch active tutor ids:", e);
-    return null;
-  } finally {
-    if (conn) {
-      try {
-        await conn.end();
-      } catch {
-        // ignore
-      }
-    }
-  }
-}
-
-// Sincronizza iscrizione con OVH
-async function syncEnrollmentToOvh(data: {
-  firstName: string;
-  lastName: string;
-  fiscalCode: string;
-  email: string;
-  companyId: number;  // ID azienda cliente OVH
-  courseId: number;
-  licenseCode: string;
-  startDate: Date;
-  endDate: Date | null;
-  tutorId: number;    // ID tutor Replit (usato per cercare admin OVH)
-}) {
-  let conn;
-  try {
-    conn = await getOvhConnection();
-    
-    // STEP 1: Trova l'admin user OVH corretto
-    // Cerca nella tabella users un utente con role=1 e company_id = tutorId (come fa OVH in getMainAdminOfCompany)
-    const [adminUsers] = await conn.execute(`
-      SELECT id, username FROM users 
-      WHERE company_id = ? AND role = 1 
-      ORDER BY creation_date 
-      LIMIT 1
-    `, [data.tutorId]) as any[];
-    
-    let ovhAdminUserId: number;
-    if (adminUsers.length > 0) {
-      ovhAdminUserId = adminUsers[0].id;
-      console.log(`[OVH Sync] Admin OVH trovato: ${ovhAdminUserId} (${adminUsers[0].username})`);
-    } else {
-      console.error(`[OVH Sync] Nessun admin OVH trovato per tutorId ${data.tutorId}`);
-      return { success: false, error: `Nessun admin OVH trovato per tutorId ${data.tutorId}` };
-    }
-    
-    // Username formato nome.cognome (minuscolo come OVH)
-    const username = `${data.firstName}.${data.lastName}`.toLowerCase().replace(/\s+/g, '');
-    // Password = SHA1 del codice fiscale (come fa OVH) - PULITO dagli spazi
-    const cleanFiscalCode = data.fiscalCode.toUpperCase().trim();
-    const passwordPlain = cleanFiscalCode;
-    const password = crypto.createHash('sha1').update(passwordPlain).digest('hex');
-    
-    // Verifica se l'utente esiste già su OVH (per codice fiscale - cerca anche con spazi)
-    const [existingUsers] = await conn.execute(
-      'SELECT id FROM users WHERE TRIM(tax_code) = ? LIMIT 1',
-      [cleanFiscalCode]
-    ) as any[];
-    
-    let userId: number;
-    
-    if (existingUsers.length > 0) {
-      userId = existingUsers[0].id;
-      // AGGIORNA la password dell'utente esistente al nuovo codice fiscale
-      await conn.execute(
-        'UPDATE users SET password = ?, tax_code = ? WHERE id = ?',
-        [password, cleanFiscalCode, userId]
-      );
-      console.log(`[OVH Sync] Utente esistente trovato: ${userId} - password aggiornata`);
-    } else {
-      // Crea nuovo utente su OVH (nomi colonne OVH: name, surname, creation_date, suspended, deleted)
-      const [result] = await conn.execute(
-        `INSERT INTO users (company_id, role, name, surname, username, password, email, tax_code, suspended, deleted, creation_date) 
-         VALUES (?, 0, ?, ?, ?, ?, ?, ?, 0, 0, NOW())`,
-        [data.companyId, data.firstName, data.lastName, username, password, data.email, cleanFiscalCode]
-      ) as any[];
-      userId = result.insertId;
-      console.log(`[OVH Sync] Nuovo utente creato: ${userId}`);
-    }
-    
-    // Crea iscrizione in learning_project_users (nomi colonne OVH: starting_from, finish_within, learning_project_pwd)
-    const startingFrom = data.startDate.toISOString().split('T')[0]; // formato YYYY-MM-DD
-    const finishWithin = data.endDate ? data.endDate.toISOString().split('T')[0] : null;
-    
-    // NOTE mapping legacy OVH/PHP:
-    // - tutors_purchases.customer_company_id = azienda cliente
-    // - tutors_purchases.tutor_id = admin tutor che effettua l'acquisto ("creator")
-    // - tutors_purchases.user_company_ref = admin tutor di riferimento dell'azienda (companies.owner_user_id)
-    // - learning_project_users.id_company = azienda cliente
-    // - learning_project_users.company_id = admin tutor che assegna la licenza ("creator")
-
-    // Trova l'admin tutor di riferimento dell'azienda (owner_user_id)
-    const [companyRows] = await conn.execute(
-      `SELECT owner_user_id FROM companies WHERE id = ? LIMIT 1`,
-      [data.companyId],
-    ) as any[];
-    const ownerUserId = companyRows?.[0]?.owner_user_id ? Number(companyRows[0].owner_user_id) : null;
-    const userCompanyRef = Number.isFinite(ownerUserId as any) ? (ownerUserId as number) : ovhAdminUserId;
-
-    // Crea record vendita in tutors_purchases
-    const [purchaseResult] = await conn.execute(
-      `INSERT INTO tutors_purchases (tutor_id, customer_company_id, user_company_ref, learning_project_id, qta, price, creation_date, executed)
-       VALUES (?, ?, ?, ?, 1, 0, NOW(), 1)`,
-      [ovhAdminUserId, data.companyId, userCompanyRef, data.courseId]
-    ) as any[];
-    const purchaseId = purchaseResult.insertId;
-    console.log(`[OVH Sync] Vendita creata: ${purchaseId}`);
-    
-    // Crea iscrizione in learning_project_users con riferimento alla vendita (usa ovhAdminUserId)
-    const [lpuResult] = await conn.execute(
-      `INSERT INTO learning_project_users (user_id, learning_project_id, learning_project_pwd, company_id, starting_from, finish_within, days_to_alert, id_company, email, assigned, tutor_purchase_id, creation_date)
-       VALUES (?, ?, ?, ?, ?, ?, 30, ?, ?, 1, ?, NOW())`,
-      [userId, data.courseId, data.licenseCode, ovhAdminUserId, startingFrom, finishWithin, data.companyId, data.email, purchaseId]
-    ) as any[];
-    
-    console.log(`[OVH Sync] Iscrizione creata: ${lpuResult.insertId} per utente ${userId} corso ${data.courseId}`);
-    
-    await conn.end();
-    return { success: true, userId, username };
-  } catch (error) {
-    console.error("[OVH Sync] Errore:", error);
-    if (conn) await conn.end();
-    return { success: false, error: String(error) };
-  }
-}
-
-// Middleware: verifica sessione autenticata
-function isAuthenticated(req: any, res: any, next: any) {
-  if (req.session?.userId) return next();
-  res.status(401).json({ message: "Non autenticato" });
-}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // ─── Session + Auth (local email/password) ────────────────────────
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'tutor81-lms-secret-2026',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, sameSite: 'lax' },
-  }));
+  const authDisabled = /^(true|1|yes)$/i.test(process.env.DISABLE_AUTH ?? "");
 
-  // POST /api/login — email + password
-  app.post("/api/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      if (!email || !password) return res.status(400).json({ message: "Email e password obbligatori" });
-      const hash = crypto.createHash('sha256').update(password).digest('hex');
-      const [user] = await db.select().from(users).where(eq(users.email, email));
-      if (!user || user.passwordHash !== hash) return res.status(401).json({ message: "Credenziali non valide" });
-      (req.session as any).userId = user.id;
-      res.json({ ok: true });
-    } catch (err) {
-      console.error("[auth] Login error:", err);
-      res.status(500).json({ message: "Errore server" });
-    }
-  });
+  const hasAuthEnv = Boolean(
+    process.env.REPL_ID &&
+      process.env.SESSION_SECRET &&
+      process.env.DATABASE_URL,
+  );
 
-  // GET /api/auth/user — utente corrente dalla sessione
-  app.get("/api/auth/user", async (req: any, res) => {
-    try {
-      if (!req.session?.userId) return res.json(null);
-      const [user] = await db.select().from(users).where(eq(users.id, req.session.userId));
-      if (!user) return res.json(null);
-      // Se venditore (role=1), cerca tutorId
-      let tutorId: number | null = null;
-      let tutorName: string | null = null;
-      if (user.role === 1 && user.idcompany) {
-        try {
-          const result = await db.execute(sql.raw(`
-            SELECT ta.tutor_id, t.business_name as tutor_name
-            FROM tutor_admins ta JOIN tutors t ON t.id = ta.tutor_id
-            WHERE ta.id = ${user.idcompany}
-          `));
-          if (result.rows.length > 0) {
-            tutorId = (result.rows[0] as any).tutor_id;
-            tutorName = (result.rows[0] as any).tutor_name;
-          }
-        } catch (e) { /* ignore */ }
-      }
-      const allowedRoles = new Set([0, 1, 2, 1000]);
-      const normalizedRole = allowedRoles.has(user.role ?? 0) ? user.role : 0;
-      res.json({ ...user, role: normalizedRole, tutorId, tutorName });
-    } catch (err) {
-      console.error("[auth] User fetch error:", err);
-      res.status(500).json({ message: "Errore server" });
-    }
-  });
-
-  // POST /api/logout
-  app.post("/api/logout", (req, res) => {
-    req.session.destroy(() => res.json({ ok: true }));
-  });
-  app.get("/api/logout", (req, res) => {
-    req.session.destroy(() => res.redirect("/"));
-  });
+  if (authDisabled) {
+    console.warn(
+      "[auth] DISABLE_AUTH is enabled. Replit/OIDC login is bypassed (use only on staging).",
+    );
+    registerAuthRoutes(app);
+    app.get("/api/login", (_req, res) => res.redirect("/"));
+    app.get("/api/logout", (_req, res) => res.status(204).end());
+  } else if (hasAuthEnv) {
+    await setupAuth(app);
+    registerAuthRoutes(app);
+  } else {
+    console.warn(
+      "[auth] Missing REPL_ID / SESSION_SECRET / DATABASE_URL. Auth routes are disabled.",
+    );
+    app.get("/api/auth/user", (_req, res) => res.json(null));
+  }
 
   // Lightweight health check (useful for reverse-proxy/DNS validation)
   app.get("/api/health", (_req, res) => {
@@ -533,282 +124,6 @@ export async function registerRoutes(
 </html>`);
   });
 
-  // ============================================================
-  // TEST OVH CONNECTION (temporaneo per debug)
-  // ============================================================
-  app.get("/api/test-ovh", async (req, res) => {
-    let conn;
-    try {
-      conn = await getOvhConnection();
-      
-      // Test connessione
-      const [rows] = await conn.execute('SELECT COUNT(*) as count FROM users') as any[];
-      const usersCount = rows[0].count;
-      
-      const [lpuRows] = await conn.execute('SELECT COUNT(*) as count FROM learning_project_users') as any[];
-      const lpuCount = lpuRows[0].count;
-      
-      const [tpRows] = await conn.execute('SELECT COUNT(*) as count FROM tutors_purchases') as any[];
-      const tpCount = tpRows[0].count;
-      
-      await conn.end();
-      
-      res.json({
-        success: true,
-        message: "Connessione OVH OK",
-        stats: {
-          users: usersCount,
-          learning_project_users: lpuCount,
-          tutors_purchases: tpCount
-        }
-      });
-    } catch (error) {
-      console.error("OVH connection test error:", error);
-      if (conn) await conn.end();
-      res.status(500).json({ success: false, error: String(error) });
-    }
-  });
-
-  // Endpoint per vedere le ultime iscrizioni su OVH
-  app.get("/api/test-ovh-recent", async (req, res) => {
-    let conn;
-    try {
-      conn = await getOvhConnection();
-      
-      // Ultime 10 iscrizioni create su OVH
-      const [lpuRows] = await conn.execute(`
-        SELECT 
-          lpu.id,
-          lpu.user_id,
-          lpu.learning_project_id,
-          lpu.learning_project_pwd as license_code,
-          lpu.starting_from,
-          lpu.finish_within,
-          lpu.creation_date,
-          lpu.email,
-          lpu.id_company,
-          u.username,
-          u.name as user_name,
-          u.surname as user_surname,
-          u.tax_code,
-          lp.title as course_title
-        FROM learning_project_users lpu
-        LEFT JOIN users u ON lpu.user_id = u.id
-        LEFT JOIN learning_project lp ON lpu.learning_project_id = lp.id
-        ORDER BY lpu.id DESC
-        LIMIT 10
-      `) as any[];
-      
-      await conn.end();
-      
-      res.json({
-        success: true,
-        recentEnrollments: lpuRows
-      });
-    } catch (error) {
-      console.error("OVH recent enrollments error:", error);
-      if (conn) await conn.end();
-      res.status(500).json({ success: false, error: String(error) });
-    }
-  });
-
-  // Verifica iscrizione specifica per debug
-  app.get("/api/test-ovh-check/:licenseCode", async (req, res) => {
-    let conn;
-    try {
-      const licenseCode = req.params.licenseCode;
-      conn = await getOvhConnection();
-      
-      // Cerca l'iscrizione come fa il player
-      const [lpuRows] = await conn.execute(`
-        SELECT 
-          lpu.*,
-          u.id as user_db_id,
-          u.username,
-          u.password,
-          u.name as user_name,
-          u.surname as user_surname,
-          u.email as user_email,
-          u.tax_code,
-          u.suspended,
-          u.deleted,
-          lp.id as lp_id,
-          lp.title as course_title
-        FROM learning_project_users lpu
-        LEFT JOIN users u ON lpu.user_id = u.id
-        LEFT JOIN learning_project lp ON lpu.learning_project_id = lp.id
-        WHERE lpu.learning_project_pwd = ?
-      `, [licenseCode]) as any[];
-      
-      await conn.end();
-      
-      if (lpuRows.length === 0) {
-        return res.json({ success: false, error: "Iscrizione non trovata con questo codice licenza" });
-      }
-      
-      const enrollment = lpuRows[0];
-      
-      res.json({
-        success: true,
-        enrollment: {
-          id: enrollment.id,
-          licenseCode: enrollment.learning_project_pwd,
-          userId: enrollment.user_id,
-          learningProjectId: enrollment.learning_project_id,
-          startingFrom: enrollment.starting_from,
-          finishWithin: enrollment.finish_within,
-          courseTitle: enrollment.course_title,
-          user: {
-            id: enrollment.user_db_id,
-            username: enrollment.username,
-            hasPassword: !!enrollment.password,
-            passwordLength: enrollment.password?.length,
-            name: enrollment.user_name,
-            surname: enrollment.user_surname,
-            email: enrollment.user_email,
-            taxCode: enrollment.tax_code,
-            suspended: enrollment.suspended,
-            deleted: enrollment.deleted
-          }
-        }
-      });
-    } catch (error) {
-      console.error("OVH check enrollment error:", error);
-      if (conn) await conn.end();
-      res.status(500).json({ success: false, error: String(error) });
-    }
-  });
-
-  // Confronta tutti i campi di due iscrizioni OVH
-  app.get("/api/test-ovh-compare/:license1/:license2", async (req, res) => {
-    let conn;
-    try {
-      conn = await getOvhConnection();
-      
-      const [rows1] = await conn.execute(`SELECT * FROM learning_project_users WHERE learning_project_pwd = ?`, [req.params.license1]) as any[];
-      const [rows2] = await conn.execute(`SELECT * FROM learning_project_users WHERE learning_project_pwd = ?`, [req.params.license2]) as any[];
-      
-      await conn.end();
-      
-      const e1 = rows1[0] || null;
-      const e2 = rows2[0] || null;
-      
-      // Confronta i campi
-      const allKeys = new Set([...Object.keys(e1 || {}), ...Object.keys(e2 || {})]);
-      const differences: Record<string, { license1: any, license2: any }> = {};
-      
-      for (const key of allKeys) {
-        const v1 = e1?.[key];
-        const v2 = e2?.[key];
-        if (JSON.stringify(v1) !== JSON.stringify(v2)) {
-          differences[key] = { license1: v1, license2: v2 };
-        }
-      }
-      
-      res.json({
-        success: true,
-        license1: { code: req.params.license1, enrollment: e1 },
-        license2: { code: req.params.license2, enrollment: e2 },
-        differences
-      });
-    } catch (error) {
-      console.error("OVH compare error:", error);
-      if (conn) await conn.end();
-      res.status(500).json({ success: false, error: String(error) });
-    }
-  });
-
-  // Verifica corso OVH per debug
-  app.get("/api/test-ovh-course/:courseId", async (req, res) => {
-    let conn;
-    try {
-      const courseId = parseInt(req.params.courseId);
-      conn = await getOvhConnection();
-      
-      // Dettagli learning_project
-      const [lpRows] = await conn.execute(`
-        SELECT * FROM learning_project WHERE id = ?
-      `, [courseId]) as any[];
-      
-      if (lpRows.length === 0) {
-        await conn.end();
-        return res.json({ success: false, error: "Corso non trovato" });
-      }
-      
-      // Cerca tutte le tabelle che potrebbero contenere info sul corso
-      const [tables] = await conn.execute(`SHOW TABLES`) as any[];
-      const tableNames = tables.map((t: any) => Object.values(t)[0]);
-      
-      // Tabelle rilevanti per i corsi
-      const relevantTables = tableNames.filter((t: string) => 
-        t.includes('course') || t.includes('module') || t.includes('lesson') || 
-        t.includes('learn') || t.includes('scorm') || t.includes('content') ||
-        t.includes('unity') || t.includes('object')
-      );
-      
-      await conn.end();
-      
-      res.json({
-        success: true,
-        learningProject: lpRows[0],
-        tablesInDB: relevantTables
-      });
-    } catch (error) {
-      console.error("OVH course check error:", error);
-      if (conn) await conn.end();
-      res.status(500).json({ success: false, error: String(error) });
-    }
-  });
-
-  // Endpoint per aggiornare la password di un utente su OVH usando il codice fiscale
-  app.post("/api/fix-ovh-password/:userId", async (req, res) => {
-    let conn;
-    try {
-      const userId = parseInt(req.params.userId);
-      conn = await getOvhConnection();
-      
-      // Trova l'utente
-      const [users] = await conn.execute(
-        'SELECT id, username, tax_code FROM users WHERE id = ?',
-        [userId]
-      ) as any[];
-      
-      if (users.length === 0) {
-        await conn.end();
-        return res.json({ success: false, error: "Utente non trovato" });
-      }
-      
-      const user = users[0];
-      const cleanFiscalCode = (user.tax_code || '').trim().toUpperCase();
-      
-      if (!cleanFiscalCode) {
-        await conn.end();
-        return res.json({ success: false, error: "Codice fiscale mancante" });
-      }
-      
-      // Calcola la nuova password (SHA1 del codice fiscale)
-      const newPassword = crypto.createHash('sha1').update(cleanFiscalCode).digest('hex');
-      
-      // Aggiorna la password e pulisci il codice fiscale
-      await conn.execute(
-        'UPDATE users SET password = ?, tax_code = ? WHERE id = ?',
-        [newPassword, cleanFiscalCode, userId]
-      );
-      
-      await conn.end();
-      
-      res.json({
-        success: true,
-        message: `Password aggiornata per ${user.username}`,
-        fiscalCode: cleanFiscalCode,
-        userId
-      });
-    } catch (error) {
-      console.error("Fix OVH password error:", error);
-      if (conn) await conn.end();
-      res.status(500).json({ success: false, error: String(error) });
-    }
-  });
 
   // ============================================================
   // STATS
@@ -839,26 +154,7 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/tutors", isAuthenticated, async (req, res) => {
     try {
-      const ovhActiveTutorIds = await getOvhActiveTutorPgIdsCached();
       const platformTutorIds = await getPlatformTutorIdsCached();
-
-      // Se OVH è configurato, la sorgente di verità per "attivi" è OVH (piano corrente non sospeso/non scaduto).
-      // Questo evita mismatch quando subscriptionType/discount su Postgres non sono allineati.
-      if (ovhActiveTutorIds) {
-        const allowedIds = Array.from(new Set<number>([...ovhActiveTutorIds, ...platformTutorIds]));
-        if (allowedIds.length === 0) return res.json([]);
-
-        const tutors = await db
-          .select()
-          .from(schema.tutors)
-          .where(and(
-            sql`coalesce(${schema.tutors.isActive}, true) = true`,
-            inArray(schema.tutors.id, allowedIds),
-          ))
-          .orderBy(schema.tutors.businessName);
-
-        return res.json(tutors);
-      }
 
       // Mostra solo enti con abbonamento diverso da "NESSUNO" / "Nessun abbonamento" (e varianti).
       // Non whitelista i piani: così non rischiamo di nascondere piani nuovi/legacy.
@@ -1033,9 +329,6 @@ export async function registerRoutes(
   // ============================================================
   app.get("/api/clients", isAuthenticated, async (req, res) => {
     try {
-      const ovhActiveTutorIds = await getOvhActiveTutorPgIdsCached();
-      const platformTutorIds = await getPlatformTutorIdsCached();
-
       // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
       const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
       
@@ -1045,11 +338,6 @@ export async function registerRoutes(
       }
       
       const tutorIdFilter = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
-
-      // Se il filtro punta ad un tutor sospeso su OVH, non restituire nulla.
-      if (tutorIdFilter && ovhActiveTutorIds && !ovhActiveTutorIds.has(tutorIdFilter) && !platformTutorIds.has(tutorIdFilter)) {
-        return res.json([]);
-      }
       
       // Get all companies with their tutor info
       let query = db.select({
@@ -1070,11 +358,6 @@ export async function registerRoutes(
       let companies = tutorIdFilter 
         ? await query.where(eq(schema.companies.tutorId, tutorIdFilter)).orderBy(schema.companies.businessName)
         : await query.orderBy(schema.tutors.businessName, schema.companies.businessName);
-
-      // Se OVH è disponibile, nascondi i gruppi legati a tutor sospesi/invalidi su OVH.
-      if (ovhActiveTutorIds) {
-        companies = companies.filter((c) => (c.tutorId == null ? true : (ovhActiveTutorIds.has(c.tutorId) || platformTutorIds.has(c.tutorId))));
-      }
 
       // Group by tutor
       const tutorGroups: { tutorId: number | null; tutorName: string; clients: any[] }[] = [];
@@ -1170,9 +453,6 @@ export async function registerRoutes(
 
   app.get("/api/companies", isAuthenticated, async (req, res) => {
     try {
-      const ovhActiveTutorIds = await getOvhActiveTutorPgIdsCached();
-      const platformTutorIds = await getPlatformTutorIdsCached();
-
       // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
       const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
       
@@ -1209,11 +489,6 @@ export async function registerRoutes(
         filtered = filtered.filter(c => c.tutorId === tutorId);
       }
 
-      // Se OVH è disponibile, nascondi le aziende collegate a tutor sospesi/invalidi.
-      if (ovhActiveTutorIds) {
-        filtered = filtered.filter((c) => (c.tutorId == null ? true : (ovhActiveTutorIds.has(c.tutorId) || platformTutorIds.has(c.tutorId))));
-      }
-
       if (search) {
         const searchLower = search.toLowerCase();
         filtered = filtered.filter(c => c.businessName.toLowerCase().includes(searchLower));
@@ -1229,24 +504,7 @@ export async function registerRoutes(
   // Endpoint per ottenere solo i tutors (enti formativi)
   app.get("/api/companies/tutors", isAuthenticated, async (req, res) => {
     try {
-      const ovhActiveTutorIds = await getOvhActiveTutorPgIdsCached();
       const platformTutorIds = await getPlatformTutorIdsCached();
-
-      if (ovhActiveTutorIds) {
-        const allowedIds = Array.from(new Set<number>([...ovhActiveTutorIds, ...platformTutorIds]));
-        if (allowedIds.length === 0) return res.json([]);
-
-        const tutors = await db
-          .select()
-          .from(schema.tutors)
-          .where(and(
-            sql`coalesce(${schema.tutors.isActive}, true) = true`,
-            inArray(schema.tutors.id, allowedIds),
-          ))
-          .orderBy(schema.tutors.businessName);
-
-        return res.json(tutors);
-      }
 
       let tutors = await db
         .select()
@@ -1465,40 +723,6 @@ export async function registerRoutes(
           message: sameCompany 
             ? `Corsista già esistente: ${student.firstName} ${student.lastName} - verrà aggiunta nuova iscrizione`
             : `Corsista già esistente in altra azienda: ${student.companyName}`
-        });
-      }
-      
-      // Controlla anche su OVH
-      let ovhExists = false;
-      let ovhUser = null;
-      try {
-        const conn = await getOvhConnection();
-        const [ovhUsers] = await conn.execute(
-          'SELECT id, name, surname FROM users WHERE tax_code = ? LIMIT 1',
-          [fiscalCode]
-        ) as any[];
-        await conn.end();
-        
-        if (ovhUsers.length > 0) {
-          ovhExists = true;
-          ovhUser = ovhUsers[0];
-        }
-      } catch (ovhError) {
-        console.error("[Check CF] OVH error:", ovhError);
-      }
-      
-      if (ovhExists && ovhUser) {
-        return res.json({
-          exists: true,
-          sameCompany: true, // Assumiamo che verrà usato lo stesso utente OVH
-          student: {
-            id: ovhUser.id,
-            firstName: ovhUser.name,
-            lastName: ovhUser.surname,
-            companyName: 'OVH',
-          },
-          message: `Corsista già esistente su OVH: ${ovhUser.name} ${ovhUser.surname} - verrà usato utente esistente`,
-          source: 'ovh'
         });
       }
       
@@ -2072,7 +1296,6 @@ export async function registerRoutes(
   // VENDITE (Sales/Purchases) 
   // ============================================================
   app.get("/api/sales", isAuthenticated, async (req, res) => {
-    let conn;
     try {
       // SICUREZZA: per admin tutor (role=1), forza il filtro tutorId dal server
       const { role, tutorId: authTutorId } = await getAuthenticatedUserTutorId(req);
@@ -2084,44 +1307,40 @@ export async function registerRoutes(
       
       const tutorId = role === 1 ? authTutorId : (req.query.tutorId ? parseInt(req.query.tutorId as string) : null);
       
-      // Legge le vendite direttamente da OVH
-      conn = await getOvhConnection();
-      
-      let query = `
-        SELECT 
-          tp.id,
-          u.id as adminId,
-          CONCAT(u.name, ' ', u.surname) as adminName,
-          c.business_name as client,
-          c.id as clientId,
-          t.id as tutorId,
-          t.business_name as tutorName,
-          tp.creation_date as date,
-          tp.learning_project_id as courseId,
-          lp.title as courseName,
-          tp.qta as qty,
-          tp.price as unitPrice,
-          (tp.qta * tp.price) as totalCost
-        FROM tutors_purchases tp
-        JOIN users u ON u.id = tp.tutor_id
-        LEFT JOIN companies c ON c.id = tp.customer_company_id
-        LEFT JOIN companies t ON t.id = u.company_id
-        LEFT JOIN learning_project lp ON lp.id = tp.learning_project_id
-      `;
-      
+      // Legge le vendite dal database locale PostgreSQL
+      const conditions = [];
       if (tutorId) {
-        query += ` WHERE u.company_id = ${tutorId} ORDER BY tp.creation_date DESC`;
-      } else {
-        query += ` ORDER BY tp.creation_date DESC LIMIT 500`;
+        conditions.push(eq(schema.tutorsPurchases.tutorId, tutorId));
       }
-      
-      const [salesRows] = await conn.execute(query) as any[];
-      await conn.end();
-      
-      res.json(salesRows);
+
+      const salesRows = await db.select({
+        id: schema.tutorsPurchases.id,
+        tutorId: schema.tutorsPurchases.tutorId,
+        tutorName: schema.tutors.businessName,
+        clientId: schema.tutorsPurchases.customerCompanyId,
+        client: schema.companies.businessName,
+        date: schema.tutorsPurchases.creationDate,
+        courseId: schema.tutorsPurchases.learningProjectId,
+        courseName: schema.courses.title,
+        qty: schema.tutorsPurchases.qta,
+        unitPrice: schema.tutorsPurchases.price,
+      })
+        .from(schema.tutorsPurchases)
+        .leftJoin(schema.tutors, eq(schema.tutorsPurchases.tutorId, schema.tutors.id))
+        .leftJoin(schema.companies, eq(schema.tutorsPurchases.customerCompanyId, schema.companies.id))
+        .leftJoin(schema.courses, eq(schema.tutorsPurchases.learningProjectId, schema.courses.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(schema.tutorsPurchases.creationDate))
+        .limit(500);
+
+      const result = salesRows.map(r => ({
+        ...r,
+        totalCost: (Number(r.qty) * Number(r.unitPrice)).toFixed(2),
+      }));
+
+      res.json(result);
     } catch (error) {
       console.error("Sales error:", error);
-      if (conn) await conn.end();
       res.status(500).json({ error: "Failed to fetch sales" });
     }
   });
@@ -2276,53 +1495,6 @@ export async function registerRoutes(
 
         if (enrollment.length > 0) {
           return res.json({ valid: true, enrollment: enrollment[0] });
-        }
-      }
-
-      // 2) Fallback to OVH (legacy player) if env is configured
-      if (hasOvhSyncEnv()) {
-        let conn: any;
-        try {
-          conn = await getOvhConnection();
-          const [rows] = (await conn.execute(
-            `SELECT
-              lpu.id,
-              lpu.learning_project_id,
-              lpu.user_id,
-              lpu.learning_project_pwd as license_code,
-              u.name as user_name,
-              u.surname as user_surname,
-              u.email as user_email,
-              u.tax_code,
-              lp.title as course_title
-            FROM learning_project_users lpu
-            LEFT JOIN users u ON u.id = lpu.user_id
-            LEFT JOIN learning_project lp ON lp.id = lpu.learning_project_id
-            WHERE lpu.learning_project_pwd = ?
-            LIMIT 1`,
-            [licenseCode],
-          )) as any[];
-
-          if (rows && rows.length > 0) {
-            const r = rows[0];
-            return res.json({
-              valid: true,
-              enrollment: {
-                id: r.id,
-                courseId: r.learning_project_id,
-                studentId: r.user_id,
-                licenseCode: r.license_code,
-                progress: 0,
-                status: "active",
-                studentName: r.user_name,
-                studentSurname: r.user_surname,
-                studentEmail: r.user_email,
-                courseTitle: r.course_title,
-              },
-            });
-          }
-        } finally {
-          if (conn) await conn.end();
         }
       }
 
@@ -2893,54 +2065,6 @@ export async function registerRoutes(
     }
   });
 
-  // ============================================================
-  // EXPORT CSV - Generate from OVH database
-  // ============================================================
-  app.get("/api/export/tutor-gerarchia", async (req, res) => {
-    try {
-      const connection = await getOvhConnection();
-
-      const [rows] = await connection.execute(`
-        SELECT 
-          tutor.id as id_ente_formativo,
-          tutor.business_name as ente_formativo,
-          admin_user.id as id_admin,
-          CONCAT(admin_user.name, ' ', admin_user.surname) as admin,
-          client.id as id_cliente,
-          client.business_name as cliente,
-          corsista.id as id_corsista,
-          CONCAT(corsista.name, ' ', corsista.surname) as corsista
-        FROM learning_project_users lpu
-        JOIN users admin_user ON admin_user.id = lpu.company_id
-        JOIN companies tutor ON tutor.id = admin_user.company_id AND tutor.is_tutor = 1
-        JOIN companies client ON client.id = lpu.id_company
-        JOIN users corsista ON corsista.id = lpu.user_id
-        WHERE tutor.business_name NOT LIKE '%MIROGLIO%'
-          AND tutor.business_name NOT LIKE '%SINTEX%'
-          AND tutor.business_name NOT LIKE '%ADECCO%'
-        GROUP BY tutor.id, tutor.business_name, admin_user.id, admin_user.name, admin_user.surname, client.id, client.business_name, corsista.id, corsista.name, corsista.surname
-        ORDER BY tutor.business_name, client.business_name, corsista.surname
-      `);
-
-      await connection.end();
-
-      // Generate CSV for Numbers (Mac)
-      const headers = "id_ente_formativo,ente_formativo,id_admin,admin,id_cliente,cliente,id_corsista,corsista";
-      const csvRows = (rows as any[]).map(row => 
-        `${row.id_ente_formativo},"${(row.ente_formativo || '').replace(/"/g, '""')}",${row.id_admin},"${(row.admin || '').replace(/"/g, '""')}",${row.id_cliente},"${(row.cliente || '').replace(/"/g, '""')}",${row.id_corsista},"${(row.corsista || '').replace(/"/g, '""')}"`
-      );
-      
-      const csv = headers + "\n" + csvRows.join("\n");
-
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", 'attachment; filename="tutor_gerarchia.csv"');
-      res.setHeader("Content-Length", Buffer.byteLength(csv, 'utf8'));
-      res.send(csv);
-    } catch (error) {
-      console.error("Export error:", error);
-      res.status(500).json({ error: "Failed to generate export" });
-    }
-  });
 
   return httpServer;
 }

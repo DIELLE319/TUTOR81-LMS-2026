@@ -157,7 +157,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
     queryKey: ['/api/companies', { tutorId }],
     queryFn: async () => {
       const url = tutorId ? `/api/companies?tutorId=${tutorId}` : '/api/companies';
-      const res = await fetch(url);
+      const res = await fetch(url, { credentials: 'include' });
       return res.json();
     },
     enabled: isOpen,
@@ -222,7 +222,7 @@ export default function SellCourseModal({ isOpen, onClose, course }: SellCourseM
         ? `/api/check-fiscal-code?fiscalCode=${encodeURIComponent(fiscalCode)}&companyId=${selectedCompanyId}`
         : `/api/check-fiscal-code?fiscalCode=${encodeURIComponent(fiscalCode)}`;
       
-      const res = await fetch(url);
+      const res = await fetch(url, { credentials: 'include' });
       const data = await res.json();
       
       if (data.exists) {

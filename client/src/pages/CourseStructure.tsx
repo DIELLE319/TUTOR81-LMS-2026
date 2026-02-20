@@ -126,7 +126,7 @@ export default function CourseStructure() {
   const { data: structure, isLoading } = useQuery<CourseStructure>({
     queryKey: ["/api/learning-projects", selectedProjectId, "structure"],
     queryFn: async () => {
-      const res = await fetch(`/api/learning-projects/${selectedProjectId}/structure`);
+      const res = await fetch(`/api/learning-projects/${selectedProjectId}/structure`, { credentials: 'include' });
       if (!res.ok) throw new Error("Errore nel caricamento");
       return res.json();
     },
