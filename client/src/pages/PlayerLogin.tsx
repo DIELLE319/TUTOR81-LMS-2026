@@ -3,17 +3,18 @@ import { useToast } from "@/hooks/use-toast";
 
 const PLAYER_URL = "https://avviacorso.tutor81.com/prelogin.php";
 
-const MESI = [
-  "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-  "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
-];
+interface Question {
+  id: string;
+  label: string;
+  type: "select";
+  options: { value: string; label: string }[];
+}
 
 export default function PlayerLogin() {
   const [step, setStep] = useState(1);
   const [username, setUsername] = useState("");
-  const [giorno, setGiorno] = useState("");
-  const [mese, setMese] = useState("");
-  const [anno, setAnno] = useState("");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [errore, setErrore] = useState("");
   const [licenseCode, setLicenseCode] = useState("");
@@ -35,7 +36,9 @@ export default function PlayerLogin() {
         body: JSON.stringify({ username: val }),
       });
       const d = await r.json();
-      if (r.ok && d.success) {
+      if (r.ok && d.success && d.questions) {
+        setQuestions(d.questions);
+        setAnswers({});
         setStep(2);
       } else {
         setErrore(d.error || "Utente non trovato");
@@ -48,20 +51,20 @@ export default function PlayerLogin() {
 
   const verificaIdentita = async () => {
     setErrore("");
-    if (!giorno || !mese || !anno) {
-      setErrore("Compila tutti i campi");
+    const unanswered = questions.filter((q) => !answers[q.id]);
+    if (unanswered.length > 0) {
+      setErrore("Rispondi a tutte le domande");
       return;
     }
     setLoading(true);
     try {
+      const answersArray = questions.map((q) => ({ questionId: q.id, value: answers[q.id] }));
       const r = await fetch("/api/player/verify-identity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: username.trim().toLowerCase(),
-          birthDay: giorno,
-          birthMonth: mese,
-          birthYear: anno,
+          answers: answersArray,
         }),
       });
       const d = await r.json();
@@ -78,12 +81,6 @@ export default function PlayerLogin() {
       setLoading(false);
     }
   };
-
-  const giorni: number[] = [];
-  for (let i = 1; i <= 31; i++) giorni.push(i);
-
-  const anni: number[] = [];
-  for (let i = 2010; i >= 1940; i--) anni.push(i);
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
@@ -143,7 +140,7 @@ export default function PlayerLogin() {
               <div className="flex items-center gap-2 mb-1">
                 <button
                   type="button"
-                  onClick={() => { setStep(1); setGiorno(""); setMese(""); setAnno(""); setErrore(""); }}
+                  onClick={() => { setStep(1); setQuestions([]); setAnswers({}); setErrore(""); }}
                   className="text-gray-500 hover:text-black text-sm underline"
                 >
                   ← Indietro
@@ -153,45 +150,25 @@ export default function PlayerLogin() {
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-sm text-blue-800">
-                  Per verificare la tua identità, inserisci la tua <b>data di nascita</b>
+                  Per verificare la tua identità, rispondi alle seguenti domande
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Giorno</label>
-                <select
-                  value={giorno}
-                  onChange={(e) => setGiorno(e.target.value)}
-                  className="w-full h-11 px-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 focus:border-yellow-500 focus:outline-none"
-                >
-                  <option value="">Seleziona giorno...</option>
-                  {giorni.map((g) => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Mese</label>
-                <select
-                  value={mese}
-                  onChange={(e) => setMese(e.target.value)}
-                  className="w-full h-11 px-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 focus:border-yellow-500 focus:outline-none"
-                >
-                  <option value="">Seleziona mese...</option>
-                  {MESI.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Anno</label>
-                <select
-                  value={anno}
-                  onChange={(e) => setAnno(e.target.value)}
-                  className="w-full h-11 px-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 focus:border-yellow-500 focus:outline-none"
-                >
-                  <option value="">Seleziona anno...</option>
-                  {anni.map((a) => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
+              {questions.map((q) => (
+                <div key={q.id}>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{q.label}</label>
+                  <select
+                    value={answers[q.id] || ""}
+                    onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                    className="w-full h-11 px-3 border-2 border-gray-300 rounded-lg text-base text-gray-900 focus:border-yellow-500 focus:outline-none"
+                  >
+                    <option value="">Seleziona...</option>
+                    {q.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
 
               <button
                 type="button"

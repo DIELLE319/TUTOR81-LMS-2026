@@ -5,6 +5,8 @@ import { eq, and, sql } from "drizzle-orm";
 
 const CF_MONTH_MAP: Record<string, number> = { A: 1, B: 2, C: 3, D: 4, E: 5, H: 6, L: 7, M: 8, P: 9, R: 10, S: 11, T: 12 };
 
+const MONTH_NAMES = ["", "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+
 function parseCF(cf: string) {
   if (!cf || cf.length < 16) return null;
   const upper = cf.toUpperCase();
@@ -13,9 +15,64 @@ function parseCF(cf: string) {
   const dayPart = parseInt(upper.substring(9, 11), 10);
   const month = CF_MONTH_MAP[monthLetter];
   if (!month) return null;
-  const day = dayPart > 40 ? dayPart - 40 : dayPart;
+  const isFemale = dayPart > 40;
+  const day = isFemale ? dayPart - 40 : dayPart;
   const year = yearPart > 30 ? 1900 + yearPart : 2000 + yearPart;
-  return { year, month, day };
+  const gender = isFemale ? "F" : "M";
+  return { year, month, day, gender };
+}
+
+type QuestionType = "birth_day" | "birth_month" | "birth_year" | "gender";
+
+interface CfQuestion {
+  id: QuestionType;
+  label: string;
+  type: "select";
+  options: { value: string; label: string }[];
+}
+
+function generateRandomQuestions(cfData: { year: number; month: number; day: number; gender: string }): CfQuestion[] {
+  const pool: CfQuestion[] = [
+    {
+      id: "birth_day",
+      label: "In che giorno sei nato/a?",
+      type: "select",
+      options: Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
+    },
+    {
+      id: "birth_month",
+      label: "In che mese sei nato/a?",
+      type: "select",
+      options: MONTH_NAMES.slice(1).map((m, i) => ({ value: String(i + 1), label: m })),
+    },
+    {
+      id: "birth_year",
+      label: "In che anno sei nato/a?",
+      type: "select",
+      options: Array.from({ length: 71 }, (_, i) => ({ value: String(2010 - i), label: String(2010 - i) })),
+    },
+    {
+      id: "gender",
+      label: "Qual è il tuo sesso?",
+      type: "select",
+      options: [{ value: "M", label: "Maschio" }, { value: "F", label: "Femmina" }],
+    },
+  ];
+  // Shuffle and pick 2
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, 2);
+}
+
+function getExpectedAnswer(cfData: { year: number; month: number; day: number; gender: string }, questionId: QuestionType): string {
+  switch (questionId) {
+    case "birth_day": return String(cfData.day);
+    case "birth_month": return String(cfData.month);
+    case "birth_year": return String(cfData.year);
+    case "gender": return cfData.gender;
+  }
 }
 
 export function registerPlayerRoutes(app: Express) {
@@ -90,7 +147,8 @@ export function registerPlayerRoutes(app: Express) {
       const cfData = parseCF(studentResults[0].fiscalCode || "");
       if (!cfData) return res.status(400).json({ success: false, error: "Dati utente incompleti. Contatta l'assistenza." });
 
-      res.json({ success: true, hasQuestions: true });
+      const questions = generateRandomQuestions(cfData);
+      res.json({ success: true, questions });
     } catch (error) {
       console.error("Check username error:", error);
       res.status(500).json({ error: "Errore durante la verifica" });
@@ -99,8 +157,8 @@ export function registerPlayerRoutes(app: Express) {
 
   app.post("/api/player/verify-identity", async (req, res) => {
     try {
-      const { username, birthDay, birthMonth, birthYear } = req.body;
-      if (!username || !birthDay || !birthMonth || !birthYear) return res.status(400).json({ error: "Tutti i campi sono obbligatori" });
+      const { username, answers } = req.body;
+      if (!username || !answers || !Array.isArray(answers)) return res.status(400).json({ error: "Tutti i campi sono obbligatori" });
 
       const parts = username.toLowerCase().trim().split(".");
       if (parts.length < 2) return res.status(400).json({ error: "Username non valido" });
@@ -114,8 +172,11 @@ export function registerPlayerRoutes(app: Express) {
       const cfData = parseCF(student.fiscalCode || "");
       if (!cfData) return res.status(400).json({ success: false, error: "Dati utente incompleti." });
 
-      if (parseInt(birthDay, 10) !== cfData.day || parseInt(birthMonth, 10) !== cfData.month || parseInt(birthYear, 10) !== cfData.year) {
-        return res.status(401).json({ success: false, error: "Le risposte non corrispondono. Riprova." });
+      for (const ans of answers) {
+        const expected = getExpectedAnswer(cfData, ans.questionId as QuestionType);
+        if (String(ans.value) !== expected) {
+          return res.status(401).json({ success: false, error: "Le risposte non corrispondono. Riprova." });
+        }
       }
 
       const enrollmentResults = await db.select({ id: schema.enrollments.id, courseTitle: schema.courses.title, licenseCode: schema.enrollments.licenseCode }).from(schema.enrollments).innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id)).where(and(eq(schema.enrollments.studentId, student.id), eq(schema.enrollments.status, "active"))).limit(1);
