@@ -106,16 +106,16 @@ export function registerTutorsRoutes(app: Express) {
       let tutorFilter = sql`1=1`;
       if (role < 1000 && tutorId) tutorFilter = sql`tutor_id = ${tutorId}`;
 
-      const [tutorsCount] = await db.execute(sql`SELECT COUNT(*)::int as count FROM tutors WHERE is_active = true`);
-      const [companiesCount] = await db.execute(sql`SELECT COUNT(*)::int as count FROM companies WHERE is_active = true AND ${tutorFilter}`);
-      const [salesCount] = await db.execute(sql`SELECT COUNT(*)::int as count FROM tutors_purchases WHERE ${tutorFilter}`);
-      const [usersCount] = await db.execute(sql`SELECT COUNT(*)::int as count FROM students WHERE ${tutorFilter}`);
+      const tutorsRes = await db.execute(sql`SELECT COUNT(*)::int as count FROM tutors WHERE is_active = true`);
+      const companiesRes = await db.execute(sql`SELECT COUNT(*)::int as count FROM companies WHERE is_active = true AND ${tutorFilter}`);
+      const salesRes = await db.execute(sql`SELECT COUNT(*)::int as count FROM tutors_purchases WHERE ${tutorFilter}`);
+      const usersRes = await db.execute(sql`SELECT COUNT(*)::int as count FROM students WHERE ${tutorFilter}`);
 
       res.json({
-        tutors: (tutorsCount as any).count || 0,
-        clients: (companiesCount as any).count || 0,
-        sales: (salesCount as any).count || 0,
-        users: (usersCount as any).count || 0,
+        tutors: (tutorsRes.rows[0] as any)?.count || 0,
+        clients: (companiesRes.rows[0] as any)?.count || 0,
+        sales: (salesRes.rows[0] as any)?.count || 0,
+        users: (usersRes.rows[0] as any)?.count || 0,
       });
     } catch (error) {
       console.error("Stats error:", error);
