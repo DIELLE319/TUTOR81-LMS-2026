@@ -146,6 +146,159 @@ export function registerPlayerRoutes(app: Express) {
     }
   });
 
+  // ============================================================
+  // CF PARSER — estrae data nascita e sesso dal codice fiscale
+  // ============================================================
+  const CF_MONTH_MAP: Record<string, number> = {
+    A: 1, B: 2, C: 3, D: 4, E: 5, H: 6,
+    L: 7, M: 8, P: 9, R: 10, S: 11, T: 12,
+  };
+
+  function parseCF(cf: string) {
+    if (!cf || cf.length < 16) return null;
+    const upper = cf.toUpperCase();
+    const yearPart = parseInt(upper.substring(6, 8), 10);
+    const monthLetter = upper.charAt(8);
+    const dayPart = parseInt(upper.substring(9, 11), 10);
+
+    const month = CF_MONTH_MAP[monthLetter];
+    if (!month) return null;
+
+    const day = dayPart > 40 ? dayPart - 40 : dayPart;
+    const sex = dayPart > 40 ? 'F' : 'M';
+    // Guess century: if yearPart > 30 assume 1900s, else 2000s
+    const year = yearPart > 30 ? 1900 + yearPart : 2000 + yearPart;
+
+    return { year, month, day, sex };
+  }
+
+  // POST /api/player/check-username — step 1: verifica che lo username esista
+  app.post("/api/player/check-username", async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) return res.status(400).json({ error: "Username richiesto" });
+
+      const parts = username.toLowerCase().trim().split(".");
+      if (parts.length < 2) {
+        return res.status(400).json({ error: "Username deve essere nel formato nome.cognome" });
+      }
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(".");
+
+      const studentResults = await db.select({
+        id: schema.students.id,
+        fiscalCode: schema.students.fiscalCode,
+      }).from(schema.students)
+        .where(and(
+          sql`LOWER(${schema.students.firstName}) = ${firstName}`,
+          sql`LOWER(${schema.students.lastName}) = ${lastName}`,
+        ))
+        .limit(1);
+
+      if (studentResults.length === 0) {
+        return res.status(404).json({ success: false, error: "Utente non trovato. Verifica il nome utente." });
+      }
+
+      const student = studentResults[0];
+      const cfData = parseCF(student.fiscalCode || '');
+
+      if (!cfData) {
+        return res.status(400).json({ success: false, error: "Dati utente incompleti. Contatta l'assistenza." });
+      }
+
+      // Return success but DON'T return the CF answers — just confirm the user exists
+      res.json({ success: true, hasQuestions: true });
+    } catch (error) {
+      console.error("Check username error:", error);
+      res.status(500).json({ error: "Errore durante la verifica" });
+    }
+  });
+
+  // POST /api/player/verify-identity — step 2: verifica risposte sul CF
+  app.post("/api/player/verify-identity", async (req, res) => {
+    try {
+      const { username, birthDay, birthMonth, birthYear } = req.body;
+      if (!username || !birthDay || !birthMonth || !birthYear) {
+        return res.status(400).json({ error: "Tutti i campi sono obbligatori" });
+      }
+
+      const parts = username.toLowerCase().trim().split(".");
+      if (parts.length < 2) {
+        return res.status(400).json({ error: "Username non valido" });
+      }
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(".");
+
+      const studentResults = await db.select().from(schema.students)
+        .where(and(
+          sql`LOWER(${schema.students.firstName}) = ${firstName}`,
+          sql`LOWER(${schema.students.lastName}) = ${lastName}`,
+        ))
+        .limit(1);
+
+      if (studentResults.length === 0) {
+        return res.status(401).json({ success: false, error: "Utente non trovato." });
+      }
+
+      const student = studentResults[0];
+      const cfData = parseCF(student.fiscalCode || '');
+
+      if (!cfData) {
+        return res.status(400).json({ success: false, error: "Dati utente incompleti." });
+      }
+
+      // Verify answers
+      const inputDay = parseInt(birthDay, 10);
+      const inputMonth = parseInt(birthMonth, 10);
+      const inputYear = parseInt(birthYear, 10);
+
+      if (inputDay !== cfData.day || inputMonth !== cfData.month || inputYear !== cfData.year) {
+        return res.status(401).json({ success: false, error: "Le risposte non corrispondono. Riprova." });
+      }
+
+      // Find active enrollment
+      const enrollmentResults = await db.select({
+        id: schema.enrollments.id,
+        courseId: schema.enrollments.courseId,
+        licenseCode: schema.enrollments.licenseCode,
+        progress: schema.enrollments.progress,
+        status: schema.enrollments.status,
+        startDate: schema.enrollments.startDate,
+        endDate: schema.enrollments.endDate,
+        courseTitle: schema.courses.title,
+      })
+        .from(schema.enrollments)
+        .innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+        .where(and(
+          eq(schema.enrollments.studentId, student.id),
+          eq(schema.enrollments.status, "active")
+        ))
+        .limit(1);
+
+      if (enrollmentResults.length === 0) {
+        return res.status(404).json({ success: false, error: "Nessun corso attivo trovato." });
+      }
+
+      const enrollment = enrollmentResults[0];
+
+      await db.update(schema.enrollments)
+        .set({ lastAccessAt: new Date() })
+        .where(eq(schema.enrollments.id, enrollment.id));
+
+      res.json({
+        success: true,
+        enrollment: {
+          id: enrollment.id,
+          courseName: enrollment.courseTitle,
+          licenseCode: enrollment.licenseCode,
+        },
+      });
+    } catch (error) {
+      console.error("Verify identity error:", error);
+      res.status(500).json({ error: "Errore durante la verifica" });
+    }
+  });
+
   // POST /api/player/login — login corsista (username + CF)
   app.post("/api/player/login", async (req, res) => {
     try {
