@@ -1,22 +1,15 @@
-import * as client from "openid-client";
-import { Strategy, type VerifyFunction } from "openid-client/passport";
-
-import passport from "passport";
+import crypto from "crypto";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
-import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
+import { users } from "@shared/models/auth";
+import { db } from "../../db";
+import { eq } from "drizzle-orm";
 
-const getOidcConfig = memoize(
-  async () => {
-    return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
-    );
-  },
-  { maxAge: 3600 * 1000 }
-);
+// In-memory cache to avoid DB lookup on every request
+const userCache = new Map<string, { data: any; ts: number }>();
+const CACHE_TTL = 60_000; // 1 min
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -27,117 +20,114 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
+  const isProduction = process.env.NODE_ENV === "production";
+  console.log("[Session] Config:", {
+    NODE_ENV: process.env.NODE_ENV,
+    secure: isProduction,
+    proxy: isProduction,
+  });
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || "tutor81-secret-change-me",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: isProduction,
       sameSite: "lax",
       maxAge: sessionTtl,
     },
   });
 }
 
-function updateUserSession(
-  user: any,
-  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
-) {
-  user.claims = tokens.claims();
-  user.access_token = tokens.access_token;
-  user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
-}
-
-async function upsertUser(claims: any) {
-  await authStorage.upsertUser({
-    id: claims["sub"],
-    email: claims["email"],
-    firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
-  });
+function hashPassword(password: string): string {
+  return crypto.createHash("sha256").update(password).digest("hex");
 }
 
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
-  app.use(passport.initialize());
-  app.use(passport.session());
 
-  const config = await getOidcConfig();
+  // POST /api/admin-login — email + password
+  app.post("/api/admin-login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      console.log("[LOGIN]", new Date().toISOString(), {
+        username,
+        ip: req.ip,
+      });
 
-  const verify: VerifyFunction = async (
-    tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
-    verified: passport.AuthenticateCallback
-  ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
-  };
-
-  // Keep track of registered strategies
-  const registeredStrategies = new Set<string>();
-
-  // Helper function to ensure strategy exists for a domain
-  const ensureStrategy = (domain: string) => {
-    const strategyName = `replitauth:${domain}`;
-    if (!registeredStrategies.has(strategyName)) {
-      const strategy = new Strategy(
-        {
-          name: strategyName,
-          config,
-          scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}/api/callback`,
-        },
-        verify
-      );
-      passport.use(strategy);
-      registeredStrategies.add(strategyName);
-    }
-  };
-
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
-
-  app.get("/api/login", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
-      scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
-  });
-
-  app.get("/api/callback", (req, res, next) => {
-    console.log("[Auth] Callback received for domain:", req.hostname);
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/login",
-    })(req, res, (err: any) => {
-      if (err) {
-        console.error("[Auth] Callback error:", err);
+      if (!username || !password) {
+        return res
+          .status(400)
+          .json({ error: "Email e password sono obbligatori." });
       }
-      next(err);
-    });
+
+      const email = username.trim().toLowerCase();
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email));
+
+      if (!user) {
+        return res
+          .status(401)
+          .json({ error: "Credenziali non valide. Utente non trovato." });
+      }
+
+      if (!user.passwordHash) {
+        return res
+          .status(401)
+          .json({ error: "Password non impostata per questo utente." });
+      }
+
+      const hash = hashPassword(password);
+      if (hash !== user.passwordHash) {
+        return res.status(401).json({ error: "Password errata." });
+      }
+
+      // Store user info in session
+      const sessionUser = {
+        claims: {
+          sub: user.id,
+          email: user.email,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          profile_image_url: user.profileImageUrl,
+        },
+        expires_at:
+          Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 1 week
+      };
+
+      (req.session as any).passport = { user: sessionUser };
+
+      // Invalidate cache
+      userCache.delete(user.id);
+
+      console.log("[LOGIN] Success:", user.email, "role:", user.role);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("[LOGIN] Error:", error);
+      res.status(500).json({ error: "Errore interno del server." });
+    }
   });
 
-  app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+  // GET /api/admin-logout
+  app.get("/api/admin-logout", (req, res) => {
+    const userId = (req.session as any)?.passport?.user?.claims?.sub;
+    if (userId) {
+      userCache.delete(userId);
+      console.log("[LOGOUT] Cache invalidated for user:", userId);
+    }
+    req.session.destroy((err) => {
+      if (err) console.error("[LOGOUT] Error:", err);
+      res.redirect("/");
     });
   });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // Dev mode bypass
   const authDisabled = /^(true|1|yes)$/i.test(process.env.DISABLE_AUTH ?? "");
   if (authDisabled) {
     if (!process.env.DATABASE_URL) {
@@ -145,23 +135,21 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
         message: "Auth bypass enabled but DATABASE_URL is missing",
       });
     }
-
     const devUserId = process.env.DEV_USER_ID || "dev-user";
     const devEmail = process.env.DEV_EMAIL || "dev@localhost";
     const devFirstName = process.env.DEV_FIRST_NAME || "Dev";
     const devLastName = process.env.DEV_LAST_NAME || "User";
     const devProfileImageUrl = process.env.DEV_PROFILE_IMAGE_URL || null;
-
     const roleRaw = process.env.DEV_ROLE || "1000";
-    const devRole = Number.isFinite(Number(roleRaw)) ? parseInt(roleRaw, 10) : 1000;
-
+    const devRole = Number.isFinite(Number(roleRaw))
+      ? parseInt(roleRaw, 10)
+      : 1000;
     const idcompanyRaw = process.env.DEV_IDCOMPANY;
     const devIdcompany =
       idcompanyRaw && Number.isFinite(Number(idcompanyRaw))
         ? parseInt(idcompanyRaw, 10)
         : undefined;
 
-    // Ensure downstream code relying on req.user/claims works.
     (req as any).isAuthenticated = () => true;
     (req as any).user = {
       claims: {
@@ -171,13 +159,9 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
         last_name: devLastName,
         profile_image_url: devProfileImageUrl,
       },
-      // "valid" for 10 years
-      expires_at: Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60,
-      access_token: null,
-      refresh_token: null,
+      expires_at:
+        Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60,
     };
-
-    // Upsert the user record so role-based checks can work in routes.
     try {
       await authStorage.upsertUser({
         id: devUserId,
@@ -192,34 +176,22 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       console.error("[auth] DEV user upsert failed:", e);
       return res.status(500).json({ message: "Failed to init dev user" });
     }
-
     return next();
   }
 
-  const user = req.user as any;
-
-  if (!req.isAuthenticated?.() || !user?.expires_at) {
+  // Check session
+  const sessionUser = (req.session as any)?.passport?.user;
+  if (!sessionUser?.claims?.sub) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
+  if (sessionUser.expires_at && now > sessionUser.expires_at) {
+    return res.status(401).json({ message: "Session expired" });
   }
 
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
-  try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
-    return next();
-  } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
+  // Attach user to request (compatible with existing route handlers)
+  (req as any).user = sessionUser;
+  (req as any).isAuthenticated = () => true;
+  return next();
 };

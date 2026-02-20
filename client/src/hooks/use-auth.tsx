@@ -19,18 +19,29 @@ async function fetchUser(): Promise<User | null> {
 }
 
 async function logoutFn(): Promise<void> {
-  window.location.href = "/api/logout";
+  await fetch("/api/admin-logout", { credentials: "include" });
+  window.location.href = "/";
 }
 
-function loginFn(): void {
-  window.location.href = "/api/login";
+async function loginFn(username: string, password: string): Promise<{ ok?: boolean; error?: string }> {
+  const res = await fetch("/api/admin-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    return { error: data.error || "Errore di login" };
+  }
+  return { ok: true };
 }
 
 interface AuthContextType {
   user: User | null | undefined;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: () => void;
+  login: (username: string, password: string) => Promise<{ ok?: boolean; error?: string }>;
   logout: () => void;
   isLoggingOut: boolean;
 }
@@ -54,11 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const login = async (username: string, password: string) => {
+    const result = await loginFn(username, password);
+    if (result.ok) {
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    }
+    return result;
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
     isAuthenticated: !!user,
-    login: loginFn,
+    login,
     logout: logoutMutation.mutate,
     isLoggingOut: logoutMutation.isPending,
   };

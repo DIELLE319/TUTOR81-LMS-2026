@@ -50,27 +50,17 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  const authDisabled = /^(true|1|yes)$/i.test(process.env.DISABLE_AUTH ?? "");
-
   const hasAuthEnv = Boolean(
-    process.env.REPL_ID &&
-      process.env.SESSION_SECRET &&
+    process.env.SESSION_SECRET &&
       process.env.DATABASE_URL,
   );
 
-  if (authDisabled) {
-    console.warn(
-      "[auth] DISABLE_AUTH is enabled. Replit/OIDC login is bypassed (use only on staging).",
-    );
-    registerAuthRoutes(app);
-    app.get("/api/login", (_req, res) => res.redirect("/"));
-    app.get("/api/logout", (_req, res) => res.status(204).end());
-  } else if (hasAuthEnv) {
+  if (hasAuthEnv) {
     await setupAuth(app);
     registerAuthRoutes(app);
   } else {
     console.warn(
-      "[auth] Missing REPL_ID / SESSION_SECRET / DATABASE_URL. Auth routes are disabled.",
+      "[auth] Missing SESSION_SECRET / DATABASE_URL. Auth routes are disabled.",
     );
     app.get("/api/auth/user", (_req, res) => res.json(null));
   }
@@ -80,7 +70,7 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
-  // Marker page to visually distinguish this app from legacy/Replit deployments.
+  // Marker page to visually distinguish this app from legacy deployments.
   // Useful when multiple platforms share similar URLs.
   app.get("/admin-login", (req, res) => {
     const host = req.headers.host || req.hostname;
@@ -109,7 +99,7 @@ export async function registerRoutes(
   <body>
     <div class="card">
       <h1>Questa e8 la nuova <strong>Tutor81 LMS</strong></h1>
-      <p>Pagina di riconoscimento (marker) per distinguere la LMS su VPS da legacy/Replit.</p>
+      <p>Pagina di riconoscimento (marker) per distinguere la LMS su VPS da legacy.</p>
       <div class="row">
         <a href="/">Apri App</a>
         <a class="secondary" href="/api/health">/api/health</a>
@@ -694,7 +684,7 @@ export async function registerRoutes(
         return res.json({ exists: false });
       }
       
-      // Controlla su Replit
+      // Controlla su DB locale
       const existingStudent = await db.select({
         id: schema.students.id,
         firstName: schema.students.firstName,
