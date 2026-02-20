@@ -268,7 +268,43 @@ export const quizAnswers = pgTable("quiz_answers", {
 });
 
 // ============================================================
-// TABELLA 12: ADMIN USERS (per accesso al sistema)
+// TABELLA 12: SESSION LOGS (entrate/uscite dal corso)
+// Ogni accesso al player viene registrato
+// ============================================================
+export const sessionLogs = pgTable("session_logs", {
+  id: serial("id").primaryKey(),
+  enrollmentId: integer("enrollment_id").references(() => enrollments.id).notNull(),
+  studentId: integer("student_id").references(() => students.id).notNull(),
+  courseId: integer("course_id").references(() => courses.id).notNull(),
+  loginAt: timestamp("login_at").defaultNow(),
+  logoutAt: timestamp("logout_at"),
+  durationSeconds: integer("duration_seconds").default(0),
+  ipAddress: text("ip_address"),
+  lastLoId: integer("last_lo_id"),
+  lastLessonIndex: integer("last_lesson_index"),
+  lastLoIndex: integer("last_lo_index"),
+});
+
+// ============================================================
+// TABELLA 13: QUIZ RESPONSES (risposte alle domande)
+// Ogni risposta data dallo studente viene registrata
+// ============================================================
+export const quizResponses = pgTable("quiz_responses", {
+  id: serial("id").primaryKey(),
+  enrollmentId: integer("enrollment_id").references(() => enrollments.id).notNull(),
+  studentId: integer("student_id").references(() => students.id).notNull(),
+  questionId: integer("question_id").references(() => quizQuestions.id).notNull(),
+  answerId: integer("answer_id").references(() => quizAnswers.id),
+  isCorrect: boolean("is_correct").default(false),
+  timedOut: boolean("timed_out").default(false),
+  responseTimeSeconds: integer("response_time_seconds"),
+  learningObjectId: integer("learning_object_id"),
+  sessionLogId: integer("session_log_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ============================================================
+// TABELLA 14: ADMIN USERS (per accesso al sistema)
 // ============================================================
 export const adminUsers = pgTable("admin_users", {
   id: serial("id").primaryKey(),
