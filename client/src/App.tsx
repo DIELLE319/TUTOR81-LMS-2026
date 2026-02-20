@@ -17,6 +17,7 @@ const Feedback = lazy(() => import("@/pages/Feedback"));
 const Invoicing = lazy(() => import("@/pages/Invoicing"));
 const Videoconference = lazy(() => import("@/pages/Videoconference"));
 const CreateCompany = lazy(() => import("@/pages/CreateCompany"));
+const Tutors = lazy(() => import("@/pages/Tutors"));
 const PlayerLogin = lazy(() => import("@/pages/PlayerLogin"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -79,6 +80,9 @@ function AppRoutes() {
         </Route>
         <Route path="/videoconference">
           <ProtectedRoute><Videoconference /></ProtectedRoute>
+        </Route>
+        <Route path="/tutors">
+          <ProtectedRoute><Tutors /></ProtectedRoute>
         </Route>
         <Route><NotFound /></Route>
       </Switch>

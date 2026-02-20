@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   LayoutDashboard, BookOpen, Users, Building2, GraduationCap, Award,
   FileText, BarChart3, MessageSquare, Video, LogOut, Menu, X,
-  Receipt, Bell,
+  Receipt, Bell, Shield,
 } from "lucide-react";
 
 const NAV_SECTIONS = [
@@ -19,6 +19,7 @@ const NAV_SECTIONS = [
   {
     title: "Gestione",
     items: [
+      { href: "/tutors", label: "Enti Formativi", icon: Shield },
       { href: "/clients", label: "Elenco Clienti", icon: Building2 },
       { href: "/users", label: "Utenti", icon: Users },
       { href: "/certificates", label: "Attestati", icon: Award },

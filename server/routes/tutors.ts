@@ -4,6 +4,24 @@ import { db, hasDatabase } from "../db";
 import * as schema from "@shared/schema";
 import { eq, sql, and, desc } from "drizzle-orm";
 import { getAuthenticatedDbUser } from "./helpers";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+const UPLOADS_DIR = path.resolve(process.cwd(), "uploads", "logos");
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const logoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    filename: (_req, file, cb) => cb(null, `tutor-${Date.now()}${path.extname(file.originalname)}`),
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp"];
+    cb(null, allowed.includes(path.extname(file.originalname).toLowerCase()));
+  },
+});
 
 export function registerTutorsRoutes(app: Express) {
   app.get("/api/tutors", isAuthenticated, async (req, res) => {
@@ -96,6 +114,24 @@ export function registerTutorsRoutes(app: Express) {
       res.status(500).json({ error: "Failed to delete tutor admin" });
     }
   });
+
+  // Logo upload
+  app.post("/api/tutors/:id/logo", isAuthenticated, logoUpload.single("logo"), async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (!req.file) return res.status(400).json({ error: "Nessun file caricato" });
+      const logoUrl = `/uploads/logos/${req.file.filename}`;
+      await db.update(schema.tutors).set({ logoUrl }).where(eq(schema.tutors.id, id));
+      res.json({ success: true, logoUrl });
+    } catch (error) {
+      console.error("Logo upload error:", error);
+      res.status(500).json({ error: "Upload fallito" });
+    }
+  });
+
+  // Serve uploaded logos
+  const express = require("express");
+  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
   app.get("/api/stats", isAuthenticated, async (req, res) => {
     try {
