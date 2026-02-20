@@ -9,7 +9,7 @@ export function serveStatic(app: express.Express) {
     return;
   }
   app.use(express.static(distPath, { maxAge: "1y", immutable: true }));
-  app.get("*", (_req, res) => {
+  app.get("{*path}", (_req, res) => {
     res.sendFile(path.join(distPath, "index.html"));
   });
 }
