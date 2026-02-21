@@ -525,9 +525,8 @@ export default function Tutors() {
                 </div>
               </div>
 
-              {/* AMMINISTRATORE - solo in creazione */}
-              {isNew && (
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+              {/* AMMINISTRATORE */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
                   <h3 className="text-sm font-bold text-blue-400 mb-3 flex items-center gap-2">
                     <User size={14} /> Amministratore Ente Formativo
                   </h3>
@@ -575,7 +574,6 @@ export default function Tutors() {
                     </>
                   )}
                 </div>
-              )}
 
               {/* PIANO DI ABBONAMENTO */}
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">

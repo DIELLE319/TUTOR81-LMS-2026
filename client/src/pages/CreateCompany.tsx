@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,13 +15,7 @@ export default function CreateCompany() {
 
   const [formData, setFormData] = useState({
     businessName: "", vatNumber: "", fiscalCode: "", address: "", city: "", cap: "", province: "",
-    phone: "", email: "", pec: "", sdiCode: "", contactPerson: "", contactEmail: "", contactPhone: "", notes: "", tutorId: 0,
-  });
-
-  const { data: tutors = [] } = useQuery<{ id: number; businessName: string }[]>({
-    queryKey: ["tutors-for-companies"],
-    queryFn: () => fetch("/api/tutors-for-companies", { credentials: "include" }).then((r) => r.json()),
-    enabled: (user?.role ?? 0) >= 1000,
+    phone: "", email: "", pec: "", contactPerson: "", contactEmail: "", contactPhone: "", notes: "",
   });
 
   const createMut = useMutation({
@@ -38,8 +32,7 @@ export default function CreateCompany() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.businessName.trim()) { toast({ title: "Inserisci la ragione sociale", variant: "destructive" }); return; }
-    const { tutorId, ...rest } = formData;
-    createMut.mutate({ ...rest, tutorId: tutorId > 0 ? tutorId : null });
+    createMut.mutate(formData);
   };
 
   const update = (field: string, value: string | number) => setFormData((p) => ({ ...p, [field]: value }));
@@ -55,16 +48,6 @@ export default function CreateCompany() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Ente Formativo bar */}
-        <div className="bg-yellow-500 rounded-xl px-5 py-3 flex items-center gap-3">
-          <span className="text-sm font-bold text-black">Ente Formativo:</span>
-          <select value={formData.tutorId} onChange={(e) => update("tutorId", parseInt(e.target.value))}
-            className="h-8 px-3 border border-yellow-600 rounded text-sm bg-white text-gray-900 min-w-[250px]">
-            <option value={0}>--- Seleziona Ente ---</option>
-            {tutors.map((t) => <option key={t.id} value={t.id}>{t.businessName}</option>)}
-          </select>
-        </div>
-
         {/* DATI AZIENDA */}
         <div className="border border-yellow-500/30 rounded-xl overflow-hidden">
           <div className="bg-yellow-500/10 px-5 py-2">
@@ -116,10 +99,6 @@ export default function CreateCompany() {
                 <label className="block text-xs text-gray-400 mb-1">PEC</label>
                 <input type="email" value={formData.pec} onChange={(e) => update("pec", e.target.value)} placeholder="azienda@pec.it" className={inputCls} />
               </div>
-            </div>
-            <div className="max-w-xs">
-              <label className="block text-xs text-gray-400 mb-1">Codice SDI</label>
-              <input type="text" value={formData.sdiCode} onChange={(e) => update("sdiCode", e.target.value)} placeholder="XXXXXXX" className={inputCls} />
             </div>
           </div>
         </div>
