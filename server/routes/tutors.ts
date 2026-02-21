@@ -55,9 +55,21 @@ export function registerTutorsRoutes(app: Express) {
     }
   });
 
+  const sanitizeTutorBody = (body: any) => {
+    const b = { ...body };
+    delete b.id;
+    delete b.createdAt;
+    if (b.subscriptionStart === "") b.subscriptionStart = null;
+    if (b.subscriptionEnd === "") b.subscriptionEnd = null;
+    if (b.discountPercentage === "") b.discountPercentage = 60;
+    if (b.annualFee === "") b.annualFee = 0;
+    return b;
+  };
+
   app.post("/api/tutors", isAuthenticated, async (req, res) => {
     try {
-      const [tutor] = await db.insert(schema.tutors).values(req.body).returning();
+      const values = sanitizeTutorBody(req.body);
+      const [tutor] = await db.insert(schema.tutors).values(values).returning();
       res.json(tutor);
     } catch (error) {
       console.error("Create tutor error:", error);
@@ -68,7 +80,8 @@ export function registerTutorsRoutes(app: Express) {
   app.patch("/api/tutors/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const [tutor] = await db.update(schema.tutors).set(req.body).where(eq(schema.tutors.id, id)).returning();
+      const values = sanitizeTutorBody(req.body);
+      const [tutor] = await db.update(schema.tutors).set(values).where(eq(schema.tutors.id, id)).returning();
       res.json(tutor);
     } catch (error) {
       res.status(500).json({ error: "Failed to update tutor" });
@@ -105,6 +118,24 @@ export function registerTutorsRoutes(app: Express) {
     }
   });
 
+  app.post("/api/tutors/send-admin-email", isAuthenticated, async (req, res) => {
+    try {
+      const { email, name, username, tutorName } = req.body;
+      if (!email || !name) return res.status(400).json({ error: "Email e nome richiesti" });
+
+      const { sendAdminWelcomeEmail } = require("../email");
+      const result = await sendAdminWelcomeEmail({ to: email, name, username, tutorName });
+      if (result.success) {
+        res.json({ success: true });
+      } else {
+        res.status(500).json({ error: result.error || "Invio fallito" });
+      }
+    } catch (error) {
+      console.error("Send admin email error:", error);
+      res.status(500).json({ error: "Failed to send email" });
+    }
+  });
+
   app.delete("/api/tutor-admins/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -136,22 +167,36 @@ export function registerTutorsRoutes(app: Express) {
   app.get("/api/stats", isAuthenticated, async (req, res) => {
     try {
       const dbUser = await getAuthenticatedDbUser(req);
-      const role = dbUser?.role ?? 0;
-      const tutorId = dbUser?.tutor_id;
+      const role = (dbUser?.role as number) ?? 0;
+      const tutorId = dbUser?.tutor_id as number | null;
 
-      let tutorFilter = sql`1=1`;
-      if (role < 1000 && tutorId) tutorFilter = sql`tutor_id = ${tutorId}`;
+      const allTutors = await db.select({ id: schema.tutors.id }).from(schema.tutors).where(eq(schema.tutors.isActive, true));
 
-      const tutorsRes = await db.execute(sql`SELECT COUNT(*)::int as count FROM tutors WHERE is_active = true`);
-      const companiesRes = await db.execute(sql`SELECT COUNT(*)::int as count FROM companies WHERE is_active = true AND ${tutorFilter}`);
-      const salesRes = await db.execute(sql`SELECT COUNT(*)::int as count FROM tutors_purchases WHERE ${tutorFilter}`);
-      const usersRes = await db.execute(sql`SELECT COUNT(*)::int as count FROM students WHERE ${tutorFilter}`);
+      let companiesQuery;
+      let studentsQuery;
+      let salesQuery;
+      if (role >= 1000) {
+        companiesQuery = await db.select({ id: schema.companies.id }).from(schema.companies).where(eq(schema.companies.isActive, true));
+        studentsQuery = await db.select({ id: schema.students.id }).from(schema.students);
+        salesQuery = await db.select({ id: schema.tutorsPurchases.id }).from(schema.tutorsPurchases);
+      } else if (tutorId) {
+        companiesQuery = await db.select({ id: schema.companies.id }).from(schema.companies).where(and(eq(schema.companies.tutorId, tutorId), eq(schema.companies.isActive, true)));
+        const companyIds = companiesQuery.map((c) => c.id);
+        studentsQuery = companyIds.length > 0
+          ? await db.select({ id: schema.students.id }).from(schema.students).where(sql`${schema.students.companyId} IN (${sql.join(companyIds.map(id => sql`${id}`), sql`,`)})`)
+          : [];
+        salesQuery = await db.select({ id: schema.tutorsPurchases.id }).from(schema.tutorsPurchases).where(eq(schema.tutorsPurchases.tutorId, tutorId));
+      } else {
+        companiesQuery = [];
+        studentsQuery = [];
+        salesQuery = [];
+      }
 
       res.json({
-        tutors: (tutorsRes.rows[0] as any)?.count || 0,
-        clients: (companiesRes.rows[0] as any)?.count || 0,
-        sales: (salesRes.rows[0] as any)?.count || 0,
-        users: (usersRes.rows[0] as any)?.count || 0,
+        tutors: allTutors.length,
+        clients: companiesQuery.length,
+        sales: salesQuery.length,
+        users: studentsQuery.length,
       });
     } catch (error) {
       console.error("Stats error:", error);

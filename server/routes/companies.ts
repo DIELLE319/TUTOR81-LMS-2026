@@ -121,10 +121,29 @@ export function registerCompaniesRoutes(app: Express) {
   app.post("/api/companies", isAuthenticated, async (req: any, res) => {
     try {
       const dbUser = await getAuthenticatedDbUser(req);
-      const tutorId = dbUser?.tutor_id as number | null;
-      const body = { ...req.body };
-      if (!body.tutorId && tutorId) body.tutorId = tutorId;
-      const [company] = await db.insert(schema.companies).values(body).returning();
+      const userTutorId = dbUser?.tutor_id as number | null;
+      const b = req.body;
+
+      const tutorId = (b.tutorId && b.tutorId > 0) ? b.tutorId : userTutorId;
+      if (!tutorId) return res.status(400).json({ error: "Seleziona un ente formativo" });
+
+      const values: any = {
+        tutorId,
+        businessName: b.businessName || "Senza nome",
+        vatNumber: b.vatNumber || null,
+        fiscalCode: b.fiscalCode || null,
+        address: b.address || null,
+        city: b.city || null,
+        cap: b.cap || null,
+        province: b.province || null,
+        phone: b.phone || null,
+        email: b.email || null,
+        pec: b.pec || null,
+        contactPerson: b.contactPerson || null,
+        notes: b.notes || null,
+      };
+
+      const [company] = await db.insert(schema.companies).values(values).returning();
       res.json(company);
     } catch (error) {
       console.error("Create company error:", error);

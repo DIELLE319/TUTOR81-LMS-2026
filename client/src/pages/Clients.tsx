@@ -1,91 +1,156 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ChevronDown, ChevronRight, Plus, Search, Download } from "lucide-react";
+import { Plus, Search, Download, FileSpreadsheet, Star } from "lucide-react";
 
 interface Client { id: number; businessName: string; city: string | null; phone: string | null; email: string | null; contactPerson: string | null }
 interface TutorGroup { tutor: { id: number; businessName: string; subscriptionType: string | null }; clients: Client[] }
 
 export default function Clients() {
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<number[]>([]);
+  const [enteFilter, setEnteFilter] = useState("all");
+  const [pageSize, setPageSize] = useState(100);
+  const [page, setPage] = useState(1);
 
   const { data: groups = [], isLoading } = useQuery<TutorGroup[]>({
     queryKey: ["clients"],
     queryFn: () => fetch("/api/clients", { credentials: "include" }).then((r) => r.json()),
   });
 
-  const toggle = (id: number) => setExpanded((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const allClients = useMemo(() => {
+    const list: (Client & { tutorLabel: string })[] = [];
+    for (const g of groups) {
+      for (const c of g.clients) {
+        list.push({ ...c, tutorLabel: `#${g.tutor.id} ${g.tutor.businessName}` });
+      }
+    }
+    return list;
+  }, [groups]);
 
-  const filtered = useMemo(() => groups.map((g) => ({
-    ...g,
-    clients: g.clients.filter((c) => !search || c.businessName.toLowerCase().includes(search.toLowerCase()) || c.contactPerson?.toLowerCase().includes(search.toLowerCase())),
-  })).filter((g) => g.clients.length > 0), [groups, search]);
+  const enti = useMemo(() => {
+    const set = new Set(groups.map((g) => g.tutor.businessName));
+    return Array.from(set).sort();
+  }, [groups]);
 
-  useEffect(() => {
-    if (filtered.length > 0 && expanded.length === 0) setExpanded(filtered.map((g) => g.tutor.id));
-  }, [filtered.length]);
+  const filtered = useMemo(() => {
+    setPage(1);
+    return allClients.filter((c) => {
+      if (enteFilter !== "all" && !c.tutorLabel.includes(enteFilter)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return c.businessName.toLowerCase().includes(q) || (c.city || "").toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.contactPerson || "").toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [allClients, search, enteFilter]);
 
-  const totalClients = filtered.reduce((sum, g) => sum + g.clients.length, 0);
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const exportCsv = () => {
+    const header = "ID;Ente Formativo;Cliente;Città;Tel;Email\n";
+    const rows = filtered.map((c) => `${c.id};${c.tutorLabel};${c.businessName};${c.city || ""};${c.phone || ""};${c.email || ""}`).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "aziende-clienti.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div>
-      {/* Filter bar */}
-      <div className="bg-gray-800 rounded-xl p-4 mb-4 flex flex-wrap items-end gap-4">
-        <div className="flex-1 min-w-[200px]">
-          <label className="block text-xs text-gray-300 mb-1">Cerca azienda</label>
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nome azienda o referente..."
-              className="w-full h-9 pl-9 pr-3 bg-white border-0 rounded text-sm text-gray-900" />
-          </div>
-        </div>
-        <div className="text-xs text-gray-300 self-center">{totalClients} clienti in {filtered.length} enti</div>
-        <Link href="/create-company" className="h-9 px-4 bg-yellow-500 text-black rounded text-sm font-bold flex items-center gap-2 hover:bg-yellow-600">
-          <Plus size={14} />Nuova Azienda
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-yellow-500">Aziende Clienti</h1>
+        <Link href="/create-company" className="h-8 px-4 bg-yellow-500 text-black rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-yellow-600">
+          <Star size={13} />Nuovo Cliente
         </Link>
       </div>
 
-      {isLoading ? <div className="text-center py-12 text-gray-500">Caricamento...</div> : filtered.length === 0 ? <div className="text-center py-12 text-gray-500">Nessun cliente trovato</div> : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {filtered.map((g) => (
-            <div key={g.tutor.id}>
-              <button onClick={() => toggle(g.tutor.id)}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 text-left">
-                {expanded.includes(g.tutor.id) ? <ChevronDown size={16} className="text-gray-500" /> : <ChevronRight size={16} className="text-gray-500" />}
-                <span className="font-bold text-gray-800 text-sm">{g.tutor.businessName}</span>
-                <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">{g.clients.length} clienti</span>
-                {g.tutor.subscriptionType && <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-yellow-500 text-black">{g.tutor.subscriptionType}</span>}
-              </button>
-              {expanded.includes(g.tutor.id) && (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-yellow-500 text-black text-xs font-bold uppercase tracking-wide">
-                      <th className="p-3 text-left w-12">ID</th>
-                      <th className="p-3 text-left">Azienda</th>
-                      <th className="p-3 text-left">Referente</th>
-                      <th className="p-3 text-left">Email</th>
-                      <th className="p-3 text-left">Telefono</th>
-                      <th className="p-3 text-left">Città</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {g.clients.map((c) => (
-                      <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="p-3 text-gray-400 font-mono text-xs">{c.id}</td>
-                        <td className="p-3 font-medium text-gray-900 text-xs">{c.businessName}</td>
-                        <td className="p-3 text-gray-600 text-xs">{c.contactPerson || "—"}</td>
-                        <td className="p-3 text-gray-600 text-xs">{c.email || "—"}</td>
-                        <td className="p-3 text-gray-600 text-xs">{c.phone || "—"}</td>
-                        <td className="p-3 text-gray-500 text-xs">{c.city || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          ))}
+      {/* Yellow toolbar */}
+      <div className="bg-yellow-500 rounded-t-xl px-4 py-2.5 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-black">Show</span>
+          <select value={pageSize} onChange={(e) => { setPageSize(parseInt(e.target.value)); setPage(1); }}
+            className="h-7 px-2 border border-yellow-600 rounded text-xs bg-white text-gray-900">
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value={500}>500</option>
+          </select>
         </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-black">Cerca:</span>
+          <div className="relative">
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Azienda, città, email..."
+              className="h-7 w-48 px-2.5 pr-7 border border-yellow-600 rounded text-xs bg-white text-gray-900 placeholder-gray-400" />
+            <Search size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+        <select value={enteFilter} onChange={(e) => setEnteFilter(e.target.value)}
+          className="h-7 px-2 border border-yellow-600 rounded text-xs bg-white text-gray-900 max-w-[200px]">
+          <option value="all">--- Tutti gli Enti ---</option>
+          {enti.map((e) => <option key={e} value={e}>{e}</option>)}
+        </select>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-sm font-bold text-black">Totale: {filtered.length} aziende</span>
+          <button onClick={exportCsv} className="h-7 px-3 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700 flex items-center gap-1 hover:bg-gray-50">
+            <Download size={12} />CSV
+          </button>
+          <button onClick={exportCsv} className="h-7 px-3 bg-green-600 text-white rounded text-xs font-bold flex items-center gap-1 hover:bg-green-700">
+            <FileSpreadsheet size={12} />Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Sub-bar with Nuova Azienda */}
+      <div className="bg-[#141414] border-x border-white/5 px-4 py-2 flex justify-end">
+        <Link href="/create-company" className="h-7 px-3 bg-white/5 border border-white/10 text-gray-300 rounded text-xs flex items-center gap-1.5 hover:bg-white/10">
+          <Plus size={12} />Nuova Azienda
+        </Link>
+      </div>
+
+      {isLoading ? <div className="text-center py-12 text-gray-500">Caricamento...</div> : filtered.length === 0 ? <div className="text-center py-12 text-gray-500 bg-[#141414] rounded-b-xl">Nessun cliente trovato</div> : (
+        <>
+          <div className="bg-[#141414] rounded-b-xl border border-white/5 border-t-0 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-yellow-500 text-black text-[11px] font-bold uppercase">
+                  <th className="p-2.5 text-left">ID</th>
+                  <th className="p-2.5 text-left">Ente Formativo</th>
+                  <th className="p-2.5 text-left">Cliente</th>
+                  <th className="p-2.5 text-left">Città</th>
+                  <th className="p-2.5 text-left">Tel</th>
+                  <th className="p-2.5 text-left">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((c, i) => (
+                  <tr key={c.id} className={`border-b border-white/5 ${i % 2 === 0 ? "bg-[#141414]" : "bg-[#1a1a1a]"}`}>
+                    <td className="p-2.5 text-yellow-500 font-bold text-xs">{c.id}</td>
+                    <td className="p-2.5 text-gray-400 text-xs">{c.tutorLabel}</td>
+                    <td className="p-2.5 text-gray-200 text-xs font-medium">{c.businessName}</td>
+                    <td className="p-2.5 text-gray-400 text-xs">{c.city || "—"}</td>
+                    <td className="p-2.5 text-gray-400 text-xs">{c.phone || "—"}</td>
+                    <td className="p-2.5 text-gray-400 text-xs">{c.email || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-3 px-1">
+              <span className="text-xs text-gray-500">{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} di {filtered.length}</span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage(1)} disabled={page === 1} className="h-7 px-2 text-xs rounded bg-white/5 text-gray-400 hover:bg-white/10 disabled:opacity-30">«</button>
+                <button onClick={() => setPage(page - 1)} disabled={page === 1} className="h-7 px-2 text-xs rounded bg-white/5 text-gray-400 hover:bg-white/10 disabled:opacity-30">‹</button>
+                <span className="px-3 text-xs text-gray-400">{page}/{totalPages}</span>
+                <button onClick={() => setPage(page + 1)} disabled={page === totalPages} className="h-7 px-2 text-xs rounded bg-white/5 text-gray-400 hover:bg-white/10 disabled:opacity-30">›</button>
+                <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className="h-7 px-2 text-xs rounded bg-white/5 text-gray-400 hover:bg-white/10 disabled:opacity-30">»</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

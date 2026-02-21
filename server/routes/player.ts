@@ -185,7 +185,7 @@ export function registerPlayerRoutes(app: Express) {
       const enrollment = enrollmentResults[0];
       await db.update(schema.enrollments).set({ lastAccessAt: new Date() }).where(eq(schema.enrollments.id, enrollment.id));
 
-      res.json({ success: true, enrollment: { id: enrollment.id, courseName: enrollment.courseTitle, licenseCode: enrollment.licenseCode } });
+      res.json({ success: true, student: { id: student.id, firstName: student.firstName, lastName: student.lastName, companyId: student.companyId }, enrollment: { id: enrollment.id, courseName: enrollment.courseTitle, licenseCode: enrollment.licenseCode } });
     } catch (error) {
       console.error("Verify identity error:", error);
       res.status(500).json({ error: "Errore durante la verifica" });
@@ -285,6 +285,107 @@ export function registerPlayerRoutes(app: Express) {
       res.json(progress);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch LO progress" });
+    }
+  });
+
+  // Get all enrollments for a student (for player dashboard)
+  app.get("/api/player/student/:studentId/enrollments", async (req, res) => {
+    try {
+      const studentId = parseInt(req.params.studentId as string);
+      const results = await db
+        .select({
+          id: schema.enrollments.id,
+          courseId: schema.enrollments.courseId,
+          courseTitle: schema.courses.title,
+          courseHours: schema.courses.hours,
+          courseCategory: schema.courses.category,
+          courseSubcategory: schema.courses.subcategory,
+          licenseCode: schema.enrollments.licenseCode,
+          progress: schema.enrollments.progress,
+          status: schema.enrollments.status,
+          startDate: schema.enrollments.startDate,
+          endDate: schema.enrollments.endDate,
+          lastAccessAt: schema.enrollments.lastAccessAt,
+          completedAt: schema.enrollments.completedAt,
+        })
+        .from(schema.enrollments)
+        .innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+        .where(eq(schema.enrollments.studentId, studentId))
+        .orderBy(schema.enrollments.createdAt);
+      res.json(results);
+    } catch (error) {
+      console.error("Student enrollments error:", error);
+      res.status(500).json({ error: "Failed to fetch enrollments" });
+    }
+  });
+
+  // Recalculate overall enrollment progress based on completed LOs
+  app.post("/api/player/recalc-progress/:enrollmentId", async (req, res) => {
+    try {
+      const enrollmentId = parseInt(req.params.enrollmentId as string);
+      const [enrollment] = await db.select().from(schema.enrollments).where(eq(schema.enrollments.id, enrollmentId));
+      if (!enrollment) return res.status(404).json({ error: "Enrollment not found" });
+
+      // Count total LOs for this course
+      const courseId = enrollment.courseId;
+      const cms = await db.select().from(schema.courseModules).where(eq(schema.courseModules.courseId, courseId));
+      let totalLOs = 0;
+      for (const cm of cms) {
+        const mls = await db.select().from(schema.moduleLessons).where(eq(schema.moduleLessons.moduleId, cm.moduleId));
+        for (const ml of mls) {
+          const llos = await db.select().from(schema.lessonLearningObjects).where(eq(schema.lessonLearningObjects.lessonId, ml.lessonId));
+          totalLOs += llos.length;
+        }
+      }
+
+      // Count completed LOs
+      const completedLOs = await db.select().from(schema.enrollmentProgress)
+        .where(and(eq(schema.enrollmentProgress.enrollmentId, enrollmentId), eq(schema.enrollmentProgress.completed, true)));
+
+      const progress = totalLOs > 0 ? Math.round((completedLOs.length / totalLOs) * 100) : 0;
+      const isCompleted = progress >= 100;
+
+      await db.update(schema.enrollments).set({
+        progress,
+        ...(isCompleted && !enrollment.completedAt ? { completedAt: new Date(), status: "completed" } : {}),
+      }).where(eq(schema.enrollments.id, enrollmentId));
+
+      res.json({ success: true, progress, completed: isCompleted, totalLOs, completedLOs: completedLOs.length });
+    } catch (error) {
+      console.error("Recalc progress error:", error);
+      res.status(500).json({ error: "Failed to recalculate progress" });
+    }
+  });
+
+  // Get full enrollment details for the player
+  app.get("/api/player/enrollment/:enrollmentId", async (req, res) => {
+    try {
+      const enrollmentId = parseInt(req.params.enrollmentId as string);
+      const [enrollment] = await db.select({
+        id: schema.enrollments.id,
+        studentId: schema.enrollments.studentId,
+        courseId: schema.enrollments.courseId,
+        courseTitle: schema.courses.title,
+        courseDescription: schema.courses.description,
+        courseHours: schema.courses.hours,
+        courseCategory: schema.courses.category,
+        maxExecutionTime: schema.courses.maxExecutionTime,
+        percentageToPass: schema.courses.percentageToPass,
+        licenseCode: schema.enrollments.licenseCode,
+        progress: schema.enrollments.progress,
+        status: schema.enrollments.status,
+        startDate: schema.enrollments.startDate,
+        endDate: schema.enrollments.endDate,
+        lastAccessAt: schema.enrollments.lastAccessAt,
+        completedAt: schema.enrollments.completedAt,
+      }).from(schema.enrollments)
+        .innerJoin(schema.courses, eq(schema.enrollments.courseId, schema.courses.id))
+        .where(eq(schema.enrollments.id, enrollmentId));
+
+      if (!enrollment) return res.status(404).json({ error: "Enrollment not found" });
+      res.json(enrollment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch enrollment" });
     }
   });
 }

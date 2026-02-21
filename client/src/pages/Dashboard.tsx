@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Link } from "wouter";
-import { Building2, Users, GraduationCap, FileText, BookOpen, ShoppingCart, Award, ArrowRight, Activity, TrendingUp } from "lucide-react";
+import { Award, Activity, AlertTriangle, Clock, Mail, Users, Shield, FileCheck } from "lucide-react";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
   const { data: stats } = useQuery<{ tutors: number; clients: number; sales: number; users: number }>({
     queryKey: ["stats"],
     queryFn: () => fetch("/api/stats", { credentials: "include" }).then((r) => r.json()),
@@ -15,134 +17,158 @@ export default function Dashboard() {
     queryFn: () => fetch("/api/enrollments", { credentials: "include" }).then((r) => r.json()),
   });
 
-  const recent = recentEnrollments.slice(0, 5);
+  const { data: tutorData } = useQuery<any>({
+    queryKey: ["my-tutor", user?.tutorId],
+    queryFn: () => fetch(`/api/tutors/${user!.tutorId}`, { credentials: "include" }).then((r) => r.json()),
+    enabled: !!user?.tutorId,
+  });
+
+  const completed = recentEnrollments.filter((e: any) => e.status === "completed").length;
+  const active = recentEnrollments.filter((e: any) => e.status === "active" && e.progress > 0).length;
+  const expired = recentEnrollments.filter((e: any) => {
+    if (!e.endDate) return false;
+    return new Date(e.endDate).getTime() < Date.now();
+  }).length;
+  const neverStarted = recentEnrollments.filter((e: any) => e.status === "active" && e.progress === 0).length;
 
   return (
     <div className="space-y-6">
-      {/* Hero banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-8">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-yellow-500/5 rounded-full translate-y-1/2 -translate-x-1/4" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-black font-black text-lg shadow-lg shadow-yellow-500/30">T</div>
-            <div>
-              <h1 className="text-2xl font-bold">Benvenuto, {user?.firstName || "Admin"}</h1>
-              <p className="text-gray-400 text-sm">{user?.tutorName || "TUTOR 81 LMS"}</p>
-            </div>
-          </div>
-          <p className="text-gray-300 text-sm mt-3 max-w-lg">
-            Gestisci i tuoi corsi di formazione, monitora i progressi dei corsisti e genera attestati di completamento.
-          </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Dashboard LMS</h1>
+          <p className="text-sm text-gray-500">Benvenuto nella piattaforma Tutor81</p>
         </div>
+        <div className="text-sm text-gray-500">{dateStr}</div>
       </div>
 
-      {/* Stat cards */}
+      {/* 4 Stat cards: Attestati (green), In Attività (blue), Scaduti (red), Mai Avviati (dark) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/3 translate-x-1/3" />
-          <Building2 size={22} className="mb-3 opacity-80" />
-          <div className="text-3xl font-black">{stats?.clients?.toLocaleString() ?? "—"}</div>
-          <div className="text-blue-100 text-sm font-medium mt-1">Aziende Clienti</div>
+        <div className="rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-5 text-white">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center mb-3">
+            <Award size={20} />
+          </div>
+          <div className="text-xs font-bold uppercase tracking-wide opacity-80">Attestati</div>
+          <div className="text-4xl font-black mt-1">{completed}</div>
         </div>
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-5 text-white shadow-lg shadow-emerald-500/20">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/3 translate-x-1/3" />
-          <Users size={22} className="mb-3 opacity-80" />
-          <div className="text-3xl font-black">{stats?.users?.toLocaleString() ?? "—"}</div>
-          <div className="text-emerald-100 text-sm font-medium mt-1">Corsisti Registrati</div>
+        <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-5 text-white">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center mb-3">
+            <Activity size={20} />
+          </div>
+          <div className="text-xs font-bold uppercase tracking-wide opacity-80">In Attività</div>
+          <div className="text-4xl font-black mt-1">{active}</div>
         </div>
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-5 text-white shadow-lg shadow-amber-500/20">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/3 translate-x-1/3" />
-          <FileText size={22} className="mb-3 opacity-80" />
-          <div className="text-3xl font-black">{stats?.sales ?? "—"}</div>
-          <div className="text-amber-100 text-sm font-medium mt-1">Vendite Totali</div>
+        <div className="rounded-2xl bg-gradient-to-br from-red-500 to-red-600 p-5 text-white">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center mb-3">
+            <AlertTriangle size={20} />
+          </div>
+          <div className="text-xs font-bold uppercase tracking-wide opacity-80">Scaduti</div>
+          <div className="text-4xl font-black mt-1">{expired}</div>
         </div>
-        <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg shadow-purple-500/20">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/3 translate-x-1/3" />
-          <GraduationCap size={22} className="mb-3 opacity-80" />
-          <div className="text-3xl font-black">{stats?.tutors ?? "—"}</div>
-          <div className="text-purple-100 text-sm font-medium mt-1">Enti Formativi</div>
+        <div className="rounded-2xl bg-[#1a1a1a] border border-white/10 p-5 text-white">
+          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-3">
+            <Clock size={20} className="text-gray-400" />
+          </div>
+          <div className="text-xs font-bold uppercase tracking-wide text-gray-400">Mai Avviati</div>
+          <div className="text-4xl font-black mt-1">{neverStarted}</div>
         </div>
       </div>
 
+      {/* 3-column: Attività Recenti | Ente Formativo (yellow) | Riepilogo */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick actions */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Activity size={18} className="text-yellow-500" />
-            Azioni Rapide
+        {/* Attività Recenti */}
+        <div className="bg-[#141414] rounded-2xl border border-white/5 p-6 min-h-[300px]">
+          <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <Activity size={16} className="text-yellow-500" />
+            Attività Recenti
           </h2>
-          <div className="space-y-2">
-            <Link href="/catalog" className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-yellow-50 hover:border-yellow-200 border border-transparent transition-all group">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-yellow-100 rounded-lg flex items-center justify-center"><BookOpen size={16} className="text-yellow-600" /></div>
-                <span className="text-sm font-semibold text-gray-700">Catalogo Corsi</span>
-              </div>
-              <ArrowRight size={16} className="text-gray-300 group-hover:text-yellow-500 transition-colors" />
-            </Link>
-            <Link href="/activated-courses" className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-green-50 hover:border-green-200 border border-transparent transition-all group">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center"><ShoppingCart size={16} className="text-green-600" /></div>
-                <span className="text-sm font-semibold text-gray-700">Corsi Attivi</span>
-              </div>
-              <ArrowRight size={16} className="text-gray-300 group-hover:text-green-500 transition-colors" />
-            </Link>
-            <Link href="/certificates" className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all group">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center"><Award size={16} className="text-blue-600" /></div>
-                <span className="text-sm font-semibold text-gray-700">Attestati</span>
-              </div>
-              <ArrowRight size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
-            </Link>
-            <Link href="/clients" className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-purple-50 hover:border-purple-200 border border-transparent transition-all group">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center"><Building2 size={16} className="text-purple-600" /></div>
-                <span className="text-sm font-semibold text-gray-700">Elenco Clienti</span>
-              </div>
-              <ArrowRight size={16} className="text-gray-300 group-hover:text-purple-500 transition-colors" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Recent enrollments */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp size={18} className="text-yellow-500" />
-            Iscrizioni Recenti
-          </h2>
-          {recent.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <GraduationCap size={32} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Nessuna iscrizione attiva</p>
+          {recentEnrollments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-600">
+              <Mail size={40} className="mb-3 opacity-30" />
+              <span className="text-sm">Nessuna attività recente</span>
             </div>
           ) : (
-            <div className="space-y-2">
-              {recent.map((e: any) => (
-                <div key={e.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
-                      {(e.userName || "??").split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-gray-800 truncate">{e.userName}</div>
-                      <div className="text-xs text-gray-500 truncate">{e.courseName}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                    <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${e.progress || 0}%` }} />
-                    </div>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${e.status === "active" ? "bg-green-500 text-white" : e.status === "completed" ? "bg-blue-500 text-white" : "bg-gray-400 text-white"}`}>
-                      {e.status === "active" ? "Attivo" : e.status === "completed" ? "Completato" : e.status}
-                    </span>
+            <div className="divide-y divide-white/5">
+              {recentEnrollments.slice(0, 6).map((e: any) => (
+                <div key={e.id} className="py-3 first:pt-0 last:pb-0">
+                  <div className="text-xs font-medium text-white">{e.userName}</div>
+                  <div className="text-[11px] text-yellow-500">{e.courseName}</div>
+                  <div className="text-[10px] text-gray-600">
+                    {e.lastAccessAt ? new Date(e.lastAccessAt).toLocaleDateString("it-IT") : "—"}
                   </div>
                 </div>
               ))}
-              <Link href="/activated-courses" className="block text-center text-sm text-yellow-600 font-semibold hover:text-yellow-700 pt-2">
-                Vedi tutti i corsi attivi →
-              </Link>
             </div>
           )}
+        </div>
+
+        {/* LA TUA LICENZA - white card */}
+        <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center text-center min-h-[300px]">
+          <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-4">La Tua Licenza</div>
+          {tutorData?.logoUrl ? (
+            <img src={tutorData.logoUrl} alt="" className="h-14 max-w-[160px] object-contain mb-4" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center mb-4">
+              <Shield size={28} className="text-gray-400" />
+            </div>
+          )}
+          <div className="text-lg font-black text-gray-900">{tutorData?.businessName || user?.tutorName || "TUTOR 81 LMS"}</div>
+          <div className="text-xs text-gray-500 mt-1">{tutorData?.email || "assistenza@tutor81.it"}</div>
+          <div className="mt-3 inline-block">
+            <span className={`text-[10px] font-bold px-2 py-1 rounded ${
+              tutorData?.subscriptionType === "CONSULENTI 1500" ? "bg-blue-100 text-blue-700" :
+              tutorData?.subscriptionType === "ENTI AUTORIZZATI 1500" ? "bg-purple-100 text-purple-700" :
+              "bg-yellow-100 text-yellow-700"
+            }`}>{tutorData?.subscriptionType || "—"}</span>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-200 w-full space-y-1">
+            <div className="text-xs text-gray-600 font-medium">{user?.tutorName || "Superadmin Tutor81"}</div>
+            <div className="text-[10px] text-gray-400 uppercase">AMMINISTRATORE</div>
+          </div>
+          {tutorData?.subscriptionStart && (
+            <div className="mt-3 flex items-center gap-2 text-xs">
+              <span className="text-gray-400">Licenza dal:</span>
+              <span className="text-gray-700 font-bold">{new Date(tutorData.subscriptionStart).toLocaleDateString("it-IT")}</span>
+            </div>
+          )}
+        </div>
+
+        {/* RIEPILOGO */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <FileCheck size={14} className="text-yellow-500" />
+            RIEPILOGO
+          </h2>
+
+          <div className="bg-[#141414] rounded-xl border border-white/5 p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+              <Users size={18} className="text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs text-gray-400">N° Amministratori</div>
+            </div>
+            <div className="text-xl font-black text-white">{stats?.users ?? 0}</div>
+          </div>
+
+          <div className="bg-[#141414] rounded-xl border border-white/5 p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+              <Shield size={18} className="text-yellow-400" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs text-gray-400">N° Clienti</div>
+            </div>
+            <div className="text-xl font-black text-white">{stats?.clients ?? 0}</div>
+          </div>
+
+          <div className="bg-[#141414] rounded-xl border border-white/5 p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+              <Award size={18} className="text-red-400" />
+            </div>
+            <div className="flex-1">
+              <div className="text-xs text-gray-400">Attestati</div>
+            </div>
+            <div className="text-xl font-black text-white">{completed}</div>
+          </div>
         </div>
       </div>
     </div>

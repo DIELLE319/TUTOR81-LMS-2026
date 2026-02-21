@@ -106,6 +106,56 @@ export async function sendCourseEmail(params: CourseEmailParams): Promise<EmailR
   }
 }
 
+export async function sendAdminWelcomeEmail(params: { to: string; name: string; username: string; tutorName: string }): Promise<EmailResult> {
+  if (!resend) {
+    console.warn("[Email] RESEND_API_KEY mancante. Email admin NON inviata a:", params.to);
+    return { success: false, error: "RESEND_API_KEY non configurato" };
+  }
+  try {
+    const loginUrl = "https://tutor81.com";
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:20px;background:#f5f5f5;font-family:Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;background:#fff;border:30px solid #EAB308;">
+<div style="background:#000;padding:20px;text-align:center;">
+<div style="color:#fff;font-size:24px;font-weight:bold;">${params.tutorName}</div>
+</div>
+<div style="background:#000;color:#fff;padding:20px;text-align:center;border-top:3px solid #fff;">
+<div style="font-size:14px;margin-bottom:8px;">IL TUO NOME UTENTE &Egrave;:</div>
+<div style="font-size:28px;font-weight:bold;letter-spacing:1px;">${params.username}</div>
+</div>
+<div style="padding:30px;background:#fff;">
+<div style="color:#000;font-size:15px;line-height:1.8;">
+<p style="margin:0 0 15px 0;"><strong>Buongiorno ${params.name},</strong></p>
+<p style="margin:0 0 10px 0;">Sei stato abilitato come <strong>Amministratore</strong> dell'ente formativo <strong>${params.tutorName}</strong>.</p>
+<p style="margin:0 0 10px 0;">Per accedere alla tua area di gestione, clicca sul pulsante qui sotto e inserisci il tuo nome utente.</p>
+</div></div>
+<div style="background:#000;padding:25px;text-align:center;border-top:3px solid #fff;">
+<p style="color:#fff;margin:0 0 15px 0;font-size:14px;">Le tue credenziali di accesso:</p>
+<div style="background:#fff;color:#000;padding:12px 25px;font-size:16px;font-weight:bold;display:inline-block;margin-bottom:15px;"><span style="color:#666;">Nome utente:</span> ${params.username}</div><br/>
+<a href="${loginUrl}" style="display:inline-block;background:#EAB308;color:#000;padding:15px 50px;font-size:18px;font-weight:bold;text-decoration:none;border-radius:4px;">ACCEDI</a>
+</div>
+<div style="background:#fff;padding:20px 30px;color:#666;font-size:12px;text-align:center;border-top:2px solid #000;">
+<p style="margin:0;">Per assistenza tecnica: assistenza@tutor81.it</p>
+</div>
+</div></body></html>`;
+    const { data, error } = await resend.emails.send({
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to: params.to,
+      subject: `Credenziali amministratore - ${params.tutorName}`,
+      html,
+    });
+    if (error) {
+      console.error("[Email] Errore Resend admin:", error);
+      return { success: false, error: error.message };
+    }
+    console.log(`[Email] Admin welcome inviata a ${params.to} — ID: ${data?.id}`);
+    return { success: true, id: data?.id };
+  } catch (err: any) {
+    console.error("[Email] Errore invio admin welcome:", err);
+    return { success: false, error: err.message || "Errore sconosciuto" };
+  }
+}
+
 export async function sendReminderEmail(to: string, userName: string, courseName: string, endDate: string, tutorName: string): Promise<EmailResult> {
   if (!resend) {
     console.warn("[Email] RESEND_API_KEY mancante. Promemoria NON inviato a:", to);

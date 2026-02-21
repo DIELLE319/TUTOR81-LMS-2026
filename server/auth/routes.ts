@@ -4,6 +4,12 @@ import { isAuthenticated } from "./sessionAuth";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
+function extractRows(result: any): any[] {
+  if (Array.isArray(result)) return result;
+  if (result?.rows && Array.isArray(result.rows)) return result.rows;
+  return [];
+}
+
 export function registerAuthRoutes(app: Express): void {
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
@@ -25,9 +31,10 @@ export function registerAuthRoutes(app: Express): void {
           WHERE au.replit_user_id = ${userId} AND au.is_active = true
           LIMIT 1
         `);
-        if (result.rows.length > 0) {
-          tutorId = result.rows[0].tutor_id as number;
-          tutorName = result.rows[0].business_name as string;
+        const rows = extractRows(result);
+        if (rows.length > 0) {
+          tutorId = rows[0].tutor_id as number;
+          tutorName = rows[0].business_name as string;
         }
       }
 

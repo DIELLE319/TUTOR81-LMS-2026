@@ -3,6 +3,12 @@ import { db } from "../db";
 import { sql } from "drizzle-orm";
 import memoizee from "memoizee";
 
+function extractRows(result: any): any[] {
+  if (Array.isArray(result)) return result;
+  if (result?.rows && Array.isArray(result.rows)) return result.rows;
+  return [];
+}
+
 export function getAuthenticatedUserTutorId(req: Request): { userId: string; tutorId: number | null } {
   const user = (req as any).user;
   const userId = user?.claims?.sub;
@@ -21,13 +27,16 @@ export async function getAuthenticatedDbUser(req: Request) {
     WHERE u.id = ${userId}
     LIMIT 1
   `);
-  return result.rows[0] || null;
+  const rows = extractRows(result);
+  return rows[0] || null;
 }
 
 export const getPlatformTutorIdsCached = memoizee(
   async (): Promise<number[]> => {
     const result = await db.execute(sql`SELECT id FROM tutors WHERE is_active = true`);
-    return result.rows.map((r: any) => r.id as number);
+    return extractRows(result).map((r: any) => r.id as number);
   },
   { maxAge: 5 * 60 * 1000, promise: true }
 );
+
+export { extractRows };

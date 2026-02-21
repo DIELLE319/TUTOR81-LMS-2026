@@ -18,7 +18,10 @@ const Invoicing = lazy(() => import("@/pages/Invoicing"));
 const Videoconference = lazy(() => import("@/pages/Videoconference"));
 const CreateCompany = lazy(() => import("@/pages/CreateCompany"));
 const Tutors = lazy(() => import("@/pages/Tutors"));
+const AssignCourse = lazy(() => import("@/pages/AssignCourse"));
 const PlayerLogin = lazy(() => import("@/pages/PlayerLogin"));
+const PlayerDashboard = lazy(() => import("@/pages/PlayerDashboard"));
+const PlayerCourse = lazy(() => import("@/pages/PlayerCourse"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 function Loading() {
@@ -44,6 +47,8 @@ function AppRoutes() {
     <Suspense fallback={<Loading />}>
       <Switch>
         <Route path="/player-login"><PlayerLogin /></Route>
+        <Route path="/player/dashboard"><PlayerDashboard /></Route>
+        <Route path="/player/course/:id"><PlayerCourse /></Route>
         <Route path="/login">{() => { window.location.href = "/api/login"; return null; }}</Route>
         <Route path="/">
           <ProtectedRoute><Dashboard /></ProtectedRoute>
@@ -83,6 +88,9 @@ function AppRoutes() {
         </Route>
         <Route path="/tutors">
           <ProtectedRoute><Tutors /></ProtectedRoute>
+        </Route>
+        <Route path="/assign-course">
+          <ProtectedRoute><AssignCourse /></ProtectedRoute>
         </Route>
         <Route><NotFound /></Route>
       </Switch>

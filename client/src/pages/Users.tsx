@@ -1,21 +1,30 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Download } from "lucide-react";
+import { Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Student { id: number; firstName: string | null; lastName: string | null; email: string; fiscalCode: string | null; phone: string | null; companyName: string; isActive: boolean | null }
 
+const PAGE_SIZE = 100;
+
 export default function Users() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const { data: students = [], isLoading } = useQuery<Student[]>({
     queryKey: ["students"],
     queryFn: () => fetch("/api/students", { credentials: "include" }).then((r) => r.json()),
   });
 
-  const filtered = useMemo(() => students.filter((s) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (s.firstName || "").toLowerCase().includes(q) || (s.lastName || "").toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || (s.fiscalCode || "").toLowerCase().includes(q) || s.companyName.toLowerCase().includes(q);
-  }), [students, search]);
+  const filtered = useMemo(() => {
+    setPage(1);
+    return students.filter((s) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (s.firstName || "").toLowerCase().includes(q) || (s.lastName || "").toLowerCase().includes(q) || (s.email || "").toLowerCase().includes(q) || (s.fiscalCode || "").toLowerCase().includes(q) || (s.companyName || "").toLowerCase().includes(q);
+    });
+  }, [students, search]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const exportCsv = () => {
     const header = "ID;Cognome;Nome;Email;CF;Azienda;Stato\n";
@@ -44,38 +53,60 @@ export default function Users() {
       </div>
 
       {isLoading ? <div className="text-center py-12 text-gray-500">Caricamento...</div> : filtered.length === 0 ? <div className="text-center py-12 text-gray-500">Nessun utente trovato</div> : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-yellow-500 text-black text-xs font-bold uppercase tracking-wide">
-                <th className="p-3 text-left w-12">ID</th>
-                <th className="p-3 text-left">Cognome</th>
-                <th className="p-3 text-left">Nome</th>
-                <th className="p-3 text-left">Email</th>
-                <th className="p-3 text-left">Codice Fiscale</th>
-                <th className="p-3 text-left">Azienda</th>
-                <th className="p-3 text-left">Stato</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((s) => (
-                <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="p-3 text-gray-400 font-mono text-xs">{s.id}</td>
-                  <td className="p-3 font-medium text-gray-900 text-xs">{s.lastName || "—"}</td>
-                  <td className="p-3 text-gray-700 text-xs">{s.firstName || "—"}</td>
-                  <td className="p-3 text-gray-600 text-xs">{s.email}</td>
-                  <td className="p-3 text-gray-500 font-mono text-[11px]">{s.fiscalCode || "—"}</td>
-                  <td className="p-3 text-gray-600 text-xs">{s.companyName}</td>
-                  <td className="p-3">
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${s.isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}>
-                      {s.isActive ? "Attivo" : "Disattivo"}
-                    </span>
-                  </td>
+        <>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-yellow-500 text-black text-xs font-bold uppercase tracking-wide">
+                  <th className="p-3 text-left w-12">ID</th>
+                  <th className="p-3 text-left">Cognome</th>
+                  <th className="p-3 text-left">Nome</th>
+                  <th className="p-3 text-left">Email</th>
+                  <th className="p-3 text-left">Codice Fiscale</th>
+                  <th className="p-3 text-left">Azienda</th>
+                  <th className="p-3 text-left">Stato</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {paged.map((s) => (
+                  <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="p-3 text-gray-400 font-mono text-xs">{s.id}</td>
+                    <td className="p-3 font-medium text-gray-900 text-xs">{s.lastName || "—"}</td>
+                    <td className="p-3 text-gray-700 text-xs">{s.firstName || "—"}</td>
+                    <td className="p-3 text-gray-600 text-xs">{s.email}</td>
+                    <td className="p-3 text-gray-500 font-mono text-[11px]">{s.fiscalCode || "—"}</td>
+                    <td className="p-3 text-gray-600 text-xs">{s.companyName || "—"}</td>
+                    <td className="p-3">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${s.isActive ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}>
+                        {s.isActive ? "Attivo" : "Disattivo"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 px-1">
+              <span className="text-xs text-gray-500">
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} di {filtered.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPage(1)} disabled={page === 1}
+                  className="h-8 px-2 text-xs font-bold rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-30">«</button>
+                <button onClick={() => setPage(page - 1)} disabled={page === 1}
+                  className="h-8 w-8 flex items-center justify-center rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-30"><ChevronLeft size={14} /></button>
+                <span className="px-3 text-xs font-bold text-gray-700">Pag. {page}/{totalPages}</span>
+                <button onClick={() => setPage(page + 1)} disabled={page === totalPages}
+                  className="h-8 w-8 flex items-center justify-center rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-30"><ChevronRight size={14} /></button>
+                <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
+                  className="h-8 px-2 text-xs font-bold rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-30">»</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
