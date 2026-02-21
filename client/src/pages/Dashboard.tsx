@@ -7,7 +7,7 @@ export default function Dashboard() {
   const now = new Date();
   const dateStr = now.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-  const { data: stats } = useQuery<{ tutors: number; clients: number; sales: number; users: number }>({
+  const { data: stats } = useQuery<{ tutors: number; clients: number; sales: number; users: number; admins: number }>({
     queryKey: ["stats"],
     queryFn: () => fetch("/api/stats", { credentials: "include" }).then((r) => r.json()),
   });
@@ -122,7 +122,7 @@ export default function Dashboard() {
             }`}>{tutorData?.subscriptionType || "—"}</span>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-200 w-full space-y-1">
-            <div className="text-xs text-gray-600 font-medium">{user?.tutorName || "Superadmin Tutor81"}</div>
+            <div className="text-xs text-gray-600 font-medium">{user?.firstName} {user?.lastName}</div>
             <div className="text-[10px] text-gray-400 uppercase">AMMINISTRATORE</div>
           </div>
           {tutorData?.subscriptionStart && (
@@ -147,7 +147,7 @@ export default function Dashboard() {
             <div className="flex-1">
               <div className="text-xs text-gray-400">N° Amministratori</div>
             </div>
-            <div className="text-xl font-black text-white">{stats?.users ?? 0}</div>
+            <div className="text-xl font-black text-white">{stats?.admins ?? 0}</div>
           </div>
 
           <div className="bg-[#141414] rounded-xl border border-white/5 p-4 flex items-center gap-3">

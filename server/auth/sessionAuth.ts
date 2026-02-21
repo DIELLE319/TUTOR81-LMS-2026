@@ -4,8 +4,9 @@ import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
 import { users } from "@shared/models/auth";
+import * as schema from "@shared/schema";
 import { db } from "../db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const userCache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL = 60_000;
@@ -43,25 +44,43 @@ export async function setupAuth(app: Express) {
   app.post("/api/admin-login", async (req, res) => {
     try {
       const { username, password } = req.body;
-      console.log("[LOGIN]", new Date().toISOString(), { username, ip: req.ip });
-      if (!username || !password) return res.status(400).json({ error: "Email e password sono obbligatori." });
+      const uname = (username || "").trim().toLowerCase();
+      const cf = (password || "").trim().toUpperCase();
+      console.log("[LOGIN]", new Date().toISOString(), { username: uname, ip: req.ip });
+      if (!uname || !cf) return res.status(400).json({ error: "Nome utente e codice fiscale sono obbligatori." });
 
-      const email = username.trim().toLowerCase();
-      const [user] = await db.select().from(users).where(eq(users.email, email));
-      if (!user) return res.status(401).json({ error: "Credenziali non valide. Utente non trovato." });
-      if (!user.passwordHash) return res.status(401).json({ error: "Password non impostata per questo utente." });
+      // Look up in tutor_admins by username + fiscal code
+      const [admin] = await db.select().from(schema.tutorAdmins)
+        .where(eq(schema.tutorAdmins.username, uname));
+      if (!admin) return res.status(401).json({ error: "Utente non trovato. Verifica il nome utente." });
+      if (!admin.fiscalCode || admin.fiscalCode.toUpperCase() !== cf) {
+        return res.status(401).json({ error: "Codice fiscale non corretto." });
+      }
 
-      const hash = hashPassword(password);
-      if (hash !== user.passwordHash) return res.status(401).json({ error: "Password errata." });
+      // Find or create user record
+      const userId = `tutor-admin-${admin.id}`;
+      const nameParts = admin.name.split(" ");
+      const firstName = nameParts[0] || "Admin";
+      const lastName = nameParts.slice(1).join(" ") || "";
+      await authStorage.upsertUser({ id: userId, email: admin.email || `${uname}@tutor81.local`, firstName, lastName, role: 100 });
+
+      // Ensure admin_users row exists with correct tutor_id
+      const existing = await db.execute(sql`SELECT id FROM admin_users WHERE replit_user_id = ${userId}`);
+      const rows = Array.isArray(existing) ? existing : (existing?.rows || []);
+      if (rows.length === 0) {
+        await db.execute(sql`INSERT INTO admin_users (replit_user_id, email, role, tutor_id, is_active) VALUES (${userId}, ${admin.email || ''}, 'tutor_admin', ${admin.tutorId}, true)`);
+      } else {
+        await db.execute(sql`UPDATE admin_users SET tutor_id = ${admin.tutorId} WHERE replit_user_id = ${userId}`);
+      }
 
       (req.session as any).passport = {
         user: {
-          claims: { sub: user.id, email: user.email, first_name: user.firstName, last_name: user.lastName, profile_image_url: user.profileImageUrl },
+          claims: { sub: userId, email: admin.email || `${uname}@tutor81.local`, first_name: firstName, last_name: lastName, profile_image_url: null },
           expires_at: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
         },
       };
-      userCache.delete(user.id);
-      console.log("[LOGIN] Success:", user.email, "role:", user.role);
+      userCache.delete(userId);
+      console.log("[LOGIN] Success:", uname, "tutorId:", admin.tutorId);
       res.json({ ok: true });
     } catch (error) {
       console.error("[LOGIN] Error:", error);
@@ -101,8 +120,8 @@ button:active{transform:translateY(0)}
 <div class="sub">Piattaforma LMS</div>
 <div class="error" id="err"></div>
 <form id="f">
-<label>Email</label><input type="email" id="u" required autofocus placeholder="admin@tutor81.com">
-<label>Password</label><input type="password" id="p" required placeholder="••••••••">
+<label>Nome Utente</label><input type="text" id="u" required autofocus placeholder="nome.cognome">
+<label>Codice Fiscale</label><input type="text" id="p" required placeholder="RSSMRA80A01H501U" style="text-transform:uppercase">
 <button type="submit">Accedi alla piattaforma</button>
 </form>
 <div class="footer">Problemi di accesso? <a href="mailto:assistenza@tutor81.com">Contatta l'assistenza</a></div>

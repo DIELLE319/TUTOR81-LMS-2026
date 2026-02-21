@@ -192,11 +192,21 @@ export function registerTutorsRoutes(app: Express) {
         salesQuery = [];
       }
 
+      let adminsCount = 0;
+      if (tutorId) {
+        const adminsQuery = await db.select({ id: schema.tutorAdmins.id }).from(schema.tutorAdmins).where(eq(schema.tutorAdmins.tutorId, tutorId));
+        adminsCount = adminsQuery.length;
+      } else if (role >= 1000) {
+        const adminsQuery = await db.select({ id: schema.tutorAdmins.id }).from(schema.tutorAdmins);
+        adminsCount = adminsQuery.length;
+      }
+
       res.json({
         tutors: allTutors.length,
         clients: companiesQuery.length,
         sales: salesQuery.length,
         users: studentsQuery.length,
+        admins: adminsCount,
       });
     } catch (error) {
       console.error("Stats error:", error);

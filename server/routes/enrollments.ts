@@ -6,7 +6,59 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { sendCourseEmail, sendReminderEmail, isEmailConfigured } from "../email";
 import { getAuthenticatedDbUser } from "./helpers";
 
+let ovhPool: any = null;
+function getOvhPool() {
+  if (!ovhPool) {
+    const mysql = require("mysql2/promise");
+    ovhPool = mysql.createPool({
+      host: "135.125.205.19",
+      user: "pro_tutor81",
+      password: "Q3MxD!WMp@4n",
+      database: "pro_tutor81",
+      waitForConnections: true,
+      connectionLimit: 2,
+      connectTimeout: 5000,
+    });
+  }
+  return ovhPool;
+}
+
 export function registerEnrollmentsRoutes(app: Express) {
+  // Check fiscal code against OVH MySQL
+  app.post("/api/check-fiscal-code", isAuthenticated, async (req, res) => {
+    try {
+      const { fiscalCode } = req.body;
+      if (!fiscalCode || fiscalCode.length < 10) return res.json({ exists: false });
+      const cf = fiscalCode.toUpperCase().trim();
+
+      // Check local DB first
+      const localMatch = await db.select({ id: schema.students.id, firstName: schema.students.firstName, lastName: schema.students.lastName, companyId: schema.students.companyId })
+        .from(schema.students).where(eq(schema.students.fiscalCode, cf)).limit(1);
+      if (localMatch.length > 0) {
+        return res.json({ exists: true, source: "local", student: localMatch[0] });
+      }
+
+      // Check OVH
+      try {
+        const pool = getOvhPool();
+        const [rows] = await pool.query(
+          "SELECT id, nome, cognome, email, codice_fiscale FROM pro_utenti WHERE UPPER(codice_fiscale) = ? LIMIT 1",
+          [cf]
+        );
+        if (rows && rows.length > 0) {
+          return res.json({ exists: true, source: "ovh", user: { firstName: rows[0].nome, lastName: rows[0].cognome, email: rows[0].email } });
+        }
+      } catch (ovhErr: any) {
+        console.error("[OVH] CF check error:", ovhErr.message);
+      }
+
+      res.json({ exists: false });
+    } catch (error) {
+      console.error("Check fiscal code error:", error);
+      res.json({ exists: false });
+    }
+  });
+
   app.get("/api/enrollments", isAuthenticated, async (req: any, res) => {
     try {
       if (!hasDatabase) return res.json([]);

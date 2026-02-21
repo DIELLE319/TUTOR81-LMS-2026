@@ -24,6 +24,26 @@ interface CourseRow extends CourseRaw {
   parsedModality: string;
 }
 
+const CATEGORY_ORDER = ["LAVORATORE", "PREPOSTO", "DIRIGENTE", "RLS", "DATORE DI LAVORO", "INFORMATICA", "PARITÀ DI GENERE", "PESPAV", "TEST", "ALTRO"];
+
+function parseCategory(title: string, subcategory: string | null): string {
+  const sub = (subcategory || "").toUpperCase();
+  for (const cat of CATEGORY_ORDER) {
+    if (sub.includes(cat)) return cat;
+  }
+  const t = title.toUpperCase();
+  if (t.includes("PREPOSTO")) return "PREPOSTO";
+  if (t.includes("DIRIGENT")) return "DIRIGENTE";
+  if (t.includes("DATORE")) return "DATORE DI LAVORO";
+  if (t.includes("RLS")) return "RLS";
+  if (t.includes("LAVORATOR")) return "LAVORATORE";
+  if (t.includes("CYBER") || t.includes("INFORMAT")) return "INFORMATICA";
+  if (t.includes("GENERE") || t.includes("PARIT")) return "PARITÀ DI GENERE";
+  if (t.includes("PESPAV")) return "PESPAV";
+  if (t.includes("TEST") || t.includes("DIMOSTR")) return "TEST";
+  return "ALTRO";
+}
+
 function parseType(title: string): string {
   return title.toUpperCase().includes("AGGIORNAMENTO") ? "Agg." : "Base";
 }
@@ -79,11 +99,24 @@ export default function Catalog() {
   const grouped = useMemo(() => {
     const map: Record<string, CourseRow[]> = {};
     for (const c of courses) {
-      const key = (c.subcategory || "altro").toUpperCase();
+      const key = parseCategory(c.title, c.subcategory);
       if (!map[key]) map[key] = [];
       map[key].push(c);
     }
-    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+    const riskOrder: Record<string, number> = { "Basso": 0, "Medio": 1, "Alto": 2, "N/D": 3 };
+    for (const [, arr] of Object.entries(map)) {
+      arr.sort((a, b) => {
+        const typeA = a.parsedType === "Base" ? 0 : 1;
+        const typeB = b.parsedType === "Base" ? 0 : 1;
+        if (typeA !== typeB) return typeA - typeB;
+        return (riskOrder[a.parsedRisk] ?? 9) - (riskOrder[b.parsedRisk] ?? 9);
+      });
+    }
+    return Object.entries(map).sort(([a], [b]) => {
+      const ia = CATEGORY_ORDER.indexOf(a);
+      const ib = CATEGORY_ORDER.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
   }, [courses]);
 
   const toggleGroup = (key: string) => {
@@ -105,11 +138,11 @@ export default function Catalog() {
         <div className="bg-[#141414] rounded-xl border border-white/5 overflow-hidden">
           {/* Header */}
           <div className="border-b border-white/10">
-            <div className="grid grid-cols-[60px_60px_1fr_80px_50px_90px_80px_80px_70px] items-center px-3 py-2.5 gap-2 text-gray-400 text-[11px] font-semibold uppercase tracking-wide">
+            <div className="grid grid-cols-[80px_60px_60px_1fr_50px_90px_80px_80px_70px] items-center px-3 py-2.5 gap-2 text-gray-400 text-[11px] font-semibold uppercase tracking-wide">
+              <span>Settore</span>
               <span>Tipo</span>
               <span>Rischio</span>
               <span>Nome Corso</span>
-              <span>Settore</span>
               <span>Ore</span>
               <span>Modalità</span>
               <span className="text-right">Listino €</span>
@@ -129,11 +162,11 @@ export default function Catalog() {
               </button>
 
               {expandedGroups.includes(groupName) && groupCourses.map((c) => (
-                <div key={c.id} className="grid grid-cols-[60px_60px_1fr_80px_50px_90px_80px_80px_70px] items-center px-3 py-2.5 gap-2 border-b border-white/5 hover:bg-white/[0.02] text-sm">
+                <div key={c.id} className="grid grid-cols-[80px_60px_60px_1fr_50px_90px_80px_80px_70px] items-center px-3 py-2.5 gap-2 border-b border-white/5 hover:bg-white/[0.02] text-sm">
+                  <span className="text-gray-500 text-[10px]">{c.sector || "—"}</span>
                   <span><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${typeBadge(c.parsedType)}`}>{c.parsedType}</span></span>
                   <span><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${riskBadge(c.parsedRisk)}`}>{c.parsedRisk}</span></span>
                   <span className="text-gray-200 text-xs leading-tight pr-2">{c.title}</span>
-                  <span className="text-gray-500 text-xs">—</span>
                   <span className="text-white font-bold text-center text-xs">{c.parsedHours || "—"}</span>
                   <span className="text-gray-400 text-xs">{c.parsedModality}</span>
                   <span className="text-gray-400 text-xs text-right">{c.listPrice && parseFloat(c.listPrice) > 0 ? `${parseFloat(c.listPrice).toFixed(2)} €` : "—"}</span>

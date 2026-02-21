@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch } from "wouter";
-import { Send, UserPlus, UserCheck, Minus, Plus } from "lucide-react";
+import { Send, UserPlus, UserCheck, Minus, Plus, AlertTriangle, Check, X } from "lucide-react";
 
 interface Company { id: number; businessName: string }
 interface CourseRaw { id: number; title: string }
@@ -38,6 +38,27 @@ export default function AssignCourse() {
   const [companyId, setCompanyId] = useState(0);
   const [destinatari, setDestinatari] = useState<Destinatario[]>([emptyDest()]);
   const [licenzeInviate, setLicenzeInviate] = useState<LicenzaInviata[]>([]);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [cfStatus, setCfStatus] = useState<Record<number, { exists: boolean; msg?: string }>>({});
+
+  const checkCF = async (index: number, cf: string) => {
+    if (!cf || cf.length < 10) { setCfStatus(p => ({ ...p, [index]: { exists: false } })); return; }
+    try {
+      const r = await fetch("/api/check-fiscal-code", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ fiscalCode: cf }) });
+      const d = await r.json();
+      if (d.exists) {
+        const name = d.user?.firstName || d.student?.firstName || "";
+        const last = d.user?.lastName || d.student?.lastName || "";
+        const email = d.user?.email || "";
+        if (name) updateDest(index, "firstName", name);
+        if (last) updateDest(index, "lastName", last);
+        if (email) updateDest(index, "email", email);
+        setCfStatus(p => ({ ...p, [index]: { exists: true, msg: `Trovato${d.source === "ovh" ? " su OVH" : ""}: ${name} ${last}` } }));
+      } else {
+        setCfStatus(p => ({ ...p, [index]: { exists: false, msg: "OK" } }));
+      }
+    } catch { setCfStatus(p => ({ ...p, [index]: { exists: false } })); }
+  };
 
   const { data: companies = [] } = useQuery<Company[]>({
     queryKey: ["companies-list"],
@@ -80,6 +101,12 @@ export default function AssignCourse() {
     if (!courseId) { toast({ title: "Corso non selezionato", variant: "destructive" }); return; }
     const valid = destinatari.filter((d) => d.email.trim() && d.firstName.trim() && d.lastName.trim());
     if (valid.length === 0) { toast({ title: "Inserisci almeno un destinatario", variant: "destructive" }); return; }
+    setShowConfirm(true);
+  };
+
+  const confirmSend = () => {
+    setShowConfirm(false);
+    const valid = destinatari.filter((d) => d.email.trim() && d.firstName.trim() && d.lastName.trim());
     activateMut.mutate({
       companyId, courseId,
       corsisti: valid.map((d) => ({
@@ -90,7 +117,7 @@ export default function AssignCourse() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="w-full">
       {/* Corso header */}
       <div className="bg-gradient-to-r from-green-700 to-green-600 rounded-xl px-5 py-3 mb-4">
         <span className="text-sm text-green-200">Corso:</span>{" "}
@@ -160,8 +187,12 @@ export default function AssignCourse() {
                     className={`${inputCls} w-full`} />
                 </td>
                 <td className="p-2">
-                  <input type="number" value={d.alertDays} onChange={(e) => updateDest(i, "alertDays", parseInt(e.target.value) || 0)}
-                    className={`${inputCls} w-14 text-center`} />
+                  <select value={d.alertDays} onChange={(e) => updateDest(i, "alertDays", parseInt(e.target.value))}
+                    className={`${inputCls} w-16 text-center`}>
+                    <option value={7}>7</option>
+                    <option value={15}>15</option>
+                    <option value={30}>30</option>
+                  </select>
                 </td>
                 <td className="p-2">
                   <input type="text" value={d.firstName} onChange={(e) => updateDest(i, "firstName", e.target.value)}
@@ -172,8 +203,14 @@ export default function AssignCourse() {
                     placeholder="Cognome" className={`${inputCls} w-full`} />
                 </td>
                 <td className="p-2">
-                  <input type="text" value={d.fiscalCode} onChange={(e) => updateDest(i, "fiscalCode", e.target.value.toUpperCase())}
-                    placeholder="CODICE FISCALE" className={`${inputCls} w-full uppercase`} />
+                  <div className="relative">
+                    <input type="text" value={d.fiscalCode}
+                      onChange={(e) => updateDest(i, "fiscalCode", e.target.value.toUpperCase())}
+                      onBlur={(e) => checkCF(i, e.target.value)}
+                      placeholder="CODICE FISCALE" className={`${inputCls} w-full uppercase ${cfStatus[i]?.exists ? "border-yellow-500" : cfStatus[i]?.msg === "OK" ? "border-green-500" : ""}`} />
+                    {cfStatus[i]?.exists && <span className="text-[9px] text-yellow-400 mt-0.5 block" title={cfStatus[i]?.msg}><AlertTriangle size={10} className="inline mr-0.5" />{cfStatus[i]?.msg}</span>}
+                    {cfStatus[i]?.msg === "OK" && <span className="text-[9px] text-green-400 mt-0.5 block"><Check size={10} className="inline mr-0.5" />Disponibile</span>}
+                  </div>
                 </td>
                 <td className="p-2">
                   <select value={d.funzione} onChange={(e) => updateDest(i, "funzione", e.target.value)}
@@ -202,6 +239,26 @@ export default function AssignCourse() {
       </div>
 
       {/* Licenze inviate con successo */}
+      {/* Modal conferma */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center" onClick={() => setShowConfirm(false)}>
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-3">Conferma Invio Licenze</h3>
+            <p className="text-sm text-gray-400 mb-2">Stai per assegnare <span className="text-yellow-500 font-bold">{destinatari.filter(d => d.email && d.firstName && d.lastName).length} licenza/e</span> per il corso:</p>
+            <p className="text-sm text-white font-bold mb-4">{courseTitle}</p>
+            <p className="text-sm text-gray-400 mb-4">Cliente: <span className="text-white font-bold">{companies.find(c => c.id === companyId)?.businessName || "—"}</span></p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowConfirm(false)} className="h-9 px-5 border border-white/20 text-gray-400 rounded-lg text-sm flex items-center gap-1.5 hover:bg-white/5">
+                <X size={14} />Annulla
+              </button>
+              <button onClick={confirmSend} className="h-9 px-5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-sm flex items-center gap-1.5">
+                <Send size={14} />Conferma e Invia
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {licenzeInviate.length > 0 && (
         <div className="bg-[#141414] rounded-xl border border-green-500/30 overflow-hidden mb-6">
           <div className="bg-green-600 px-5 py-2">

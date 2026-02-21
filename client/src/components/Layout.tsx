@@ -71,13 +71,16 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         {/* User info */}
         <div className="px-4 py-3 border-b border-white/5">
+          {user?.tutorName && (
+            <div className="text-[10px] font-bold text-yellow-500 uppercase truncate mb-2">{user.tutorName}</div>
+          )}
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center text-xs font-bold text-yellow-500">
               {(user?.firstName?.[0] || "")}{(user?.lastName?.[0] || "")}
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-bold text-white uppercase truncate">{user?.role === 1000 ? "SUPERADMIN" : "ADMIN"}</div>
-              <div className="text-[10px] text-gray-500 truncate">{user?.email}</div>
+              <div className="text-xs font-bold text-white truncate">{user?.firstName} {user?.lastName}</div>
+              <div className="text-[10px] text-gray-500 truncate">{user?.role === 1000 ? "Super Admin" : "Amministratore"}</div>
             </div>
           </div>
         </div>
@@ -86,6 +89,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <nav className="flex-1 px-2 py-3 space-y-4 overflow-y-auto">
           {NAV_SECTIONS.map((section) => {
             const items = section.items.filter((item) => {
+              if (item.href === "/tutors" && (user?.role ?? 0) < 1000) return false;
               if (item.href === "/clients" && user?.role === 2) return false;
               return true;
             });
