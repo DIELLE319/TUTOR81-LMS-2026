@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player Corso — Tutor81</title>
+<!--
+  ============================================================
+  TUTOR81 LMS PLAYER — Versione 3.1 — 22/02/2026
+  ============================================================
+  REQUISITI IMPLEMENTATI:
+  1. Layout 3 colonne: info sx, programma centro, video dx
+  2. Video HTML5 nativo con MP4 da JWPlayer CDN
+  3. Autoplay muted poi unmute
+  4. Controlli video visibili
+  5. Auto-avanzamento al video successivo
+  6. Al rientro riprende LO esatto + secondo esatto
+  7. Navigazione: solo indietro a LO completati
+  8. Domande al secondo impostato (time_seconds)
+  9. Timer 30 secondi per risposta
+  10. Scaduto timer -> espulsione
+  11. Risposta errata -> mostra corretta, video riprende
+  12. Tracciamento LO: ogni entrata/uscita = riga separata
+  13. Tracciamento quiz: testo domanda/risposta, secondo video
+  14. Sessioni: login/logout/durata
+  15. Header giallo: verifica apprendimento, stats quiz
+  16. Countdown fine corso
+  17. Pannello info: utente, azienda, scadenza
+  ============================================================
+-->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{height:100vh;overflow:hidden;background:#0a1628;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;display:flex;flex-direction:column}
+
+/* === HEADER === */
+.topbar{background:#111827;display:flex;align-items:center;height:42px;border-bottom:1px solid #1e293b;padding:0 16px;flex-shrink:0}
+.topbar .logo{font-weight:900;color:#fbbf24;font-size:15px;margin-right:16px;letter-spacing:1px}
+.topbar .ctitle{flex:1;font-size:13px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar .ver{font-size:9px;color:#475569;margin-left:8px}
+
+/* === YELLOW BAR === */
+.ybar{background:linear-gradient(90deg,#fbbf24,#f59e0b);height:36px;display:flex;align-items:center;padding:0 16px;gap:24px;flex-shrink:0}
+.ybar .yl{font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:1.5px}
+.ybar .ys{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#0f172a}
+.ybar .ys span{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:6px;font-size:13px;font-weight:900;padding:0 6px}
+.ybar .sg{background:#166534;color:#fff}
+.ybar .sr{background:#991b1b;color:#fff}
+.ybar .sw{background:transparent;color:#0f172a;font-size:13px;font-weight:900;margin-left:0;padding:0;border-radius:0;white-space:nowrap}
+.ybar .esci{margin-left:auto;background:#0f172a;color:#fbbf24;border:none;padding:4px 14px;border-radius:4px;font-weight:700;font-size:11px;cursor:pointer}
+
+/* === BREADCRUMB === */
+.bbar{background:#0f1d32;height:32px;display:flex;align-items:center;padding:0 16px;gap:8px;font-size:11px;color:#64748b;flex-shrink:0;border-bottom:1px solid #1e293b}
+.bbar .bc{color:#94a3b8}
+.bbar .bn{color:#fbbf24;font-weight:600}
+.bbar .bt{margin-left:auto;color:#64748b;font-size:11px}
+
+/* === MAIN 3 COLS === */
+.main3{display:flex;flex:1;overflow:hidden}
+
+/* LEFT PANEL */
+.lpan{width:180px;background:#0d1b2a;border-right:1px solid #1e293b;display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.lsec{padding:12px 14px;border-bottom:1px solid #1e293b}
+.lsec .lbl{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.lsec .val{font-size:12px;color:#e2e8f0;font-weight:600}
+.lsec .val.sm{font-size:11px;font-weight:400;color:#94a3b8}
+.lbtn{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #1e293b;cursor:pointer;color:#94a3b8;font-size:12px;transition:all .15s}
+.lbtn:hover{background:#1e293b;color:#fbbf24}
+.lbtn .ico{font-size:16px}
+.lexci{background:#dc2626;color:#fff;border:none;margin:12px 14px;padding:8px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer}
+.lexci:hover{background:#b91c1c}
+.linfo{margin-top:auto;padding:12px 14px;border-top:1px solid #1e293b;font-size:10px;color:#475569;line-height:1.6}
+.linfo b{color:#94a3b8;font-weight:600}
+
+/* CENTER PANEL - PROGRAMMA */
+.cpan{width:280px;background:#111827;border-right:1px solid #1e293b;display:flex;flex-direction:column;flex-shrink:0}
+.cpan-h{padding:10px 14px;background:#0f1d32;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between}
+.cpan-h .pt{font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1px}
+.cpan-h .pc{font-size:11px;color:#fbbf24;font-weight:700}
+.clist{flex:1;overflow-y:auto}
+.mt{padding:8px 14px;font-size:10px;color:#fbbf24;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(251,191,36,.04);border-bottom:1px solid #1e293b}
+.li{padding:8px 14px;cursor:pointer;border-left:3px solid transparent;display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;border-bottom:1px solid rgba(30,41,59,.5);transition:all .12s}
+.li:hover{background:#1e293b;color:#cbd5e1}
+.li.act{border-left-color:#fbbf24;color:#cbd5e1}
+.li.done{color:#cbd5e1}
+.li.locked{cursor:not-allowed}
+.li .dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0;border:2px solid #374151;color:#475569;background:transparent}
+.li.done .dot{background:#22c55e;border-color:#22c55e;color:#fff}
+.li.act .dot{background:#fbbf24;border-color:#fbbf24;color:#0f172a}
+
+/* RIGHT - VIDEO */
+.rpan{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0a1628}
+.vwrap{flex:1;position:relative;background:#0a1628}
+#vid{width:100%;height:100%;object-fit:contain;background:#0a1628}
+.playov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:50;cursor:pointer;background:rgba(10,22,40,.5)}
+.playov.hide{display:none}
+.playov .pb{width:80px;height:80px;background:rgba(251,191,36,.9);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.playov .pb:after{content:'';border-style:solid;border-width:18px 0 18px 30px;border-color:transparent transparent transparent #0f172a;margin-left:5px}
+.fcountdown{position:absolute;top:10px;right:14px;background:rgba(15,23,42,.85);border:1px solid #fbbf24;border-radius:8px;padding:6px 14px;display:flex;align-items:center;gap:8px;z-index:10}
+.fcountdown .fi{font-size:14px}
+.fcountdown .ft{font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:600}
+.fcountdown .fv{font-size:16px;font-weight:900;color:#fbbf24;letter-spacing:1px}
+
+/* BOTTOM BAR */
+.botbar{background:#111827;border-top:1px solid #1e293b;padding:8px 16px;display:flex;align-items:center;gap:14px;min-height:48px;flex-shrink:0}
+.pbar{flex:1;height:6px;background:#1e293b;border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);transition:width .3s;width:0%;border-radius:3px}
+.btime{font-size:14px;font-weight:900;color:#ef4444;min-width:60px;text-align:right}
+.bloc{font-size:11px;color:#64748b;white-space:nowrap}
+
+/* QUIZ OVERLAY */
+.qov{position:absolute;inset:0;background:rgba(10,22,40,.95);display:none;align-items:center;justify-content:center;z-index:9999}
+.qov.show{display:flex}
+.qc{background:#1e293b;border:1px solid #374151;border-radius:16px;padding:28px;max-width:520px;width:90%}
+.qc h3{font-size:15px;margin-bottom:16px;color:#fff;line-height:1.5}
+.qtimer{text-align:center;margin-bottom:12px;font-size:28px;font-weight:900;color:#fbbf24}
+.qtimer.warn{color:#ef4444;animation:pulse .5s infinite alternate}
+@keyframes pulse{to{opacity:.4}}
+.abtn{display:block;width:100%;text-align:left;padding:11px 16px;margin-bottom:8px;background:#0f172a;border:2px solid #374151;border-radius:10px;color:#e2e8f0;cursor:pointer;font-size:14px;transition:all .15s}
+.abtn:hover{border-color:#fbbf24}
+.abtn.ok{border-color:#22c55e;background:rgba(34,197,94,.12);color:#22c55e}
+.abtn.ko{border-color:#ef4444;background:rgba(239,68,68,.12);color:#fca5a5}
+.abtn:disabled{cursor:default;opacity:.7}
+.qfb{margin-top:14px;padding:10px;border-radius:8px;font-size:13px;text-align:center;font-weight:600}
+.qfb.fok{background:rgba(34,197,94,.12);color:#22c55e}
+.qfb.fko{background:rgba(239,68,68,.12);color:#fca5a5}
+.qcont{margin-top:12px;width:100%;background:#fbbf24;color:#0f172a;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;display:none}
+
+/* COMPLETE OVERLAY */
+.cov{position:absolute;inset:0;background:rgba(10,22,40,.95);display:none;align-items:center;justify-content:center;z-index:9999}
+.cov.show{display:flex}
+.ccard{background:#1e293b;border-radius:16px;padding:40px;max-width:450px;width:90%;text-align:center}
+.ccard h2{font-size:20px;color:#22c55e;margin:12px 0 8px}
+.ccard p{color:#94a3b8;font-size:13px;margin-bottom:20px}
+
+/* LOADING */
+.ld{display:flex;align-items:center;justify-content:center;height:100vh;color:#64748b;font-size:15px;flex-direction:column;gap:16px}
+.sp{width:36px;height:36px;border:3px solid #1e293b;border-top-color:#fbbf24;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="ld" id="ld"><div class="sp"></div><div>Caricamento corso...</div></div>
+
+<div id="app" style="display:none;flex-direction:column;height:100vh">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">tutor<span style="color:#fff">81</span></div>
+    <div class="ctitle" id="cTitle"></div>
+    <span class="ver">v3.1</span>
+  </div>
+
+  <!-- YELLOW BAR -->
+  <div class="ybar">
+    <span class="yl">Verifica Apprendimento</span>
+    <span class="ys">Domande previste: <span class="sw" id="qTot">0</span></span>
+    <span class="ys"><span class="sg" id="qOk">0</span> &#10003;</span>
+    <span class="ys"><span class="sr" id="qKo">0</span> &#10007;</span>
+    <span class="sw" id="qWarn" style="display:none">ATTENZIONE! SEI SOTTO IL VALORE DI SOGLIA</span>
+    <button class="esci" onclick="doLogout()">&#9654; Esci</button>
+  </div>
+
+  <!-- BREADCRUMB -->
+  <div class="bbar">
+    <span>&#9664;</span>
+    <span class="bc" id="bcMod">—</span>
+    <span style="color:#374151">&#9654;</span>
+    <span class="bn" id="bcLo">—</span>
+    <span class="bt" id="bcTime"></span>
+  </div>
+
+  <!-- 3 COLUMNS -->
+  <div class="main3">
+
+    <!-- LEFT INFO PANEL -->
+    <div class="lpan">
+      <button class="lexci" onclick="doLogout()">ESCI</button>
+      <div class="lsec"><div class="lbl">Studente</div><div class="val" id="lUser">—</div></div>
+      <div class="lsec"><div class="lbl">Azienda</div><div class="val sm" id="lCompany">—</div></div>
+      <div class="lsec"><div class="lbl">Data</div><div class="val sm" id="lDate">—</div></div>
+      <div class="lsec"><div class="lbl">Scadenza</div><div class="val sm" id="lExpiry">—</div></div>
+      <div class="lbtn"><span class="ico">&#128172;</span> Chat</div>
+      <div class="lbtn"><span class="ico">&#9742;</span> Assistenza</div>
+      <div class="lbtn"><span class="ico">&#128218;</span> Tutor Didattico</div>
+      <div class="lsec" id="lEnteWrap" style="display:none"><div class="lbl">Ente Formativo</div><div class="val sm" id="lEnte"></div></div>
+    </div>
+
+    <!-- CENTER - PROGRAMMA -->
+    <div class="cpan">
+      <div class="cpan-h">
+        <span class="pt">Programma</span>
+        <span class="pc" id="pCount">0/0</span>
+      </div>
+      <div class="clist" id="sList"></div>
+    </div>
+
+    <!-- RIGHT - VIDEO -->
+    <div class="rpan">
+      <div class="vwrap" id="vCont">
+        <video id="vid" autoplay muted playsinline controls></video>
+        <div class="playov" id="playOv" onclick="startPlay()"><div class="pb"></div></div>
+        <div class="fcountdown" id="fCount">
+          <span class="fi">&#9200;</span>
+          <span><span class="ft">Fine corso tra</span><br><span class="fv" id="fTimer">--:--:--</span></span>
+        </div>
+        <div class="qov" id="qOv">
+          <div class="qc" id="qCard"></div>
+        </div>
+        <div class="cov" id="cOv">
+          <div class="ccard">
+            <div style="font-size:48px">&#10003;</div>
+            <h2>Corso completato!</h2>
+            <p>Hai completato tutti gli oggetti formativi.</p>
+            <button class="qcont" style="display:block" onclick="doLogout()">Torna alla home</button>
+          </div>
+        </div>
+      </div>
+      <div class="botbar">
+        <div class="pbar"><div class="pfill" id="pFill"></div></div>
+        <div class="btime" id="bTime">00:00</div>
+        <div class="bloc" id="bLoc">LO 0 / 0</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ========== STATE ==========
+var LOs=[], ci=-1, done={}, ans={}, videoEl=null, sid=null, sStart=Date.now();
+var qTimer=null, qCountdown=0;
+var qCorrect=0, qWrong=0, qTotal=0;
+var courseEndTime=null;
+
+// ========== PERSISTENCE ==========
+function sKey(){ var e=JSON.parse(localStorage.getItem('playerEnrollment')||'{}'); return 'ps3_'+(e.id||0); }
+function saveS(){
+  var vs=(videoEl&&videoEl.currentTime)?Math.floor(videoEl.currentTime):0;
+  localStorage.setItem(sKey(),JSON.stringify({i:ci,d:done,a:ans,v:vs,qc:qCorrect,qw:qWrong}));
+}
+function loadS(){
+  try{var s=JSON.parse(localStorage.getItem(sKey()));if(s){done=s.d||{};ans=s.a||{};qCorrect=s.qc||0;qWrong=s.qw||0;return{i:s.i||0,v:s.v||0};}}catch(e){}
+  return{i:0,v:0};
+}
+
+// ========== TRACKING ==========
+function getEnr(){ return JSON.parse(localStorage.getItem('playerEnrollment')||'{}'); }
+function getUsr(){ return JSON.parse(localStorage.getItem('playerUser')||'{}'); }
+
+function trackLO(loId, action, vPos){
+  var e=getEnr();
+  fetch('/api/player/save-progress',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({enrollmentId:e.id,learningObjectId:loId,action:action,videoPosition:vPos||0})
+  }).catch(function(){});
+}
+function trackQuiz(qid, answerId, isCorrect, qText, aText, vSec){
+  var e=getEnr(), u=getUsr();
+  fetch('/api/player/quiz/answer',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({enrollmentId:e.id,studentId:u.id,questionId:qid,answerId:answerId,
+      isCorrect:isCorrect,learningObjectId:LOs[ci]?LOs[ci].id:null,sessionLogId:sid,
+      questionText:qText,answerText:aText,videoSecond:vSec})
+  }).catch(function(){});
+}
+function trackComplete(idx){
+  var e=getEnr(), lo=LOs[idx];
+  fetch('/api/player/save-progress',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({enrollmentId:e.id,learningObjectId:lo.id,watchedSeconds:(lo.duration||1)*60,completed:true})
+  }).catch(function(){});
+}
+
+// ========== QUIZ STATS ==========
+function updQuizStats(){
+  document.getElementById('qOk').textContent=String(qCorrect);
+  document.getElementById('qKo').textContent=String(qWrong);
+  document.getElementById('qTot').textContent=String(qTotal);
+  // Show warning if wrong > 30% of total answered
+  var tot=qCorrect+qWrong;
+  if(tot>0 && qTotal>0 && (qWrong/qTotal)>0.3){
+    document.getElementById('qWarn').style.display='';
+  } else {
+    document.getElementById('qWarn').style.display='none';
+  }
+}
+
+// ========== COURSE COUNTDOWN ==========
+var courseTotalMin=0, courseWatchedSec=0, courseCountStart=0;
+function startCourseCountdown(){
+  // Total duration = sum of all LO durations in minutes
+  courseTotalMin=0;
+  LOs.forEach(function(lo){courseTotalMin+=(lo.duration||0);});
+  // Watched = completed LOs durations
+  courseWatchedSec=0;
+  for(var k in done){
+    var idx=parseInt(k);
+    if(!isNaN(idx)&&LOs[idx]) courseWatchedSec+=(LOs[idx].duration||0)*60;
+  }
+  courseCountStart=Date.now();
+  setInterval(function(){
+    // Remaining = total - watched - current video elapsed
+    var elapsed=0;
+    if(videoEl&&videoEl.currentTime&&ci>=0&&!done[String(ci)]){
+      elapsed=Math.floor(videoEl.currentTime);
+    }
+    var totalSec=courseTotalMin*60;
+    var rem=Math.max(0,totalSec-courseWatchedSec-elapsed);
+    var h=Math.floor(rem/3600);
+    var m=Math.floor((rem%3600)/60);
+    var s=rem%60;
+    document.getElementById('fTimer').textContent=h+'h '+pad(m)+'m '+pad(s)+'s';
+  },1000);
+}
+function pad(n){return n<10?'0'+n:String(n);}
+
+// ========== INIT ==========
+(async function(){
+  var enr=JSON.parse(localStorage.getItem('playerEnrollment')||'null');
+  var usr=JSON.parse(localStorage.getItem('playerUser')||'null');
+  if(!enr){location.href='/player-login';return;}
+
+  // Fill left panel
+  var tut=JSON.parse(localStorage.getItem('playerTutor')||'{}');
+  document.getElementById('lUser').textContent=usr?(usr.firstName+' '+usr.lastName).toUpperCase():'';
+  document.getElementById('lCompany').textContent=usr&&usr.company?usr.company:'—';
+  document.getElementById('lDate').textContent=new Date().toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('lExpiry').textContent=enr.endDate?new Date(enr.endDate).toLocaleDateString('it-IT'):'—';
+  // Ente formativo info
+  if(tut.name){
+    var enteHtml='<b style="color:#e2e8f0">'+esc(tut.name)+'</b>';
+    if(tut.contact) enteHtml+='<br>'+esc(tut.contact);
+    if(tut.address) enteHtml+='<br>'+esc(tut.address);
+    if(tut.city) enteHtml+='<br>'+esc(tut.cap?tut.cap+' ':'')+esc(tut.city)+(tut.province?' ('+esc(tut.province)+')':'');
+    if(tut.phone) enteHtml+='<br>'+esc(tut.phone);
+    if(tut.email) enteHtml+='<br><span style="color:#fbbf24">'+esc(tut.email)+'</span>';
+    document.getElementById('lEnte').innerHTML=enteHtml;
+    document.getElementById('lEnteWrap').style.display='';
+  }
+
+  try{
+    var r=await fetch('/api/player/course/'+(enr.courseId)+'/structure');
+    if(!r.ok) throw new Error('Errore '+r.status);
+    var data=await r.json();
+    document.getElementById('cTitle').textContent=data.course.title;
+
+    // Count total questions & flatten LOs
+    var html='', n=0;
+    (data.modules||[]).forEach(function(mod){
+      html+='<div class="mt">'+esc(mod.title)+'</div>';
+      var lessons=mod.lessons||[mod];
+      lessons.forEach(function(les){
+        (les.learningObjects||[]).forEach(function(lo){
+          qTotal+=(lo.questions||[]).length;
+          LOs.push({id:lo.id,title:lo.title,code:lo.jwplayerCode,duration:lo.duration,questions:lo.questions||[],modTitle:mod.title});
+          html+='<div class="li locked" id="s'+n+'" onclick="tryGo('+n+')"><span class="dot">'+(n+1)+'</span><span>'+esc(lo.title)+'</span></div>';
+          n++;
+        });
+      });
+    });
+    document.getElementById('sList').innerHTML=html;
+
+    // Restore state
+    var sv=loadS();
+    for(var k in done){var el=document.getElementById('s'+k);if(el){el.classList.add('done');el.classList.remove('locked');}}
+    if(Object.keys(done).length===0){var f=document.getElementById('s0');if(f)f.classList.remove('locked');}
+
+    updQuizStats();
+    document.getElementById('pCount').textContent=Object.keys(done).length+'/'+LOs.length;
+
+    videoEl=document.getElementById('vid');
+    videoEl.addEventListener('playing',function(){document.getElementById('playOv').classList.add('hide');});
+
+    // Session
+    try{
+      var sr=await fetch('/api/player/session/start',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({enrollmentId:enr.id,studentId:usr.id,courseId:enr.courseId})});
+      var sd=await sr.json();
+      if(sd.sessionId) sid=sd.sessionId;
+    }catch(e){}
+
+    startCourseCountdown();
+
+    document.getElementById('ld').style.display='none';
+    document.getElementById('app').style.display='flex';
+
+    go(Math.min(sv.i, LOs.length-1), sv.v);
+
+  }catch(err){
+    document.getElementById('ld').innerHTML='<div style="color:#fca5a5">'+err.message+'</div>';
+  }
+})();
+
+// ========== NAVIGATION ==========
+function tryGo(idx){
+  if(done[String(idx)] || idx===ci) { go(idx,0); return; }
+  var maxUnlocked=0;
+  for(var i=0;i<LOs.length;i++){if(done[String(i)])maxUnlocked=i+1; else break;}
+  if(idx<=maxUnlocked){ go(idx,0); return; }
+}
+
+// ========== GO TO LO ==========
+function go(idx, resumeSec){
+  if(idx<0||idx>=LOs.length) return;
+
+  var prevIdx=ci;
+  if(prevIdx>=0 && prevIdx!==idx){
+    var vp=videoEl.currentTime?Math.floor(videoEl.currentTime):0;
+    trackLO(LOs[prevIdx].id,'leave',vp);
+  }
+
+  var prev=document.getElementById('s'+ci);
+  if(prev) prev.classList.remove('act');
+
+  ci=idx;
+  var lo=LOs[idx];
+
+  var cur=document.getElementById('s'+idx);
+  cur.classList.add('act');
+  cur.classList.remove('locked');
+
+  // Breadcrumb
+  document.getElementById('bcMod').textContent=lo.modTitle;
+  document.getElementById('bcLo').textContent=lo.title;
+
+  // Bottom bar
+  document.getElementById('bLoc').textContent='LO '+(idx+1)+' / '+LOs.length;
+  document.getElementById('pFill').style.width='0%';
+  document.getElementById('bTime').textContent='00:00';
+
+  document.getElementById('qOv').classList.remove('show');
+  document.getElementById('cOv').classList.remove('show');
+  document.getElementById('pCount').textContent=Object.keys(done).length+'/'+LOs.length;
+  saveS();
+
+  trackLO(lo.id,'start',resumeSec||0);
+
+  // Load video
+  if(lo.code){
+    videoEl.removeAttribute('src');
+    videoEl.poster='https://cdn.jwplayer.com/v2/media/'+lo.code+'/poster.jpg?width=1280';
+    fetch('https://cdn.jwplayer.com/v2/media/'+lo.code)
+      .then(function(r){return r.json();})
+      .then(function(data){
+        var sources=(data.playlist&&data.playlist[0]&&data.playlist[0].sources)||[];
+        var mp4s=sources.filter(function(s){return s.type==='video/mp4';});
+        mp4s.sort(function(a,b){return(b.height||0)-(a.height||0);});
+        if(mp4s.length>0){
+          videoEl.src=mp4s[0].file;
+          if(resumeSec && resumeSec>0){
+            videoEl.addEventListener('loadedmetadata',function onMeta(){
+              videoEl.currentTime=resumeSec;
+              videoEl.removeEventListener('loadedmetadata',onMeta);
+            });
+          }
+          videoEl.muted=true;
+          videoEl.play().then(function(){videoEl.muted=false;}).catch(function(){document.getElementById('playOv').classList.remove('hide');});
+        }
+      }).catch(function(){});
+  }
+
+  videoEl.onended=null;
+  videoEl.ontimeupdate=null;
+
+  videoEl.onended=function(){
+    var uq=lo.questions.filter(function(q){return !ans[String(q.id)];});
+    if(uq.length>0){
+      showQuiz(uq[0], function nextQ(){
+        var more=lo.questions.filter(function(q){return !ans[String(q.id)];});
+        if(more.length>0){ showQuiz(more[0], nextQ); }
+        else { markDone(ci); advance(); }
+      });
+      return;
+    }
+    markDone(ci);
+    advance();
+  };
+
+  videoEl.ontimeupdate=function(){
+    var sec=Math.floor(videoEl.currentTime);
+    if(sec%5===0 && sec>0) saveS();
+
+    // Progress bar
+    if(videoEl.duration>0){
+      var pct=Math.min(100,Math.round((videoEl.currentTime/videoEl.duration)*100));
+      document.getElementById('pFill').style.width=pct+'%';
+      // Remaining time
+      var rem=Math.max(0,Math.floor(videoEl.duration-videoEl.currentTime));
+      var mm=Math.floor(rem/60);
+      var ss=rem%60;
+      document.getElementById('bTime').textContent='-'+pad(mm)+':'+pad(ss);
+    }
+
+    // Breadcrumb time
+    if(videoEl.duration>0){
+      var cm=Math.floor(videoEl.currentTime/60);var cs=Math.floor(videoEl.currentTime%60);
+      var dm=Math.floor(videoEl.duration/60);var ds=Math.floor(videoEl.duration%60);
+      document.getElementById('bcTime').textContent=pad(cm)+':'+pad(cs)+' / '+pad(dm)+':'+pad(ds);
+    }
+
+    lo.questions.forEach(function(q){
+      var key=String(q.id);
+      if(ans[key]) return;
+      if(q.time_seconds>0 && sec>=q.time_seconds && sec<=q.time_seconds+2){
+        ans[key]=true; saveS();
+        videoEl.pause();
+        showQuiz(q, function(){
+          try{videoEl.play();}catch(e){}
+        });
+      }
+    });
+  };
+}
+
+function advance(){
+  if(ci+1<LOs.length){go(ci+1,0);}
+  else{document.getElementById('cOv').classList.add('show');}
+}
+
+// ========== QUIZ ==========
+function showQuiz(q, onDone){
+  clearInterval(qTimer);
+  qCountdown=30;
+  var ov=document.getElementById('qOv');
+  var card=document.getElementById('qCard');
+  var answers=q.answers||[];
+  var h='<div class="qtimer" id="qTm">30</div>';
+  h+='<h3>'+esc(q.question_text)+'</h3>';
+  answers.forEach(function(a){
+    h+='<button class="abtn" data-ok="'+(a.is_correct?'1':'0')+'" data-aid="'+a.id+'" data-txt="'+esc(a.answer_text)+'">';
+    h+=esc(a.answer_text)+'</button>';
+  });
+  h+='<div class="qfb" id="qFb" style="display:none"></div>';
+  h+='<button class="qcont" id="qOkBtn">Continua</button>';
+  card.innerHTML=h;
+  ov.classList.add('show');
+
+  var btns=card.querySelectorAll('.abtn');
+  btns.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      clearInterval(qTimer);
+      handleAnswer(btn, q, btns, onDone);
+    });
+  });
+
+  document.getElementById('qOkBtn').addEventListener('click',function(){
+    ov.classList.remove('show');
+    if(onDone) onDone();
+  });
+
+  document.getElementById('qTm').textContent='30';
+  qTimer=setInterval(function(){
+    qCountdown--;
+    var tm=document.getElementById('qTm');
+    if(tm) tm.textContent=String(qCountdown);
+    if(qCountdown<=5 && tm) tm.classList.add('warn');
+    if(qCountdown<=0){
+      clearInterval(qTimer);
+      ans[String(q.id)]=true;
+      qWrong++; updQuizStats(); saveS();
+      trackQuiz(q.id, null, false, q.question_text, 'TEMPO SCADUTO',
+        videoEl.currentTime?Math.floor(videoEl.currentTime):0);
+      ov.classList.remove('show');
+      alert('Tempo scaduto! Devi rientrare nel corso.');
+      doLogout();
+    }
+  },1000);
+}
+
+function handleAnswer(btn, q, btns, onDone){
+  var isOk=btn.dataset.ok==='1';
+  btns.forEach(function(b){
+    b.disabled=true;
+    if(b.dataset.ok==='1') b.classList.add('ok');
+  });
+  if(!isOk) btn.classList.add('ko');
+
+  var fb=document.getElementById('qFb');
+  fb.style.display='block';
+  fb.className='qfb '+(isOk?'fok':'fko');
+  fb.textContent=isOk?'Risposta corretta!':'Risposta errata. La risposta corretta e\u0300 evidenziata in verde.';
+  document.getElementById('qOkBtn').style.display='block';
+
+  if(isOk) qCorrect++; else qWrong++;
+  ans[String(q.id)]=true;
+  updQuizStats(); saveS();
+
+  var vSec=videoEl.currentTime?Math.floor(videoEl.currentTime):0;
+  trackQuiz(q.id, parseInt(btn.dataset.aid), isOk, q.question_text, btn.dataset.txt, vSec);
+}
+
+// ========== HELPERS ==========
+function markDone(idx){
+  done[String(idx)]=true;
+  var el=document.getElementById('s'+idx);
+  if(el){el.classList.add('done');el.classList.remove('locked');}
+  var nxt=document.getElementById('s'+(idx+1));
+  if(nxt) nxt.classList.remove('locked');
+  document.getElementById('pCount').textContent=Object.keys(done).length+'/'+LOs.length;
+  // Update countdown watched time
+  courseWatchedSec=0;
+  for(var k in done){var i=parseInt(k);if(!isNaN(i)&&LOs[i])courseWatchedSec+=(LOs[i].duration||0)*60;}
+  saveS();
+  trackComplete(idx);
+}
+
+function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+function endSession(){
+  if(!sid) return;
+  if(ci>=0){
+    var vp=videoEl&&videoEl.currentTime?Math.floor(videoEl.currentTime):0;
+    trackLO(LOs[ci].id,'leave',vp);
+  }
+  saveS();
+  var dur=Math.round((Date.now()-sStart)/1000);
+  var lo=LOs[ci];
+  navigator.sendBeacon('/api/player/session/end',
+    new Blob([JSON.stringify({sessionId:sid,durationSeconds:dur,lastLoId:lo?lo.id:null,lastLoIndex:ci})],
+    {type:'application/json'}));
+}
+
+function startPlay(){
+  document.getElementById('playOv').classList.add('hide');
+  videoEl.muted=false;
+  videoEl.play().catch(function(){videoEl.muted=true;videoEl.play().catch(function(){});});
+}
+
+function doLogout(){
+  endSession();
+  localStorage.removeItem('playerUser');
+  localStorage.removeItem('playerEnrollment');
+  localStorage.removeItem('playerTutor');
+  location.href='/player-login';
+}
+
+window.addEventListener('beforeunload', function(){
+  saveS();
+  endSession();
+});
+</script>
+</body>
+</html>

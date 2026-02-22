@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player Corso — Tutor81</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#0f172a;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;display:flex;flex-direction:column}
+
+/* HEADER */
+.header{background:#111827;border-bottom:1px solid #1e293b;padding:12px 24px;display:flex;align-items:center;gap:16px;height:56px}
+.header .logo{width:36px;height:36px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#0f172a;font-size:16px;flex-shrink:0}
+.header h1{font-size:15px;color:#fff;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header .user-info{font-size:12px;color:#94a3b8;text-align:right}
+.header .logout{background:none;border:1px solid #374151;color:#94a3b8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;margin-left:12px}
+.header .logout:hover{border-color:#fbbf24;color:#fbbf24}
+
+/* LAYOUT */
+.main{display:flex;flex:1;overflow:hidden;height:calc(100vh - 56px)}
+
+/* SIDEBAR */
+.sidebar{width:300px;background:#111827;border-right:1px solid #1e293b;overflow-y:auto;flex-shrink:0}
+.sidebar-title{padding:16px;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.mod-title{padding:8px 16px;font-size:11px;color:#fbbf24;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(251,191,36,.05)}
+.lo-item{padding:10px 16px 10px 20px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;display:flex;align-items:center;gap:10px;font-size:13px;color:#94a3b8}
+.lo-item:hover{background:#1e293b;color:#e2e8f0}
+.lo-item.active{background:#1e293b;border-left-color:#fbbf24;color:#fff}
+.lo-item.completed{color:#22c55e}
+.lo-item .num{width:22px;height:22px;border-radius:50%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;border:1px solid #374151}
+.lo-item.active .num{background:#fbbf24;color:#0f172a;border-color:#fbbf24}
+.lo-item.completed .num{background:#22c55e;color:#fff;border-color:#22c55e}
+
+/* CONTENT */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.video-wrap{flex:1;background:#000;position:relative}
+.video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+
+/* PROGRESS BAR */
+.progress-bar{height:5px;background:#1e293b;width:100%;flex-shrink:0}
+.progress-bar .fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);transition:width .5s ease;width:0%}
+.placeholder{text-align:center;color:#475569;padding:40px}
+.placeholder .icon{font-size:64px;margin-bottom:16px}
+.placeholder h2{font-size:20px;margin-bottom:8px;color:#64748b}
+.placeholder p{font-size:14px}
+
+/* INFO BAR */
+.info-bar{background:#111827;border-top:1px solid #1e293b;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;min-height:52px}
+.info-bar .lo-title{font-size:14px;font-weight:600;color:#fff}
+.info-bar .lo-meta{font-size:12px;color:#64748b;margin-top:2px}
+.info-bar .actions{display:flex;gap:8px}
+.btn{padding:8px 20px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;border:none;transition:all .15s}
+.btn-primary{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f172a}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(251,191,36,.3)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-outline{background:transparent;border:1px solid #374151;color:#94a3b8}
+.btn-outline:hover{border-color:#fbbf24;color:#fbbf24}
+
+/* QUIZ OVERLAY */
+.quiz-overlay{position:absolute;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:9999}
+.quiz-overlay.show{display:flex}
+.quiz-card{background:#1e293b;border-radius:16px;padding:32px;max-width:520px;width:90%;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+.quiz-card h3{font-size:16px;margin-bottom:20px;color:#fff;line-height:1.5}
+.quiz-card .answer-btn{display:block;width:100%;text-align:left;padding:12px 16px;margin-bottom:8px;background:#0f172a;border:2px solid #374151;border-radius:10px;color:#e2e8f0;cursor:pointer;font-size:14px;transition:all .15s}
+.quiz-card .answer-btn:hover{border-color:#fbbf24}
+.quiz-card .answer-btn.correct{border-color:#22c55e;background:rgba(34,197,94,.1);color:#22c55e}
+.quiz-card .answer-btn.wrong{border-color:#ef4444;background:rgba(239,68,68,.1);color:#fca5a5}
+.quiz-card .answer-btn:disabled{cursor:default}
+.quiz-card .feedback{margin-top:16px;padding:12px;border-radius:8px;font-size:14px;text-align:center;font-weight:600}
+.quiz-card .feedback.ok{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.2)}
+.quiz-card .feedback.ko{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.2)}
+.quiz-continue{margin-top:16px;width:100%}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;height:100vh;color:#64748b;font-size:16px;flex-direction:column;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid #1e293b;border-top-color:#fbbf24;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* COMPLETE OVERLAY */
+.complete-overlay{position:absolute;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:9999}
+.complete-overlay.show{display:flex}
+.complete-card{background:#1e293b;border-radius:16px;padding:40px;max-width:500px;width:90%;text-align:center}
+.complete-card .check{font-size:64px;margin-bottom:16px}
+.complete-card h2{font-size:22px;color:#22c55e;margin-bottom:8px}
+.complete-card p{color:#94a3b8;font-size:14px;margin-bottom:24px}
+
+@media(max-width:768px){
+  .sidebar{width:240px}
+  .header h1{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div>Caricamento corso...</div>
+</div>
+
+<div id="app" style="display:none;flex-direction:column;min-height:100vh">
+  <div class="header">
+    <div class="logo">T</div>
+    <h1 id="courseTitle">Caricamento...</h1>
+    <span class="user-info" id="userInfo"></span>
+    <button class="logout" onclick="logout()">Esci</button>
+  </div>
+  <div class="main">
+    <div class="sidebar">
+      <div class="sidebar-title">Struttura del corso</div>
+      <div id="sidebarContent"></div>
+    </div>
+    <div class="content">
+      <div class="video-wrap" id="videoWrap">
+        <div class="placeholder" id="placeholder">
+          <div class="icon">▶</div>
+          <h2>Seleziona una lezione</h2>
+          <p>Scegli un oggetto dal menu a sinistra per iniziare</p>
+        </div>
+        <div class="quiz-overlay" id="quizOverlay">
+          <div class="quiz-card" id="quizCard"></div>
+        </div>
+        <div class="complete-overlay" id="completeOverlay">
+          <div class="complete-card">
+            <div class="check">✅</div>
+            <h2>Corso completato!</h2>
+            <p>Hai completato tutti gli oggetti formativi di questo corso.</p>
+            <button class="btn btn-primary" onclick="logout()">Torna alla home</button>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+      <div class="info-bar">
+        <div>
+          <div class="lo-title" id="loTitle">Nessuna lezione selezionata</div>
+          <div class="lo-meta" id="loMeta"></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnNext" onclick="nextLO()" disabled>Prossima lezione →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// STATE
+let courseData = null;
+let allLOs = []; // flat list of all LOs
+let currentIndex = -1;
+let completedSet = new Set();
+let quizAnswered = new Set();
+let questionTimers = [];
+
+// Persistence helpers
+function saveState() {
+  var enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || '{}');
+  var key = 'playerState_' + (enrollment.id || 0);
+  localStorage.setItem(key, JSON.stringify({ currentIndex: currentIndex, completed: Array.from(completedSet), answered: Array.from(quizAnswered) }));
+}
+function loadState() {
+  var enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || '{}');
+  var key = 'playerState_' + (enrollment.id || 0);
+  try { var s = JSON.parse(localStorage.getItem(key)); if (s) { completedSet = new Set(s.completed || []); quizAnswered = new Set(s.answered || []); return s.currentIndex || 0; } } catch(e){}
+  return 0;
+}
+
+// INIT
+(async function init() {
+  const enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || 'null');
+  const user = JSON.parse(localStorage.getItem('playerUser') || 'null');
+  if (!enrollment) { window.location.href = '/player-login'; return; }
+
+  const courseId = enrollment.courseId || enrollment.learningProjectId;
+  document.getElementById('userInfo').textContent = user ? (user.firstName + ' ' + user.lastName) : '';
+
+  try {
+    const r = await fetch('/api/player/course/' + courseId + '/structure');
+    if (!r.ok) throw new Error('API error ' + r.status);
+    courseData = await r.json();
+
+    document.getElementById('courseTitle').textContent = courseData.course.title;
+
+    // Build flat LO list and sidebar
+    let sidebar = '';
+    let loIndex = 0;
+    courseData.modules.forEach(function(mod) {
+      sidebar += '<div class="mod-title">' + esc(mod.title) + '</div>';
+      const lessons = mod.lessons || [mod];
+      lessons.forEach(function(lesson) {
+        const los = lesson.learningObjects || [];
+        los.forEach(function(lo) {
+          allLOs.push({ ...lo, moduleTitle: mod.title });
+          sidebar += '<div class="lo-item" id="lo-' + loIndex + '" onclick="selectLO(' + loIndex + ')">';
+          sidebar += '<span class="num">' + (loIndex + 1) + '</span>';
+          sidebar += '<span>' + esc(lo.title) + '</span>';
+          sidebar += '</div>';
+          loIndex++;
+        });
+      });
+    });
+
+    document.getElementById('sidebarContent').innerHTML = sidebar;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+
+    // Resume from saved position or start at first LO
+    var savedIndex = loadState();
+    // Mark completed items in sidebar
+    completedSet.forEach(function(i) { var el = document.getElementById('lo-' + i); if (el) el.classList.add('completed'); });
+    if (allLOs.length > 0) selectLO(Math.min(savedIndex, allLOs.length - 1));
+
+  } catch (err) {
+    document.getElementById('loading').innerHTML = '<div style="color:#fca5a5;text-align:center"><h2>Errore</h2><p>' + err.message + '</p><br><button class="btn btn-primary" onclick="window.location.href=\'/player-login\'">Torna al login</button></div>';
+  }
+})();
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function selectLO(index) {
+  if (index < 0 || index >= allLOs.length) return;
+  const prev = document.getElementById('lo-' + currentIndex);
+  if (prev) prev.classList.remove('active');
+
+  currentIndex = index;
+  const lo = allLOs[index];
+
+  document.getElementById('lo-' + index).classList.add('active');
+  saveState();
+  document.getElementById('loTitle').textContent = lo.title;
+  document.getElementById('loMeta').textContent = lo.moduleTitle + ' • Durata: ' + (lo.duration || '?') + ' min';
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('quizOverlay').classList.remove('show');
+  document.getElementById('completeOverlay').classList.remove('show');
+
+  // Update next button
+  const btnNext = document.getElementById('btnNext');
+  btnNext.disabled = (index >= allLOs.length - 1);
+
+  // Update progress bar
+  var pct = allLOs.length > 0 ? Math.round((completedSet.size / allLOs.length) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  // Clear previous question timers
+  questionTimers.forEach(function(t) { clearTimeout(t); });
+  questionTimers = [];
+
+  // Load JWPlayer video via iframe
+  if (lo.jwplayerCode) {
+    var oldIframe = document.getElementById('videoWrap').querySelector('iframe');
+    if (oldIframe) oldIframe.remove();
+    var iframe = document.createElement('iframe');
+    iframe.src = 'https://cdn.jwplayer.com/players/' + lo.jwplayerCode + '-dmPag98M.html?autostart=true';
+    iframe.allow = 'autoplay; encrypted-media; fullscreen';
+    iframe.allowFullscreen = true;
+    iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none;z-index:1';
+    document.getElementById('videoWrap').insertBefore(iframe, document.getElementById('placeholder'));
+  }
+
+  // Show questions at the right time
+  if (lo.questions && lo.questions.length > 0) {
+    lo.questions.forEach(function(q) {
+      if (quizAnswered.has(q.id)) return;
+      var delay = (q.time_seconds || 30) * 1000;
+      var t = setTimeout(function() {
+        if (currentIndex === index && !quizAnswered.has(q.id)) {
+          showQuiz(q, currentIndex);
+        }
+      }, delay);
+      questionTimers.push(t);
+    });
+  }
+}
+
+function showQuiz(question, loIndex) {
+  const overlay = document.getElementById('quizOverlay');
+  const card = document.getElementById('quizCard');
+
+  let html = '<h3>' + esc(question.question_text) + '</h3>';
+  const answers = question.answers || [];
+  answers.forEach(function(a) {
+    html += '<button class="answer-btn" data-id="' + a.id + '" data-correct="' + a.is_correct + '" onclick="answerQuiz(this,' + question.id + ')">' + esc(a.answer_text) + '</button>';
+  });
+  html += '<div class="feedback" id="quizFeedback" style="display:none"></div>';
+  html += '<button class="btn btn-primary quiz-continue" id="quizContinue" style="display:none" onclick="closeQuiz()">Continua</button>';
+
+  card.innerHTML = html;
+  overlay.classList.add('show');
+}
+
+function answerQuiz(btn, questionId) {
+  const buttons = btn.parentElement.querySelectorAll('.answer-btn');
+  const isCorrect = btn.dataset.correct === 'true';
+
+  buttons.forEach(function(b) {
+    b.disabled = true;
+    if (b.dataset.correct === 'true') b.classList.add('correct');
+  });
+  if (!isCorrect) btn.classList.add('wrong');
+
+  const fb = document.getElementById('quizFeedback');
+  fb.style.display = 'block';
+  fb.className = 'feedback ' + (isCorrect ? 'ok' : 'ko');
+  fb.textContent = isCorrect ? 'Risposta corretta!' : 'Risposta errata. La risposta corretta è evidenziata.';
+
+  document.getElementById('quizContinue').style.display = 'block';
+  quizAnswered.add(questionId);
+
+  // Save answer to server
+  const enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || '{}');
+  const user = JSON.parse(localStorage.getItem('playerUser') || '{}');
+  fetch('/api/player/quiz/answer', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      enrollmentId: enrollment.id,
+      studentId: user.id,
+      questionId: questionId,
+      answerId: parseInt(btn.dataset.id),
+      isCorrect: isCorrect,
+      learningObjectId: allLOs[currentIndex]?.id
+    })
+  }).catch(function(){});
+}
+
+function closeQuiz() {
+  document.getElementById('quizOverlay').classList.remove('show');
+}
+
+function nextLO() {
+  if (currentIndex >= allLOs.length - 1) return;
+  // Mark current as completed
+  completedSet.add(currentIndex);
+  const el = document.getElementById('lo-' + currentIndex);
+  if (el) el.classList.add('completed');
+
+  // Save progress
+  const enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || '{}');
+  fetch('/api/player/save-progress', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      enrollmentId: enrollment.id,
+      learningObjectId: allLOs[currentIndex].id,
+      watchedSeconds: (allLOs[currentIndex].duration || 1) * 60,
+      completed: true
+    })
+  }).catch(function(){});
+
+  if (currentIndex + 1 >= allLOs.length) {
+    // Course complete
+    document.getElementById('completeOverlay').classList.add('show');
+  } else {
+    selectLO(currentIndex + 1);
+  }
+}
+
+function logout() {
+  localStorage.removeItem('playerUser');
+  localStorage.removeItem('playerEnrollment');
+  window.location.href = '/player-login';
+}
+</script>
+</body>
+</html>

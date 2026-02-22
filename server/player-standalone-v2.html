@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player Corso — Tutor81</title>
+<!--
+  ============================================================
+  TUTOR81 LMS PLAYER — Versione 3.0 — 22/02/2026
+  ============================================================
+  REQUISITI IMPLEMENTATI:
+  1. Video HTML5 nativo con MP4 da JWPlayer delivery API
+  2. Auto-avanzamento automatico al video successivo
+  3. Domande: appaiono al secondo impostato (time_seconds)
+     - Se time_seconds=0 o > durata video → appare a fine video
+     - Il video si FERMA quando appare la domanda
+     - Dopo la risposta il video RIPRENDE
+  4. Tracciamento dettagliato per ogni LO:
+     - started_at: quando lo studente INIZIA la lezione (timestamp)
+     - left_at: quando lo studente ABBANDONA/ESCE (timestamp)
+     - completed_at: quando lo studente FINISCE la lezione (timestamp)
+     - video_position_seconds: secondo esatto del video
+  5. Tracciamento quiz:
+     - question_text: testo della domanda
+     - answer_text: testo della risposta data
+     - is_correct: se è corretta o meno
+     - video_second: secondo del video in cui ha risposto
+  6. Sessioni: login_at, logout_at, durata
+  7. Persistenza: al rientro riprende dal LO e secondo esatto
+  8. Barra gialla avanzamento corso
+  9. Sidebar con struttura corso e stato completamento
+  ============================================================
+-->
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#0f172a;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;display:flex;flex-direction:column}
+.header{background:#111827;border-bottom:1px solid #1e293b;padding:10px 24px;display:flex;align-items:center;gap:16px;height:50px}
+.header .logo{width:32px;height:32px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#0f172a;font-size:14px;flex-shrink:0}
+.header h1{font-size:14px;color:#fff;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header .user-info{font-size:12px;color:#94a3b8}
+.header .logout{background:none;border:1px solid #374151;color:#94a3b8;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;margin-left:8px}
+.header .logout:hover{border-color:#fbbf24;color:#fbbf24}
+.main{display:flex;flex:1;overflow:hidden;height:calc(100vh - 50px)}
+.sidebar{width:300px;background:#111827;border-right:1px solid #1e293b;overflow-y:auto;flex-shrink:0}
+.sidebar-title{padding:14px 16px 8px;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.mod-title{padding:6px 16px;font-size:11px;color:#fbbf24;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(251,191,36,.05)}
+.lo-item{padding:9px 16px 9px 20px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;display:flex;align-items:center;gap:10px;font-size:13px;color:#94a3b8}
+.lo-item:hover{background:#1e293b;color:#e2e8f0}
+.lo-item.active{background:#1e293b;border-left-color:#fbbf24;color:#fff}
+.lo-item.completed .num{background:#22c55e;color:#fff;border-color:#22c55e}
+.lo-item .num{width:22px;height:22px;border-radius:50%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;border:1px solid #374151}
+.lo-item.active .num{background:#fbbf24;color:#0f172a;border-color:#fbbf24}
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.video-container{flex:1;background:#000;position:relative}
+.video-container .jw-wrapper{width:100%!important;height:100%!important}
+#playerDiv{width:100%;height:100%;object-fit:contain;background:#000}
+.progress-bar{height:4px;background:#1e293b;width:100%;flex-shrink:0}
+.progress-fill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);transition:width .5s;width:0%}
+.info-bar{background:#111827;border-top:1px solid #1e293b;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;min-height:48px}
+.lo-title{font-size:13px;font-weight:600;color:#fff}
+.lo-meta{font-size:11px;color:#64748b;margin-top:2px}
+.btn-next{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f172a;border:none;padding:8px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px}
+.btn-next:hover{transform:translateY(-1px)}
+.btn-next:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.quiz-overlay{position:absolute;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:9999}
+.quiz-overlay.show{display:flex}
+.quiz-card{background:#1e293b;border-radius:16px;padding:28px;max-width:500px;width:90%}
+.quiz-card h3{font-size:15px;margin-bottom:16px;color:#fff;line-height:1.5}
+.answer-btn{display:block;width:100%;text-align:left;padding:11px 16px;margin-bottom:8px;background:#0f172a;border:2px solid #374151;border-radius:10px;color:#e2e8f0;cursor:pointer;font-size:14px;transition:all .15s}
+.answer-btn:hover{border-color:#fbbf24}
+.answer-btn.correct{border-color:#22c55e;background:rgba(34,197,94,.1);color:#22c55e}
+.answer-btn.wrong{border-color:#ef4444;background:rgba(239,68,68,.1);color:#fca5a5}
+.answer-btn:disabled{cursor:default}
+.quiz-fb{margin-top:14px;padding:10px;border-radius:8px;font-size:13px;text-align:center;font-weight:600}
+.quiz-fb.ok{background:rgba(34,197,94,.12);color:#22c55e}
+.quiz-fb.ko{background:rgba(239,68,68,.12);color:#fca5a5}
+.quiz-continue{margin-top:12px;width:100%;background:#fbbf24;color:#0f172a;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;display:none}
+.complete-overlay{position:absolute;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:9999}
+.complete-overlay.show{display:flex}
+.complete-card{background:#1e293b;border-radius:16px;padding:40px;max-width:450px;width:90%;text-align:center}
+.complete-card h2{font-size:20px;color:#22c55e;margin:12px 0 8px}
+.complete-card p{color:#94a3b8;font-size:13px;margin-bottom:20px}
+.loading{display:flex;align-items:center;justify-content:center;height:100vh;color:#64748b;font-size:15px;flex-direction:column;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid #1e293b;border-top-color:#fbbf24;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.sidebar{width:220px}}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading"><div class="spinner"></div><div>Caricamento corso...</div></div>
+
+<div id="app" style="display:none;flex-direction:column;min-height:100vh">
+  <div class="header">
+    <div class="logo">T</div>
+    <h1 id="courseTitle"></h1>
+    <span class="user-info" id="userInfo"></span>
+    <button class="logout" onclick="doLogout()">Esci</button>
+  </div>
+  <div class="main">
+    <div class="sidebar">
+      <div class="sidebar-title">Struttura del corso</div>
+      <div id="sidebarList"></div>
+    </div>
+    <div class="content">
+      <div class="video-container" id="videoContainer">
+        <video id="playerDiv" autoplay muted controls></video>
+        <div class="quiz-overlay" id="quizOverlay">
+          <div class="quiz-card" id="quizCard"></div>
+        </div>
+        <div class="complete-overlay" id="completeOverlay">
+          <div class="complete-card">
+            <div style="font-size:48px">&#10003;</div>
+            <h2>Corso completato!</h2>
+            <p>Hai completato tutti gli oggetti formativi.</p>
+            <button class="btn-next" onclick="doLogout()">Torna alla home</button>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="info-bar">
+        <div>
+          <div class="lo-title" id="loTitle">—</div>
+          <div class="lo-meta" id="loMeta"></div>
+        </div>
+        <button class="btn-next" id="btnNext" onclick="goNext()" disabled>Prossima lezione &rarr;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var allLOs = [];
+var curIdx = -1;
+var completed = {};
+var answered = {};
+var videoEl = null;
+var sessionId = null;
+var sessionStart = Date.now();
+
+// ===================== PERSISTENCE =====================
+function stateKey() {
+  var e = JSON.parse(localStorage.getItem('playerEnrollment') || '{}');
+  return 'pState_' + (e.id || 0);
+}
+function saveState() {
+  localStorage.setItem(stateKey(), JSON.stringify({ idx: curIdx, done: completed, ans: answered }));
+}
+function loadState() {
+  try { var s = JSON.parse(localStorage.getItem(stateKey())); if (s) { completed = s.done || {}; answered = s.ans || {}; return s.idx || 0; } } catch(e){}
+  return 0;
+}
+
+// ===================== INIT =====================
+(async function() {
+  var enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || 'null');
+  var user = JSON.parse(localStorage.getItem('playerUser') || 'null');
+  if (!enrollment) { location.href = '/player-login'; return; }
+
+  document.getElementById('userInfo').textContent = user ? (user.firstName + ' ' + user.lastName).toUpperCase() : '';
+
+  try {
+    var r = await fetch('/api/player/course/' + (enrollment.courseId) + '/structure');
+    if (!r.ok) throw new Error('Errore ' + r.status);
+    var data = await r.json();
+
+    document.getElementById('courseTitle').textContent = data.course.title;
+
+    // Flatten LOs
+    var html = '';
+    var n = 0;
+    (data.modules || []).forEach(function(mod) {
+      html += '<div class="mod-title">' + esc(mod.title) + '</div>';
+      var lessons = mod.lessons || [mod];
+      lessons.forEach(function(les) {
+        (les.learningObjects || []).forEach(function(lo) {
+          allLOs.push({ id: lo.id, title: lo.title, code: lo.jwplayerCode, duration: lo.duration, questions: lo.questions || [], modTitle: mod.title });
+          html += '<div class="lo-item" id="si-' + n + '" onclick="go(' + n + ')"><span class="num">' + (n+1) + '</span><span>' + esc(lo.title) + '</span></div>';
+          n++;
+        });
+      });
+    });
+    document.getElementById('sidebarList').innerHTML = html;
+
+    // Restore state
+    var saved = loadState();
+    for (var k in completed) {
+      var el = document.getElementById('si-' + k);
+      if (el) el.classList.add('completed');
+    }
+
+    // Video element reference
+    videoEl = document.getElementById('playerDiv');
+
+    // Start session
+    try {
+      var sr = await fetch('/api/player/session/start', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ enrollmentId:enrollment.id, studentId:user.id, courseId:enrollment.courseId }) });
+      var sd = await sr.json();
+      if (sd.sessionId) sessionId = sd.sessionId;
+    } catch(e){}
+
+    // Show app
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+
+    // Load first (or saved) LO
+    go(Math.min(saved, allLOs.length - 1));
+
+  } catch(err) {
+    document.getElementById('loading').innerHTML = '<div style="color:#fca5a5">' + err.message + '</div>';
+  }
+})();
+
+// ===================== GO TO LO =====================
+function go(idx) {
+  if (idx < 0 || idx >= allLOs.length) return;
+
+  // Deselect previous
+  var prev = document.getElementById('si-' + curIdx);
+  if (prev) prev.classList.remove('active');
+
+  curIdx = idx;
+  var lo = allLOs[idx];
+
+  // Save leave event for previous LO
+  if (curIdx >= 0 && curIdx !== idx) {
+    var prevLo = allLOs[curIdx];
+    var pos = videoEl.currentTime ? Math.floor(videoEl.currentTime) : 0;
+    var enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || '{}');
+    fetch('/api/player/save-progress', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ enrollmentId:enrollment.id, learningObjectId:prevLo.id, action:'leave', videoPosition:pos }) }).catch(function(){});
+  }
+
+  // Select in sidebar
+  document.getElementById('si-' + idx).classList.add('active');
+  document.getElementById('loTitle').textContent = lo.title;
+  document.getElementById('loMeta').textContent = lo.modTitle + ' \u2022 Durata: ' + (lo.duration || '?') + ' min';
+  document.getElementById('btnNext').disabled = (idx >= allLOs.length - 1);
+  document.getElementById('quizOverlay').classList.remove('show');
+  document.getElementById('completeOverlay').classList.remove('show');
+  updateProgress();
+  saveState();
+
+  // Fetch MP4 URL from JWPlayer delivery API
+  if (lo.code) {
+    videoEl.removeAttribute('src');
+    videoEl.poster = 'https://cdn.jwplayer.com/v2/media/' + lo.code + '/poster.jpg?width=1280';
+    fetch('https://cdn.jwplayer.com/v2/media/' + lo.code)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var sources = (data.playlist && data.playlist[0] && data.playlist[0].sources) || [];
+        var mp4s = sources.filter(function(s) { return s.type === 'video/mp4'; });
+        mp4s.sort(function(a,b) { return (b.height||0) - (a.height||0); });
+        if (mp4s.length > 0) {
+          videoEl.src = mp4s[0].file;
+          videoEl.play().then(function(){ videoEl.muted = false; }).catch(function(){});
+        }
+      }).catch(function(){});
+  }
+
+  // Remove old listeners
+  videoEl.onended = null;
+  videoEl.ontimeupdate = null;
+
+  // Auto-advance on video complete
+  videoEl.onended = function() {
+    // Check for ANY unanswered questions for this LO
+    var endQ = lo.questions.filter(function(q) { return !answered[String(q.id)]; });
+    if (endQ.length > 0) {
+      answered[String(endQ[0].id)] = true;
+      saveState();
+      showQuiz(endQ[0]);
+      // After quiz, advance
+      var origClose = closeQuiz;
+      closeQuiz = function() {
+        document.getElementById('quizOverlay').classList.remove('show');
+        closeQuiz = origClose;
+        markDone(curIdx);
+        if (curIdx + 1 < allLOs.length) { go(curIdx + 1); } else { document.getElementById('completeOverlay').classList.add('show'); }
+      };
+      return;
+    }
+    markDone(curIdx);
+    if (curIdx + 1 < allLOs.length) {
+      go(curIdx + 1);
+    } else {
+      document.getElementById('completeOverlay').classList.add('show');
+    }
+  };
+
+  // Questions: trigger on time (only for time_seconds > 0)
+  videoEl.ontimeupdate = function() {
+    var sec = Math.floor(videoEl.currentTime);
+    lo.questions.forEach(function(q) {
+      var key = String(q.id);
+      if (answered[key]) return;
+      if (q.time_seconds > 0 && sec >= q.time_seconds && sec <= q.time_seconds + 2) {
+        answered[key] = true;
+        saveState();
+        videoEl.pause();
+        showQuiz(q);
+      }
+    });
+  };
+}
+
+// ===================== QUIZ =====================
+function showQuiz(q) {
+  var overlay = document.getElementById('quizOverlay');
+  var card = document.getElementById('quizCard');
+  var answers = q.answers || [];
+  var h = '<h3>' + esc(q.question_text) + '</h3>';
+  answers.forEach(function(a) {
+    h += '<button class="answer-btn" data-correct="' + (a.is_correct ? '1' : '0') + '" data-aid="' + a.id + '" onclick="pickAnswer(this,' + q.id + ')">' + esc(a.answer_text) + '</button>';
+  });
+  h += '<div class="quiz-fb" id="quizFb" style="display:none"></div>';
+  h += '<button class="quiz-continue" id="quizOk" onclick="closeQuiz()">Continua</button>';
+  card.innerHTML = h;
+  overlay.classList.add('show');
+}
+
+function pickAnswer(btn, qid) {
+  var card = btn.parentElement;
+  var btns = card.querySelectorAll('.answer-btn');
+  var ok = btn.dataset.correct === '1';
+  btns.forEach(function(b) { b.disabled = true; if (b.dataset.correct === '1') b.classList.add('correct'); });
+  if (!ok) btn.classList.add('wrong');
+  var fb = document.getElementById('quizFb');
+  fb.style.display = 'block';
+  fb.className = 'quiz-fb ' + (ok ? 'ok' : 'ko');
+  fb.textContent = ok ? 'Risposta corretta!' : 'Risposta errata.';
+  document.getElementById('quizOk').style.display = 'block';
+
+  // Save to server (fire & forget)
+  var enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || '{}');
+  var user = JSON.parse(localStorage.getItem('playerUser') || '{}');
+  var vidSec = videoEl.currentTime ? Math.floor(videoEl.currentTime) : 0;
+  var qText = btn.parentElement.querySelector('h3') ? btn.parentElement.querySelector('h3').textContent : '';
+  var aText = btn.textContent;
+  fetch('/api/player/quiz/answer', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ enrollmentId:enrollment.id, studentId:user.id, questionId:qid, answerId:parseInt(btn.dataset.aid), isCorrect:ok, learningObjectId:allLOs[curIdx]?.id, sessionLogId:sessionId, questionText:qText, answerText:aText, videoSecond:vidSec }) }).catch(function(){});
+}
+
+function closeQuiz() {
+  document.getElementById('quizOverlay').classList.remove('show');
+  try { videoEl.play(); } catch(e){}
+}
+
+// ===================== HELPERS =====================
+function markDone(idx) {
+  completed[String(idx)] = true;
+  var el = document.getElementById('si-' + idx);
+  if (el) el.classList.add('completed');
+  updateProgress();
+  saveState();
+  // Save to server
+  var enrollment = JSON.parse(localStorage.getItem('playerEnrollment') || '{}');
+  fetch('/api/player/save-progress', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ enrollmentId:enrollment.id, learningObjectId:allLOs[idx].id, watchedSeconds:(allLOs[idx].duration||1)*60, completed:true }) }).catch(function(){});
+}
+
+function goNext() {
+  if (curIdx < allLOs.length - 1) {
+    markDone(curIdx);
+    go(curIdx + 1);
+  }
+}
+
+function updateProgress() {
+  var done = Object.keys(completed).length;
+  var pct = allLOs.length > 0 ? Math.round((done / allLOs.length) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function endSession() {
+  if (!sessionId) return;
+  var dur = Math.round((Date.now() - sessionStart) / 1000);
+  var lo = allLOs[curIdx];
+  navigator.sendBeacon('/api/player/session/end', new Blob([JSON.stringify({ sessionId:sessionId, durationSeconds:dur, lastLoId:lo?lo.id:null, lastLoIndex:curIdx })], {type:'application/json'}));
+}
+
+function doLogout() {
+  endSession();
+  localStorage.removeItem('playerUser');
+  localStorage.removeItem('playerEnrollment');
+  location.href = '/player-login';
+}
+
+// End session on page close
+window.addEventListener('beforeunload', endSession);
+</script>
+</body>
+</html>
