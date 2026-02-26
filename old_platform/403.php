@@ -1,1 +1,0 @@
-<h1>Errore 403<br><small>Non sei autorizzato alla visualizzazione di questa pagina</small></h1>

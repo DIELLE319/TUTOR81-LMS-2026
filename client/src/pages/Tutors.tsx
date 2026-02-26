@@ -354,7 +354,7 @@ export default function Tutors() {
                                   {newAdmin && (
                                     <tr className="border-t border-yellow-500/20">
                                       <td className="py-2 pr-2">
-                                        <input type="text" placeholder="Nome Cognome" value={newAdmin.name} onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                                        <input type="text" placeholder="Nome Cognome" value={newAdmin.name} onChange={(e) => { const v=e.target.value; const u=v.trim().toLowerCase().replace(/\s+/g,'.'); setNewAdmin({ ...newAdmin, name: v, username: u }); }}
                                           className="w-full h-7 px-2 bg-[#141414] border border-white/10 rounded text-xs text-gray-200" />
                                       </td>
                                       <td className="py-2 pr-2">

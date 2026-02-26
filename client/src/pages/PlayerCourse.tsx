@@ -9,6 +9,7 @@ import {
 interface LearningObject {
   id: number; title: string; objectType: string;
   jwplayerCode: string | null; videoFilename: string | null;
+  slideFilename: string | null; documentFilename: string | null; webFilename: string | null;
   duration: number | null; questions?: any[];
 }
 interface Lesson { id: number; title: string; learningObjects: LearningObject[]; }
@@ -182,12 +183,30 @@ export default function PlayerCourse() {
     if (quizTimerRef.current) { clearInterval(quizTimerRef.current); quizTimerRef.current = null; }
   };
 
+  const playDing = () => {
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.8, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.6);
+    } catch {}
+  };
+
   const showQuizQuestion = (lo: LearningObject, isEnd: boolean) => {
     clearAllTimers();
     setPlaying(false);
     if (videoRef.current) try { videoRef.current.pause(); } catch {}
     const question = getNextQuestion(lo);
     if (question) {
+      playDing();
       setUsedQuestionIds(prev => { const n = new Set(Array.from(prev)); n.add(question.id); return n; });
       setQuizOverlay({ ...question, _isEnd: isEnd });
       setQuizCountdown(30);
@@ -245,6 +264,11 @@ export default function PlayerCourse() {
   };
 
   const startPlayback = (lo: LearningObject) => {
+    // Save old LO progress and clear timers BEFORE switching
+    if (currentLORef.current && currentLORef.current.id !== lo.id) {
+      saveProgress(currentLORef.current.id, watchedSecRef.current, false);
+    }
+    clearAllTimers();
     setCurrentLO(lo);
     currentLORef.current = lo;
     setQuizOverlay(null);
@@ -255,7 +279,6 @@ export default function PlayerCourse() {
     const prevSec = loProgress.find(p => p.learningObjectId === lo.id)?.watchedSeconds || 0;
     setWatchedSec(prevSec);
     watchedSecRef.current = prevSec;
-    clearAllTimers();
     setPlaying(true);
     const durationSec = (lo.duration || 2) * 60;
 
@@ -424,23 +447,33 @@ export default function PlayerCourse() {
           <div className="flex-1 overflow-y-auto">
             {structure?.modules.map(mod => (
               <div key={mod.id}>
-                <button onClick={() => toggleModule(mod.id)}
-                  className="w-full flex items-center gap-1.5 px-3 py-2 text-left hover:bg-white/5 border-b border-white/5">
-                  {expandedModules.has(mod.id) ? <ChevronDown size={10} className="text-gray-600" /> : <ChevronRight size={10} className="text-gray-600" />}
+                <div className="w-full flex items-center gap-1.5 px-3 py-2 border-b border-white/5">
+                  <ChevronDown size={10} className="text-gray-600" />
                   <span className="text-[10px] font-bold text-gray-400 uppercase truncate">{mod.title}</span>
-                </button>
-                {expandedModules.has(mod.id) && mod.lessons.map(lesson => (
+                </div>
+                {mod.lessons.map(lesson => (
                   <div key={lesson.id}>
                     {lesson.learningObjects.map(lo => {
                       const done = isLoCompleted(lo.id);
                       const isCurrent = currentLO?.id === lo.id;
+                      const loIdx = allLOs.findIndex(a => a.lo.id === lo.id);
+                      const canNavigate = done || isCurrent || loIdx < currentIdx;
                       return (
-                        <button key={lo.id} onClick={() => { pausePlayback(); startPlayback(lo); }}
-                          className={`w-full flex items-center gap-2 px-3 py-1.5 text-left transition-all ${isCurrent ? "bg-yellow-500/15 border-l-2 border-yellow-500" : "hover:bg-white/5 border-l-2 border-transparent"}`}>
-                          {done ? <CheckCircle size={10} className="text-green-500 shrink-0" />
-                            : isCurrent && playing ? <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse shrink-0" />
-                            : <Circle size={10} className="text-gray-700 shrink-0" />}
-                          <span className={`text-[10px] truncate ${isCurrent ? "text-yellow-400 font-semibold" : done ? "text-green-600" : "text-gray-500"}`}>
+                        <button key={lo.id}
+                          onClick={() => { if (canNavigate) { pausePlayback(); startPlayback(lo); } }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-all ${
+                            isCurrent ? "bg-yellow-500/25 border-l-3 border-yellow-500"
+                            : done ? "hover:bg-white/5 border-l-2 border-green-500/50 cursor-pointer"
+                            : "border-l-2 border-transparent opacity-50 cursor-not-allowed"
+                          }`}>
+                          {done ? <CheckCircle size={12} className="text-green-500 shrink-0" />
+                            : isCurrent && playing ? <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse shrink-0" />
+                            : <Circle size={12} className={`shrink-0 ${canNavigate ? "text-gray-500" : "text-gray-700"}`} />}
+                          <span className={`text-[11px] truncate ${
+                            isCurrent ? "text-yellow-300 font-bold"
+                            : done ? "text-green-500"
+                            : canNavigate ? "text-white/80" : "text-gray-600"
+                          }`}>
                             {lo.title}
                           </span>
                         </button>
@@ -481,6 +514,65 @@ export default function PlayerCourse() {
                 playsInline
                 onPause={() => { /* controlled by our timer */ }}
               />
+            ) : currentLO && (currentLO.objectType === 'slide' || currentLO.objectType === 'document') && (currentLO.slideFilename || currentLO.documentFilename) ? (
+              <div className="w-full h-full relative flex flex-col">
+                {countdownSec > 0 && (
+                  <div className="bg-red-900/95 border-b border-red-500/50 px-4 py-2 flex items-center justify-center gap-4 shrink-0 z-10">
+                    <AlertTriangle size={18} className="text-red-400" />
+                    <span className="text-red-200 font-bold text-sm uppercase">Lettura obbligatoria — non puoi proseguire</span>
+                    <div className="flex items-center gap-2 bg-black/40 rounded-lg px-4 py-1">
+                      <Clock size={16} className="text-yellow-500" />
+                      <span className="text-2xl font-mono font-bold text-yellow-500">{fmt(countdownSec)}</span>
+                    </div>
+                  </div>
+                )}
+                {countdownSec <= 0 && playing && (
+                  <div className="bg-green-900/95 border-b border-green-500/50 px-4 py-2 flex items-center justify-center gap-3 shrink-0 z-10">
+                    <CheckCircle size={18} className="text-green-400" />
+                    <span className="text-green-300 font-bold text-sm">Lettura completata — verifica in corso...</span>
+                  </div>
+                )}
+                <iframe
+                  key={currentLO.id}
+                  src={`/files/${currentLO.slideFilename || currentLO.documentFilename}`}
+                  className="flex-1 w-full border-0"
+                  title={currentLO.title}
+                />
+              </div>
+            ) : currentLO && currentLO.objectType === 'web' ? (
+              <div className="w-full h-full relative flex flex-col">
+                {countdownSec > 0 && (
+                  <div className="bg-red-900/95 border-b border-red-500/50 px-4 py-2 flex items-center justify-center gap-4 shrink-0 z-10">
+                    <AlertTriangle size={18} className="text-red-400" />
+                    <span className="text-red-200 font-bold text-sm uppercase">Lettura obbligatoria — non puoi proseguire</span>
+                    <div className="flex items-center gap-2 bg-black/40 rounded-lg px-4 py-1">
+                      <Clock size={16} className="text-yellow-500" />
+                      <span className="text-2xl font-mono font-bold text-yellow-500">{fmt(countdownSec)}</span>
+                    </div>
+                  </div>
+                )}
+                {countdownSec <= 0 && playing && (
+                  <div className="bg-green-900/95 border-b border-green-500/50 px-4 py-2 flex items-center justify-center gap-3 shrink-0 z-10">
+                    <CheckCircle size={18} className="text-green-400" />
+                    <span className="text-green-300 font-bold text-sm">Lettura completata — verifica in corso...</span>
+                  </div>
+                )}
+                {currentLO.webFilename ? (
+                  <iframe
+                    key={currentLO.id}
+                    src={`/web/${currentLO.webFilename}/index.html`}
+                    className="flex-1 w-full border-0"
+                    title={currentLO.title}
+                  />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-white font-bold text-lg">{currentLO.title}</p>
+                      <p className="text-gray-500 text-sm mt-2">Contenuto web in caricamento...</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : currentLO ? (
               <div className="text-center">
                 <Play size={48} className="text-yellow-500 mx-auto mb-4" />

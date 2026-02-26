@@ -127,6 +127,7 @@ export default function ActivatedCourses() {
                 <tr className="bg-yellow-500 text-black text-[11px] font-bold uppercase">
                   <th className="p-2 w-8"><input type="checkbox" checked={selected.length === paged.length && paged.length > 0} onChange={toggleAll} /></th>
                   <th className="p-2 text-left">ID</th>
+                  <th className="p-2 text-left">Licenza</th>
                   <th className="p-2 text-left">Ente Formativo</th>
                   <th className="p-2 text-left">Data Vendita</th>
                   <th className="p-2 text-left">Azienda</th>
@@ -144,6 +145,7 @@ export default function ActivatedCourses() {
                   <tr key={e.id} className={`border-b border-white/5 ${i % 2 === 0 ? "bg-[#141414]" : "bg-[#1a1a1a]"}`}>
                     <td className="p-2"><input type="checkbox" checked={selected.includes(e.id)} onChange={() => toggleSelect(e.id)} /></td>
                     <td className="p-2 text-yellow-500 font-bold text-xs">{e.id}</td>
+                    <td className="p-2 text-cyan-400 font-mono text-xs" title="Codice per player-login">{e.licenseCode || "—"}</td>
                     <td className="p-2 text-gray-400 text-xs">{e.tutorName || "—"}</td>
                     <td className="p-2 text-gray-400 text-xs">{e.createdAt ? new Date(e.createdAt).toLocaleDateString("it-IT") : e.startDate ? new Date(e.startDate).toLocaleDateString("it-IT") : "—"}</td>
                     <td className="p-2 text-gray-300 text-xs">{e.companyName}</td>

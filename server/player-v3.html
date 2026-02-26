@@ -158,7 +158,7 @@ body{height:100vh;overflow:hidden;background:#0a1628;font-family:system-ui,-appl
     <span class="ys"><span class="sg" id="qOk">0</span> &#10003;</span>
     <span class="ys"><span class="sr" id="qKo">0</span> &#10007;</span>
     <span class="sw" id="qWarn" style="display:none">ATTENZIONE! SEI SOTTO IL VALORE DI SOGLIA</span>
-    <button class="esci" onclick="doLogout()">&#9654; Esci</button>
+    <a href="/player-login" class="esci" style="text-decoration:none" onclick="try{localStorage.clear();}catch(e){}">&#9654; Esci</a>
   </div>
 
   <!-- BREADCRUMB -->
@@ -175,7 +175,7 @@ body{height:100vh;overflow:hidden;background:#0a1628;font-family:system-ui,-appl
 
     <!-- LEFT INFO PANEL -->
     <div class="lpan">
-      <button class="lexci" onclick="doLogout()">ESCI</button>
+      <a href="/player-login" class="lexci" style="display:block;text-align:center;text-decoration:none;color:#fff" onclick="try{localStorage.clear();}catch(e){}">ESCI</a>
       <div class="lsec"><div class="lbl">Studente</div><div class="val" id="lUser">—</div></div>
       <div class="lsec"><div class="lbl">Azienda</div><div class="val sm" id="lCompany">—</div></div>
       <div class="lsec"><div class="lbl">Data</div><div class="val sm" id="lDate">—</div></div>
@@ -625,11 +625,12 @@ function startPlay(){
 }
 
 function doLogout(){
-  endSession();
+  try{endSession();}catch(e){}
   localStorage.removeItem('playerUser');
   localStorage.removeItem('playerEnrollment');
   localStorage.removeItem('playerTutor');
-  location.href='/player-login';
+  localStorage.removeItem(sKey());
+  window.location.href='/player-login';
 }
 
 window.addEventListener('beforeunload', function(){

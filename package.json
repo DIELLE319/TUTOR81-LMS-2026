@@ -9,7 +9,8 @@
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "users:roles": "tsx scripts/list-users-roles.ts"
+    "users:roles": "tsx scripts/list-users-roles.ts",
+    "deploy": "bash scripts/deploy-lms.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

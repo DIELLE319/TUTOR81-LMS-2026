@@ -3,13 +3,15 @@ import { isAuthenticated } from "../auth";
 import { db, hasDatabase } from "../db";
 import * as schema from "@shared/schema";
 import { eq, sql, asc } from "drizzle-orm";
+import { getCmsPool } from "../cmsDb";
 
 export function registerCoursesRoutes(app: Express) {
   app.get("/api/courses", isAuthenticated, async (_req, res) => {
     try {
       if (!hasDatabase) return res.json([]);
-      const courses = await db.select().from(schema.courses).where(eq(schema.courses.isPublished, true)).orderBy(asc(schema.courses.sortOrder), asc(schema.courses.title));
-      res.json(courses);
+      const pool = getCmsPool();
+      const { rows } = await pool.query(`SELECT id, title, description, categoria, sottocategoria, tipo, settore, rischio_azienda, destinazione, obiettivi, rivolto_a, riferimento_normativo, validita, durata_totale, soglia_superamento, price, status, is_published FROM courses WHERE is_published = true ORDER BY title`);
+      res.json(rows);
     } catch (error) {
       console.error("Courses list error:", error);
       res.status(500).json({ error: "Failed to fetch courses" });
@@ -19,8 +21,9 @@ export function registerCoursesRoutes(app: Express) {
   app.get("/api/learning-projects", isAuthenticated, async (_req, res) => {
     try {
       if (!hasDatabase) return res.json([]);
-      const courses = await db.select().from(schema.courses).where(eq(schema.courses.isPublished, true)).orderBy(asc(schema.courses.sortOrder), asc(schema.courses.title));
-      res.json(courses);
+      const pool = getCmsPool();
+      const { rows } = await pool.query(`SELECT id, title, description, categoria, sottocategoria, tipo, settore, rischio_azienda, destinazione, obiettivi, rivolto_a, riferimento_normativo, validita, durata_totale, soglia_superamento, price, status, is_published FROM courses WHERE is_published = true ORDER BY title`);
+      res.json(rows);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch courses" });
     }
@@ -29,9 +32,10 @@ export function registerCoursesRoutes(app: Express) {
   app.get("/api/courses/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
-      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, id));
-      if (!course) return res.status(404).json({ error: "Course not found" });
-      res.json(course);
+      const pool = getCmsPool();
+      const { rows } = await pool.query(`SELECT * FROM courses WHERE id = $1`, [id]);
+      if (rows.length === 0) return res.status(404).json({ error: "Course not found" });
+      res.json(rows[0]);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch course" });
     }

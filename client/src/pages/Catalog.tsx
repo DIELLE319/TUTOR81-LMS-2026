@@ -2,19 +2,21 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, ShoppingCart } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 interface CourseRaw {
   id: number;
   title: string;
   description: string | null;
-  category: string | null;
-  subcategory: string | null;
-  hours: number | null;
-  listPrice: string | null;
-  tutorCost: string | null;
-  riskLevel: string | null;
-  sector: string | null;
-  modality: string | null;
+  categoria: string | null;
+  sottocategoria: string | null;
+  tipo: string | null;
+  settore: string | null;
+  rischio_azienda: string | null;
+  durata_totale: string | null;
+  price: string | null;
+  rivolto_a: string | null;
+  validita: string | null;
 }
 
 interface CourseRow extends CourseRaw {
@@ -77,8 +79,16 @@ function typeBadge(type: string) {
 }
 
 export default function Catalog() {
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+
+  const { data: tutorData } = useQuery<any>({
+    queryKey: ["my-tutor", user?.tutorId],
+    queryFn: () => fetch(`/api/tutors/${user!.tutorId}`, { credentials: "include" }).then((r) => r.json()),
+    enabled: !!user?.tutorId,
+  });
+  const discount = tutorData?.discountPercentage ?? 0;
 
   const { data: rawCourses = [], isLoading } = useQuery<CourseRaw[]>({
     queryKey: ["courses"],
@@ -88,10 +98,10 @@ export default function Catalog() {
   const courses: CourseRow[] = useMemo(() =>
     rawCourses.map((c) => ({
       ...c,
-      parsedType: parseType(c.title),
-      parsedRisk: parseRisk(c.title, c.riskLevel),
-      parsedHours: parseHours(c.title, c.hours),
-      parsedModality: c.modality || "E-LEARNING",
+      parsedType: c.tipo || parseType(c.title),
+      parsedRisk: parseRisk(c.title, c.rischio_azienda || null),
+      parsedHours: parseHours(c.title, c.durata_totale ? parseInt(c.durata_totale) : null),
+      parsedModality: "E-LEARNING",
     })),
     [rawCourses]
   );
@@ -99,7 +109,7 @@ export default function Catalog() {
   const grouped = useMemo(() => {
     const map: Record<string, CourseRow[]> = {};
     for (const c of courses) {
-      const key = parseCategory(c.title, c.subcategory);
+      const key = parseCategory(c.title, c.sottocategoria);
       if (!map[key]) map[key] = [];
       map[key].push(c);
     }
@@ -138,13 +148,11 @@ export default function Catalog() {
         <div className="bg-[#141414] rounded-xl border border-white/5 overflow-hidden">
           {/* Header */}
           <div className="border-b border-white/10">
-            <div className="grid grid-cols-[80px_60px_60px_1fr_50px_90px_80px_80px_70px] items-center px-3 py-2.5 gap-2 text-gray-400 text-[11px] font-semibold uppercase tracking-wide">
-              <span>Settore</span>
+            <div className="grid grid-cols-[60px_60px_1fr_50px_90px_90px_70px] items-center px-3 py-2.5 gap-2 text-gray-400 text-[11px] font-semibold uppercase tracking-wide">
               <span>Tipo</span>
               <span>Rischio</span>
               <span>Nome Corso</span>
               <span>Ore</span>
-              <span>Modalità</span>
               <span className="text-right">Listino €</span>
               <span className="text-right">Tuo Costo €</span>
               <span>Azione</span>
@@ -162,15 +170,13 @@ export default function Catalog() {
               </button>
 
               {expandedGroups.includes(groupName) && groupCourses.map((c) => (
-                <div key={c.id} className="grid grid-cols-[80px_60px_60px_1fr_50px_90px_80px_80px_70px] items-center px-3 py-2.5 gap-2 border-b border-white/5 hover:bg-white/[0.02] text-sm">
-                  <span className="text-gray-500 text-[10px]">{c.sector || "—"}</span>
+                <div key={c.id} className="grid grid-cols-[60px_60px_1fr_50px_90px_90px_70px] items-center px-3 py-2.5 gap-2 border-b border-white/5 hover:bg-white/[0.02] text-sm">
                   <span><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${typeBadge(c.parsedType)}`}>{c.parsedType}</span></span>
                   <span><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${riskBadge(c.parsedRisk)}`}>{c.parsedRisk}</span></span>
                   <span className="text-gray-200 text-xs leading-tight pr-2">{c.title}</span>
                   <span className="text-white font-bold text-center text-xs">{c.parsedHours || "—"}</span>
-                  <span className="text-gray-400 text-xs">{c.parsedModality}</span>
-                  <span className="text-gray-400 text-xs text-right">{c.listPrice && parseFloat(c.listPrice) > 0 ? `${parseFloat(c.listPrice).toFixed(2)} €` : "—"}</span>
-                  <span className="text-green-400 font-bold text-xs text-right">{c.tutorCost && parseFloat(c.tutorCost) > 0 ? `${parseFloat(c.tutorCost).toFixed(2)} €` : "—"}</span>
+                  <span className="text-gray-400 text-xs text-right">{c.price && parseFloat(c.price) > 0 ? `${parseFloat(c.price).toFixed(2)} €` : "—"}</span>
+                  <span className="text-green-400 font-bold text-xs text-right">{c.price && parseFloat(c.price) > 0 && discount > 0 ? `${(parseFloat(c.price) * (1 - discount / 100)).toFixed(2)} €` : "—"}</span>
                   <span>
                     <button onClick={() => navigate(`/assign-course?courseId=${c.id}&courseTitle=${encodeURIComponent(c.title)}`)} className="h-6 px-2.5 bg-yellow-500 hover:bg-yellow-600 text-black text-[10px] font-bold rounded flex items-center gap-1">
                       <ShoppingCart size={10} />Vendi

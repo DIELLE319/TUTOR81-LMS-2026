@@ -96,80 +96,6 @@ function getExpectedAnswer(cfData: { year: number; month: number; day: number; g
 export function registerPlayerRoutes(app: Express) {
 
   // ==========================================
-  // STANDALONE PLAYER LOGIN (no React needed)
-  // ==========================================
-  app.get("/player-login", (_req, res) => {
-    res.set("Content-Type", "text/html; charset=utf-8").send(`<!DOCTYPE html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Accedi al Corso — Tutor81</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#030712;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0}
-.wrap{width:min(420px,calc(100vw - 32px))}
-.card{background:#111827;border-radius:24px;padding:40px;box-shadow:0 25px 80px rgba(0,0,0,.5)}
-.logo{width:56px;height:56px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#0f172a;margin:0 auto 16px}
-h1{font-size:20px;text-align:center;color:#fff;font-weight:700}
-.sub{text-align:center;color:#64748b;font-size:12px;margin-top:4px;margin-bottom:28px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
-label{display:block;font-size:12px;margin-bottom:6px;color:#94a3b8;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-input{width:100%;padding:12px 14px;border:2px solid #1e293b;border-radius:12px;background:#0f172a;color:#f1f5f9;font-size:15px;margin-bottom:18px;outline:none;transition:border-color .2s}
-input:focus{border-color:#fbbf24}
-input::placeholder{color:#475569}
-button{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f172a;font-size:15px;font-weight:800;cursor:pointer;transition:transform .15s}
-button:hover{transform:translateY(-1px)}
-button:disabled{opacity:.6;cursor:wait}
-.error{background:rgba(127,29,29,.6);color:#fca5a5;padding:12px;border-radius:10px;margin-bottom:16px;font-size:13px;display:none;border:1px solid rgba(239,68,68,.2)}
-.success{background:rgba(6,78,59,.6);color:#6ee7b7;padding:12px;border-radius:10px;margin-bottom:16px;font-size:13px;display:none;border:1px solid rgba(16,185,129,.2)}
-.footer{text-align:center;margin-top:24px;font-size:12px;color:#475569}
-.footer a{color:#fbbf24;text-decoration:none}
-</style></head><body>
-<div class="wrap"><div class="card">
-<div class="logo">T</div>
-<h1>TUTOR 81</h1>
-<div class="sub">Accedi al Corso</div>
-<div class="error" id="err"></div>
-<div class="success" id="ok"></div>
-<form id="f">
-<label>Codice Licenza</label>
-<input type="text" id="license" required placeholder="es: DEMO2026" style="text-transform:uppercase" autofocus>
-<label>Codice Fiscale</label>
-<input type="text" id="cf" required placeholder="es: RSSMRA80A01H501U" style="text-transform:uppercase">
-<button type="submit" id="btn">Avvia Corso</button>
-</form>
-<div class="footer">Problemi? <a href="mailto:assistenza@tutor81.com">Contatta l'assistenza</a></div>
-</div></div>
-<script>
-document.getElementById('f').onsubmit=async e=>{
-  e.preventDefault();
-  const err=document.getElementById('err'),ok=document.getElementById('ok'),btn=document.getElementById('btn');
-  err.style.display='none'; ok.style.display='none';
-  btn.textContent='Verifica in corso...'; btn.disabled=true;
-  const license=document.getElementById('license').value.trim().toUpperCase();
-  const cf=document.getElementById('cf').value.trim().toUpperCase();
-  try{
-    const r=await fetch('/api/player/login-simple',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({licenseCode:license,fiscalCode:cf})});
-    const d=await r.json();
-    if(r.ok&&d.success){
-      ok.textContent='Accesso verificato! Caricamento corso...';
-      ok.style.display='block';
-      localStorage.setItem('playerUser',JSON.stringify(d.user));
-      localStorage.setItem('playerEnrollment',JSON.stringify(d.enrollment));
-      if(d.tutor) localStorage.setItem('playerTutor',JSON.stringify(d.tutor));
-      setTimeout(()=>{window.location.href='/player/course/'+d.enrollment.courseId;},500);
-    }else{
-      err.textContent=d.error||'Credenziali non valide';
-      err.style.display='block';
-      btn.textContent='Avvia Corso'; btn.disabled=false;
-    }
-  }catch(x){
-    err.textContent='Errore di connessione';
-    err.style.display='block';
-    btn.textContent='Avvia Corso'; btn.disabled=false;
-  }
-};
-</script></body></html>`);
-  });
-
-  // ==========================================
   // STANDALONE COURSE PLAYER (no React needed)
   // ==========================================
   app.get("/player/course/:id", (_req, res) => {
@@ -293,46 +219,63 @@ document.getElementById('f').onsubmit=async e=>{
       const courseId = parseInt(req.params.id as string);
       if (isNaN(courseId)) return res.status(400).json({ error: "Invalid course ID" });
 
-      // Course info via raw SQL (column names are in Italian in DB)
       const cms = getCmsPool();
       const { rows: courseRows } = await cms.query(`SELECT id, title, description FROM courses WHERE id = $1`, [courseId]);
       if (courseRows.length === 0) return res.status(404).json({ error: "Course not found" });
       const course = courseRows[0];
+
+      // CMS schema: course_modules → module_lessons → lessons → lesson_learning_objects → learning_objects
       const { rows: moduleRows } = await cms.query(
         `SELECT cm.module_id, m.title, m.description
          FROM course_modules cm JOIN modules m ON m.id = cm.module_id
          WHERE cm.course_id = $1 ORDER BY cm.position, cm.id`, [courseId]
       );
 
-      const structure = [];
+      const structure: { id: number; title: string; lessons: { id: number; title: string; learningObjects: any[] }[] }[] = [];
       for (const mod of moduleRows) {
-        // New CMS schema: LOs are directly in modules (no lessons layer)
-        const { rows: loRows } = await cms.query(
-          `SELECT mlo.learning_object_id, lo.title, lo.object_type, lo.jwplayer_code, lo.video_filename, lo.duration
-           FROM module_learning_objects mlo JOIN learning_objects lo ON lo.id = mlo.learning_object_id
-           WHERE mlo.module_id = $1 ORDER BY mlo.position, mlo.id`, [mod.module_id]
-        );
-
-        const los = [];
-        for (const lo of loRows) {
-          const { rows: questions } = await cms.query(
-            `SELECT id, question_text, time_seconds, end_of_object, sort_order FROM lesson_slide_questions WHERE learning_object_id = $1 ORDER BY sort_order, id`, [lo.learning_object_id]
-          );
-          const questionsWithAnswers = [];
-          for (const q of questions) {
-            const { rows: answers } = await cms.query(
-              `SELECT id, answer_text, is_correct, sort_order FROM lesson_slide_question_answers WHERE slide_question_id = $1 ORDER BY sort_order, id`, [q.id]
+        const { rows: lessonRows } = await cms.query(`SELECT ml.lesson_id, l.title FROM module_lessons ml JOIN lessons l ON l.id = ml.lesson_id WHERE ml.module_id = $1 ORDER BY ml.position, ml.id`, [mod.module_id]);
+        const lessons: { id: number; title: string; learningObjects: any[] }[] = [];
+        for (const les of lessonRows) {
+          const { rows: loRows } = await cms.query(`SELECT llo.learning_object_id, lo.title, lo.object_type, lo.jwplayer_code, lo.video_filename, lo.duration FROM lesson_learning_objects llo JOIN learning_objects lo ON lo.id = llo.learning_object_id WHERE llo.lesson_id = $1 ORDER BY llo.position, llo.id`, [les.lesson_id]);
+          const los: any[] = [];
+          for (const lo of loRows) {
+            const questionsWithAnswers: any[] = [];
+            const { rows: slideQ } = await cms.query(
+              `SELECT id, question_text, sort_order FROM lesson_slide_questions WHERE learning_object_id = $1 ORDER BY sort_order, id`, [lo.learning_object_id]
             );
-            questionsWithAnswers.push({ ...q, answers });
+            for (const q of slideQ) {
+              const { rows: ans } = await cms.query(
+                `SELECT id, answer_text, is_correct, sort_order FROM lesson_slide_question_answers WHERE slide_question_id = $1 ORDER BY sort_order, id`, [q.id]
+              );
+              questionsWithAnswers.push({ id: q.id, question_text: q.question_text, time_seconds: 0, answers: ans });
+            }
+            const { rows: docQ } = await cms.query(
+              `SELECT id, question_text, time_ms, sort_order FROM doc_questions WHERE learning_object_id = $1 ORDER BY COALESCE(time_ms, 999999999), sort_order, id`, [lo.learning_object_id]
+            );
+            for (const q of docQ) {
+              const { rows: ans } = await cms.query(
+                `SELECT id, answer_text, is_correct, sort_order FROM doc_question_answers WHERE doc_question_id = $1 ORDER BY sort_order, id`, [q.id]
+              );
+              questionsWithAnswers.push({
+                id: q.id,
+                question_text: q.question_text,
+                time_seconds: q.time_ms != null ? Math.floor(Number(q.time_ms) / 1000) : 0,
+                answers: ans,
+              });
+            }
+            los.push({
+              id: lo.learning_object_id,
+              title: lo.title,
+              objectType: lo.object_type || "video",
+              jwplayerCode: lo.jwplayer_code,
+              videoFilename: lo.video_filename,
+              duration: lo.duration,
+              questions: questionsWithAnswers,
+            });
           }
-          los.push({
-            id: lo.learning_object_id, title: lo.title, objectType: lo.object_type,
-            jwplayerCode: lo.jwplayer_code, videoFilename: lo.video_filename,
-            duration: lo.duration, questions: questionsWithAnswers,
-          });
+          lessons.push({ id: les.lesson_id, title: les.title, learningObjects: los });
         }
-        // Wrap LOs in a single "lesson" for backward compatibility with the player frontend
-        structure.push({ id: mod.module_id, title: mod.title, lessons: [{ id: mod.module_id, title: mod.title, learningObjects: los }] });
+        structure.push({ id: mod.module_id, title: mod.title, lessons });
       }
 
       console.log(`[Player] Course ${courseId}: ${structure.length} modules from CMS`);
