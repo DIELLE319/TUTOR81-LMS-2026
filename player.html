@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player Corso — Tutor81</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{height:100vh;overflow:hidden;background:#0a1628;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;display:flex;flex-direction:column}
+
+.topbar{background:#111827;display:flex;align-items:center;height:42px;border-bottom:1px solid #1e293b;padding:0 16px;flex-shrink:0}
+.topbar .logo{font-weight:900;color:#fbbf24;font-size:15px;margin-right:16px;letter-spacing:1px}
+.topbar .ctitle{flex:1;font-size:13px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.ybar{background:linear-gradient(90deg,#fbbf24,#f59e0b);height:36px;display:flex;align-items:center;padding:0 16px;gap:24px;flex-shrink:0}
+.ybar .yl{font-size:11px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:1.5px}
+.ybar .ys{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#0f172a}
+.ybar .ys span{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:6px;font-size:13px;font-weight:900;padding:0 6px}
+.ybar .sg{background:#166534;color:#fff}
+.ybar .sr{background:#991b1b;color:#fff}
+.ybar .sw{background:transparent;color:#0f172a;font-size:13px;font-weight:900}
+.ybar .esci{margin-left:auto;background:#0f172a;color:#fbbf24;border:none;padding:4px 14px;border-radius:4px;font-weight:700;font-size:11px;cursor:pointer;text-decoration:none}
+.ybar .uname{margin-left:auto;font-size:12px;font-weight:700;color:#0f172a}
+
+.bbar{background:#111827;border-bottom:1px solid #1e293b;padding:6px 16px;display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;flex-shrink:0}
+.bbar .bc{color:#94a3b8;font-weight:600}
+.bbar .bn{color:#fbbf24;font-weight:700}
+.bbar .bt{margin-left:auto;color:#64748b;font-size:11px}
+
+.main3{display:flex;flex:1;overflow:hidden}
+.lpan{width:260px;min-width:260px;background:#0f172a;border-right:1px solid #1e293b;padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.lexci{background:#fbbf24;color:#0f172a;border:none;padding:8px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;text-align:center;text-decoration:none;display:block}
+.lsec{margin-top:4px}
+.lbl{font-size:9px;text-transform:uppercase;color:#64748b;letter-spacing:1px;font-weight:600}
+.val{font-size:12px;color:#e2e8f0;font-weight:600}
+.val.sm{font-size:11px;font-weight:400;color:#94a3b8}
+.lbtn{font-size:11px;color:#94a3b8;padding:6px 0;border-bottom:1px solid #1e293b;cursor:pointer}
+.lbtn .ico{margin-right:4px}
+
+.cpan{width:320px;min-width:320px;background:#0f172a;border-right:1px solid #1e293b;display:flex;flex-direction:column;flex-shrink:0}
+.cpan-h{padding:10px 12px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between}
+.cpan-h .pt{font-size:13px;font-weight:800;color:#fbbf24;text-transform:uppercase}
+.cpan-h .pc{font-size:12px;color:#94a3b8;font-weight:600}
+.clist{flex:1;overflow-y:auto;padding:4px 0}
+.li{padding:10px 12px;font-size:12px;color:#e2e8f0;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #1e293b;transition:background .15s}
+.li:hover{background:#1e293b}
+.li.act{background:rgba(251,191,36,.15);color:#fbbf24;font-weight:700;border-left:3px solid #fbbf24;font-size:13px}
+.li.done{color:#22c55e;font-weight:600}
+.li.done .dot{background:#166534;color:#22c55e}
+.li.locked{opacity:.7;cursor:default;color:#94a3b8}
+.dot{width:22px;height:22px;border-radius:50%;background:#1e293b;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.mt{padding:8px 12px 4px;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px}
+
+.rpan{flex:1;display:flex;flex-direction:column;position:relative;background:#000}
+.vwrap{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#vid{width:100%;height:100%;object-fit:contain;background:#000}
+.playov{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10}
+.playov.hide{display:none}
+.pb{width:80px;height:80px;border-radius:50%;background:rgba(251,191,36,.9);display:flex;align-items:center;justify-content:center}
+.pb::after{content:'';border-style:solid;border-width:18px 0 18px 32px;border-color:transparent transparent transparent #0f172a;margin-left:6px}
+.fcountdown{position:absolute;bottom:12px;right:12px;background:rgba(15,23,42,.9);border:1px solid #1e293b;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px;z-index:5}
+.fcountdown .fi{font-size:18px}
+.fcountdown .ft{font-size:10px;color:#94a3b8;text-transform:uppercase;font-weight:600}
+.fcountdown .fv{font-size:16px;font-weight:900;color:#fbbf24;letter-spacing:1px}
+
+.botbar{background:#111827;border-top:1px solid #1e293b;padding:8px 16px;display:flex;align-items:center;gap:14px;min-height:48px;flex-shrink:0}
+.pbar{flex:1;height:6px;background:#1e293b;border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);transition:width .3s;width:0%;border-radius:3px}
+.btime{font-size:14px;font-weight:900;color:#ef4444;min-width:60px;text-align:right}
+.bloc{font-size:11px;color:#64748b;white-space:nowrap}
+
+.qov{position:absolute;inset:0;background:rgba(10,22,40,.95);display:none;align-items:center;justify-content:center;z-index:9999}
+.qov.show{display:flex}
+.qc{background:#1e293b;border:1px solid #374151;border-radius:16px;padding:28px;max-width:520px;width:90%}
+.qc h3{font-size:15px;margin-bottom:16px;color:#fff;line-height:1.5}
+.qtimer{text-align:center;margin-bottom:12px;font-size:28px;font-weight:900;color:#fbbf24}
+.qtimer.warn{color:#ef4444;animation:pulse .5s infinite alternate}
+@keyframes pulse{to{opacity:.4}}
+.abtn{display:block;width:100%;text-align:left;padding:11px 16px;margin-bottom:8px;background:#0f172a;border:2px solid #374151;border-radius:10px;color:#e2e8f0;cursor:pointer;font-size:14px;transition:all .15s}
+.abtn:hover{border-color:#fbbf24}
+.abtn.ok{border-color:#22c55e;background:rgba(34,197,94,.12);color:#22c55e}
+.abtn.ko{border-color:#ef4444;background:rgba(239,68,68,.12);color:#fca5a5}
+.abtn:disabled{cursor:default;opacity:.7}
+.qfb{margin-top:14px;padding:10px;border-radius:8px;font-size:13px;text-align:center;font-weight:600}
+.qfb.fok{background:rgba(34,197,94,.12);color:#22c55e}
+.qfb.fko{background:rgba(239,68,68,.12);color:#fca5a5}
+.qcont{margin-top:12px;width:100%;background:#fbbf24;color:#0f172a;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;display:none}
+
+.cov{position:absolute;inset:0;background:rgba(10,22,40,.95);display:none;align-items:center;justify-content:center;z-index:9999}
+.cov.show{display:flex}
+.ccard{background:#1e293b;border-radius:16px;padding:40px;max-width:450px;width:90%;text-align:center}
+.ccard h2{font-size:20px;color:#22c55e;margin:12px 0 8px}
+.ccard p{color:#94a3b8;font-size:13px;margin-bottom:20px}
+
+.ld{display:flex;align-items:center;justify-content:center;height:100vh;color:#64748b;font-size:15px;flex-direction:column;gap:16px}
+.sp{width:36px;height:36px;border:3px solid #1e293b;border-top-color:#fbbf24;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="ld" id="ld"><div class="sp"></div><div>Caricamento corso...</div></div>
+
+<div id="app" style="display:none;flex-direction:column;height:100vh">
+
+  <div class="topbar">
+    <div class="logo">tutor<span style="color:#fff">81</span></div>
+    <div class="ctitle" id="cTitle"></div>
+  </div>
+
+  <div class="ybar">
+    <span class="yl">Verifica Apprendimento</span>
+    <span class="ys">Domande previste: <span class="sw" id="qTot">0</span></span>
+    <span class="ys"><span class="sg" id="qOk">0</span> &#10003;</span>
+    <span class="ys"><span class="sr" id="qKo">0</span> &#10007;</span>
+    <span id="qThreshold" style="display:none;font-size:11px;font-weight:700;padding:2px 10px;border-radius:4px;white-space:nowrap"></span>
+    <span class="uname" id="uName"></span>
+    <a href="/login" class="esci" onclick="doLogout()">&#9654; Esci</a>
+  </div>
+
+  <div class="bbar">
+    <span>&#9664;</span>
+    <span class="bc" id="bcMod">—</span>
+    <span style="color:#374151">&#9654;</span>
+    <span class="bn" id="bcLo">—</span>
+    <span class="bt" id="bcTime"></span>
+  </div>
+
+  <div class="main3">
+    <div class="lpan">
+      <a href="/login" class="lexci" onclick="doLogout()">ESCI</a>
+      <div class="lsec"><div class="lbl">Studente</div><div class="val" id="lUser">—</div></div>
+      <div class="lsec"><div class="lbl">Azienda</div><div class="val sm" id="lCompany">—</div></div>
+      <div class="lsec"><div class="lbl">Data</div><div class="val sm" id="lDate">—</div></div>
+      <div class="lsec"><div class="lbl">Scadenza</div><div class="val sm" id="lExpiry">—</div></div>
+      <div class="lbtn"><span class="ico">&#128172;</span> Chat</div>
+      <div class="lbtn"><span class="ico">&#9742;</span> Assistenza</div>
+      <div class="lbtn"><span class="ico">&#128218;</span> Tutor Didattico</div>
+      <div class="lsec" id="lEnteWrap" style="display:none"><div class="lbl">Ente Formativo</div><div class="val sm" id="lEnte"></div></div>
+    </div>
+
+    <div class="cpan">
+      <div class="cpan-h">
+        <span class="pt">Programma</span>
+        <span class="pc" id="pCount">0/0</span>
+      </div>
+      <div class="clist" id="sList"></div>
+    </div>
+
+    <div class="rpan">
+      <div id="nvBanner" style="display:none;background:rgba(127,29,29,.95);border-bottom:1px solid rgba(239,68,68,.5);padding:8px 16px;text-align:center;z-index:20;flex-shrink:0">
+        <span style="color:#fca5a5;font-weight:700;font-size:13px;text-transform:uppercase">&#9888; Lettura obbligatoria — non puoi proseguire</span>
+        <span id="nvTimer" style="margin-left:12px;background:rgba(0,0,0,.4);padding:4px 14px;border-radius:8px;font-size:20px;font-weight:900;color:#fbbf24;font-family:monospace"></span>
+      </div>
+      <div class="vwrap" id="vCont">
+        <video id="vid" autoplay muted playsinline style="display:none"></video>
+        <iframe id="iframeContent" style="display:none;width:100%;height:100%;border:none;background:#fff"></iframe>
+        <div id="slideViewer" style="display:none;width:100%;height:100%;background:#1e293b;position:relative;overflow:hidden">
+          <canvas id="slideCanvas" style="display:block;margin:auto"></canvas>
+          <div id="slideNav" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,.7);padding:10px 20px;border-radius:10px;z-index:20;gap:6px">
+            <span style="color:#fbbf24;font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase">Slide temporizzata come previsto dalla normativa</span>
+            <div style="display:flex;gap:12px;align-items:center">
+              <button id="slidePrev" onclick="slidePage(-1)" style="background:#fbbf24;color:#0f172a;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:14px">&larr; Indietro</button>
+              <span id="slidePageInfo" style="color:#fff;font-weight:700;font-size:14px">1 / 1</span>
+              <button id="slideNext" onclick="slidePage(1)" style="background:#fbbf24;color:#0f172a;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:14px">Avanti &rarr;</button>
+            </div>
+          </div>
+        </div>
+        <div id="docContent" style="display:none;text-align:center;padding:40px;color:#e2e8f0">
+          <div style="font-size:48px;margin-bottom:16px">&#128196;</div>
+          <h3 id="docTitle" style="margin-bottom:12px"></h3>
+          <a id="docLink" href="#" target="_blank" style="display:inline-block;background:#fbbf24;color:#0f172a;padding:12px 32px;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px">&#11015; Scarica PDF</a>
+          <p style="color:#64748b;font-size:12px;margin-top:16px">Dopo aver letto il documento, premi <b style="color:#fbbf24">Avanti</b> per proseguire</p>
+          <button onclick="finishNonVideo()" style="margin-top:20px;background:#22c55e;color:#fff;border:none;padding:10px 32px;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">Avanti &#9654;</button>
+        </div>
+        <button id="btnAvanti" onclick="finishNonVideo()" style="display:none;position:absolute;bottom:20px;right:20px;z-index:50;background:#22c55e;color:#fff;border:none;padding:12px 28px;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;box-shadow:0 4px 16px rgba(0,0,0,.4)">Avanti &#9654;</button>
+        <div class="playov" id="playOv" onclick="startPlay()"><div class="pb"></div></div>
+        <div class="fcountdown" id="fCount">
+          <span class="fi">&#9200;</span>
+          <span><span class="ft">Fine corso tra</span><br><span class="fv" id="fTimer">--:--:--</span></span>
+        </div>
+        <div class="qov" id="qOv">
+          <div class="qc" id="qCard"></div>
+        </div>
+        <div class="cov" id="cOv">
+          <div class="ccard">
+            <div style="font-size:48px">&#10003;</div>
+            <h2>Corso completato!</h2>
+            <p>Hai completato tutti gli oggetti formativi.</p>
+            <button class="qcont" style="display:block" onclick="doLogout()">Torna alla home</button>
+          </div>
+        </div>
+      </div>
+      <div class="botbar">
+        <div class="pbar"><div class="pfill" id="pFill"></div></div>
+        <div class="btime" id="bTime">00:00</div>
+        <div class="bloc" id="bLoc">LO 0 / 0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== CONFIG ==========
+
+// ========== STATE ==========
+var LOs=[], ci=-1, done={}, ans={}, videoEl=null, sid=null, sStart=Date.now();
+var qTimer=null, qCountdown=0;
+var qCorrect=0, qWrong=0, qTotal=0;
+
+// ========== PERSISTENCE ==========
+function sKey(){ var e=JSON.parse(localStorage.getItem('playerEnrollment')||'{}'); return 'ps4_'+(e.id||0)+'_'+(e.courseId||0); }
+function saveS(){
+  var vs=(videoEl&&videoEl.currentTime)?Math.floor(videoEl.currentTime):0;
+  localStorage.setItem(sKey(),JSON.stringify({i:ci,d:done,a:ans,v:vs,qc:qCorrect,qw:qWrong}));
+}
+function loadS(){
+  try{var s=JSON.parse(localStorage.getItem(sKey()));if(s){done=s.d||{};ans=s.a||{};qCorrect=s.qc||0;qWrong=s.qw||0;return{i:s.i||0,v:s.v||0};}}catch(e){}
+  return{i:0,v:0};
+}
+
+// ========== TRACKING ==========
+function getEnr(){ return JSON.parse(localStorage.getItem('playerEnrollment')||'{}'); }
+function getUsr(){ return JSON.parse(localStorage.getItem('playerUser')||'{}'); }
+
+function trackLO(loId, action, vPos){
+  var e=getEnr();
+  var ws=0;
+  if(action==='leave' && _loStartTime) ws=Math.floor((Date.now()-_loStartTime)/1000);
+  fetch('/api/player/save-progress',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({enrollmentId:e.id,learningObjectId:loId,action:action,videoPosition:vPos||0,watchedSeconds:ws})
+  }).catch(function(){});
+}
+function trackQuiz(qid, answerId, isCorrect, qText, aText, vSec){
+  var e=getEnr(), u=getUsr();
+  fetch('/api/player/quiz/answer',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({enrollmentId:e.id,studentId:u.id,questionId:qid,answerId:answerId,
+      isCorrect:isCorrect,learningObjectId:LOs[ci]?LOs[ci].id:null,sessionLogId:sid,
+      questionText:qText,answerText:aText,videoSecond:vSec})
+  }).catch(function(){});
+}
+var _loStartTime=0;
+function trackComplete(idx){
+  var e=getEnr(), lo=LOs[idx];
+  var actualWatched;
+  if(lo.type==='video'){
+    actualWatched=videoEl&&videoEl.currentTime?Math.floor(videoEl.currentTime):0;
+  } else {
+    actualWatched=_loStartTime?Math.floor((Date.now()-_loStartTime)/1000):((lo.duration||1)*60);
+  }
+  fetch('/api/player/save-progress',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({enrollmentId:e.id,learningObjectId:lo.id,watchedSeconds:actualWatched,completed:true,videoPosition:lo.type==='video'?actualWatched:0})
+  }).catch(function(){});
+  fetch('/api/player/recalc-progress/'+e.id,{method:'POST'}).catch(function(){});
+}
+
+// ========== QUIZ STATS ==========
+function updQuizStats(){
+  document.getElementById('qOk').textContent=String(qCorrect);
+  document.getElementById('qKo').textContent=String(qWrong);
+  document.getElementById('qTot').textContent=String(qTotal);
+  var tot=qCorrect+qWrong;
+  var el=document.getElementById('qThreshold');
+  if(tot>0){
+    var pct=Math.round((qCorrect/tot)*100);
+    el.style.display='';
+    if(pct<80){
+      el.style.background='#991b1b';el.style.color='#fff';
+      el.textContent='Attento: sei sotto soglia (80%) risposte corrette — '+pct+'%';
+    } else {
+      el.style.background='#166534';el.style.color='#fff';
+      el.textContent='Bravo, continua cos\u00ec! Sei in soglia risposte corrette (80%) — '+pct+'%';
+    }
+  } else {
+    el.style.display='none';
+  }
+}
+
+// ========== COURSE COUNTDOWN ==========
+var courseTotalMin=0, courseWatchedSec=0;
+function startCourseCountdown(){
+  courseTotalMin=0;
+  LOs.forEach(function(lo){courseTotalMin+=(lo.duration||0);});
+  courseWatchedSec=0;
+  for(var k in done){
+    var idx=parseInt(k);
+    if(!isNaN(idx)&&LOs[idx]) courseWatchedSec+=(LOs[idx].duration||0)*60;
+  }
+  setInterval(function(){
+    var elapsed=0;
+    if(videoEl&&videoEl.currentTime&&ci>=0&&!done[String(ci)]){
+      elapsed=Math.floor(videoEl.currentTime);
+    }
+    var totalSec=courseTotalMin*60;
+    var rem=Math.max(0,totalSec-courseWatchedSec-elapsed);
+    var h=Math.floor(rem/3600);
+    var m=Math.floor((rem%3600)/60);
+    var s=rem%60;
+    document.getElementById('fTimer').textContent=h+'h '+pad(m)+'m '+pad(s)+'s';
+  },1000);
+}
+function pad(n){return n<10?'0'+n:String(n);}
+
+// ========== INIT ==========
+(async function(){
+  var enr=JSON.parse(localStorage.getItem('playerEnrollment')||'null');
+  var usr=JSON.parse(localStorage.getItem('playerUser')||'null');
+  if(!enr){location.href='/login';return;}
+
+  var tut=JSON.parse(localStorage.getItem('playerTutor')||'{}');
+  document.getElementById('lUser').textContent=usr?(usr.firstName+' '+usr.lastName).toUpperCase():'';
+  document.getElementById('uName').textContent=usr?(usr.firstName+' '+usr.lastName):'';
+  document.getElementById('lCompany').textContent=usr&&usr.company?usr.company:'—';
+  document.getElementById('lDate').textContent=new Date().toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('lExpiry').textContent=enr.endDate?new Date(enr.endDate).toLocaleDateString('it-IT'):'—';
+  if(tut.name){
+    var enteHtml='<b style="color:#e2e8f0">'+esc(tut.name)+'</b>';
+    if(tut.contact) enteHtml+='<br>'+esc(tut.contact);
+    if(tut.address) enteHtml+='<br>'+esc(tut.address);
+    if(tut.city) enteHtml+='<br>'+esc(tut.cap?tut.cap+' ':'')+esc(tut.city)+(tut.province?' ('+esc(tut.province)+')':'');
+    if(tut.phone) enteHtml+='<br>'+esc(tut.phone);
+    if(tut.email) enteHtml+='<br><span style="color:#fbbf24">'+esc(tut.email)+'</span>';
+    document.getElementById('lEnte').innerHTML=enteHtml;
+    document.getElementById('lEnteWrap').style.display='';
+  }
+
+  try{
+    var r=await fetch('/api/player/course/'+(enr.courseId)+'/structure');
+    if(!r.ok) throw new Error('Errore '+r.status);
+    var data=await r.json();
+    document.getElementById('cTitle').textContent=data.course.title;
+
+    var html='', n=0;
+    (data.modules||[]).forEach(function(mod){
+      html+='<div class="mt">'+esc(mod.title)+'</div>';
+      var lessons=mod.lessons||[mod];
+      lessons.forEach(function(les){
+        (les.learningObjects||[]).forEach(function(lo){
+          qTotal+=(lo.questions||[]).length;
+          LOs.push({id:lo.id,title:lo.title,type:lo.objectType||'video',code:lo.jwplayerCode,slideFile:lo.slideFilename,docFile:lo.documentFilename,webFile:lo.webFilename,duration:lo.duration,questions:lo.questions||[],modTitle:mod.title});
+          var ico=lo.objectType==='slide'?'&#128451;':lo.objectType==='document'?'&#128196;':lo.objectType==='web'?'&#127760;':'&#9654;';
+          html+='<div class="li locked" id="s'+n+'" onclick="tryGo('+n+')"><span class="dot">'+(n+1)+'</span><span>'+ico+' '+esc(lo.title)+'</span></div>';
+          n++;
+        });
+      });
+    });
+    document.getElementById('sList').innerHTML=html;
+
+    var sv=loadS();
+    // Sync con server: se enrollment progress=0, azzera localStorage
+    try{
+      var pr=await fetch('/api/player/enrollment-progress/'+enr.id);
+      var pd=await pr.json();
+      if(pd.progress===0 && Object.keys(done).length>0){
+        done={};ans={};qCorrect=0;qWrong=0;sv={i:0,v:0};
+        localStorage.removeItem(sKey());
+      }
+    }catch(e){}
+    for(var k in done){var el=document.getElementById('s'+k);if(el){el.classList.add('done');el.classList.remove('locked');}}
+    if(Object.keys(done).length===0){var f=document.getElementById('s0');if(f)f.classList.remove('locked');}
+
+    updQuizStats();
+    document.getElementById('pCount').textContent=Object.keys(done).length+'/'+LOs.length;
+
+    videoEl=document.getElementById('vid');
+    videoEl.addEventListener('playing',function(){document.getElementById('playOv').classList.add('hide');});
+
+    try{
+      var sr=await fetch('/api/player/session/start',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({enrollmentId:enr.id,studentId:usr.id,courseId:enr.courseId})});
+      var sd=await sr.json();
+      if(sd.sessionId) sid=sd.sessionId;
+    }catch(e){}
+
+    startCourseCountdown();
+
+    document.getElementById('ld').style.display='none';
+    document.getElementById('app').style.display='flex';
+
+    go(Math.min(sv.i, LOs.length-1), sv.v);
+
+  }catch(err){
+    document.getElementById('ld').innerHTML='<div style="color:#fca5a5">'+err.message+'</div>';
+  }
+})();
+
+// ========== NAVIGATION ==========
+function tryGo(idx){
+  // Allow: already done, or current LO
+  if(done[String(idx)] || idx===ci) { go(idx,0); return; }
+  // Allow: next sequential LO only if current is done
+  var maxUnlocked=0;
+  for(var i=0;i<LOs.length;i++){if(done[String(i)])maxUnlocked=i+1; else break;}
+  if(idx===maxUnlocked && done[String(maxUnlocked-1)]){ go(idx,0); return; }
+  // Block: show message
+  alert('Devi completare gli oggetti precedenti prima di proseguire.');
+}
+
+// ========== HIDE ALL CONTENT ==========
+// ========== PDF.JS SLIDE STATE ==========
+var pdfDoc=null, pdfPage=1, pdfTotal=0;
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+function renderSlidePage(){
+  if(!pdfDoc) return;
+  pdfDoc.getPage(pdfPage).then(function(page){
+    var container=document.getElementById('vCont');
+    var cw=container.clientWidth, ch=container.clientHeight-60;
+    var vp=page.getViewport({scale:1});
+    var scale=Math.min(cw/vp.width, ch/vp.height)*0.95;
+    var viewport=page.getViewport({scale:scale});
+    var canvas=document.getElementById('slideCanvas');
+    canvas.width=viewport.width;
+    canvas.height=viewport.height;
+    canvas.style.marginTop=Math.max(0,Math.floor((ch-viewport.height)/2))+'px';
+    page.render({canvasContext:canvas.getContext('2d'),viewport:viewport});
+  });
+  document.getElementById('slidePageInfo').textContent=pdfPage+' / '+pdfTotal;
+  document.getElementById('slidePrev').disabled=(pdfPage<=1);
+  document.getElementById('slidePrev').style.opacity=(pdfPage<=1)?'.3':'1';
+  var pct=Math.round((pdfPage/pdfTotal)*100);
+  document.getElementById('pFill').style.width=pct+'%';
+  document.getElementById('bTime').textContent='Pag '+pdfPage+'/'+pdfTotal;
+}
+
+var _slidePageTimer=null;
+var _slidePageSec=0;
+function startSlidePageTimer(){
+  var btn=document.getElementById('slideNext');
+  btn.disabled=true;btn.style.opacity='.3';
+  _slidePageSec=10;
+  btn.textContent='Attendi '+_slidePageSec+'s...';
+  if(_slidePageTimer) clearInterval(_slidePageTimer);
+  _slidePageTimer=setInterval(function(){
+    _slidePageSec--;
+    if(_slidePageSec>0){
+      btn.textContent='Attendi '+_slidePageSec+'s...';
+    } else {
+      clearInterval(_slidePageTimer);_slidePageTimer=null;
+      btn.disabled=false;btn.style.opacity='1';
+      btn.textContent=(pdfPage>=pdfTotal)?'Completato \u2714':'Avanti \u2192';
+    }
+  },1000);
+}
+
+function slidePage(dir){
+  var np=pdfPage+dir;
+  if(np<1) return;
+  if(np>pdfTotal){ finishNonVideo(); return; }
+  pdfPage=np;
+  renderSlidePage();
+  startSlidePageTimer();
+  saveS();
+}
+
+function hideAllContent(){
+  videoEl.style.display='none';
+  videoEl.pause();
+  videoEl.onended=null;
+  videoEl.ontimeupdate=null;
+  document.getElementById('iframeContent').style.display='none';
+  document.getElementById('iframeContent').src='about:blank';
+  document.getElementById('slideViewer').style.display='none';
+  document.getElementById('docContent').style.display='none';
+  document.getElementById('playOv').classList.add('hide');
+  document.getElementById('btnAvanti').style.display='none';
+  document.getElementById('fCount').style.display='';
+  document.getElementById('nvBanner').style.display='none';
+  if(nvTimerInterval){clearInterval(nvTimerInterval);nvTimerInterval=null;}
+  pdfDoc=null; pdfPage=1; pdfTotal=0;
+}
+
+// ========== GO TO LO ==========
+function go(idx, resumeSec){
+  if(idx<0||idx>=LOs.length) return;
+
+  var prevIdx=ci;
+  if(prevIdx>=0 && prevIdx!==idx){
+    var vp=videoEl&&videoEl.currentTime?Math.floor(videoEl.currentTime):0;
+    trackLO(LOs[prevIdx].id,'leave',vp);
+  }
+
+  var prev=document.getElementById('s'+ci);
+  if(prev) prev.classList.remove('act');
+
+  ci=idx;
+  var lo=LOs[idx];
+
+  var cur=document.getElementById('s'+idx);
+  cur.classList.add('act');
+  cur.classList.remove('locked');
+
+  document.getElementById('bcMod').textContent=lo.modTitle;
+  document.getElementById('bcLo').textContent=lo.title;
+
+  document.getElementById('bLoc').textContent='LO '+(idx+1)+' / '+LOs.length;
+  document.getElementById('pFill').style.width='0%';
+  document.getElementById('bTime').textContent='00:00';
+
+  document.getElementById('qOv').classList.remove('show');
+  document.getElementById('cOv').classList.remove('show');
+  document.getElementById('pCount').textContent=Object.keys(done).length+'/'+LOs.length;
+  saveS();
+
+  _loStartTime=Date.now();
+  trackLO(lo.id,'start',resumeSec||0);
+  hideAllContent();
+
+  // ===== VIDEO =====
+  if(lo.type==='video' && lo.code){
+    videoEl.style.display='';
+    videoEl.removeAttribute('src');
+    videoEl.poster='https://cdn.jwplayer.com/v2/media/'+lo.code+'/poster.jpg?width=1280';
+    fetch('https://cdn.jwplayer.com/v2/media/'+lo.code)
+      .then(function(r){return r.json();})
+      .then(function(data){
+        var sources=(data.playlist&&data.playlist[0]&&data.playlist[0].sources)||[];
+        var mp4s=sources.filter(function(s){return s.type==='video/mp4';});
+        mp4s.sort(function(a,b){return(b.height||0)-(a.height||0);});
+        if(mp4s.length>0){
+          videoEl.src=mp4s[0].file;
+          if(resumeSec && resumeSec>0){
+            videoEl.addEventListener('loadedmetadata',function onMeta(){
+              videoEl.currentTime=resumeSec;
+              videoEl.removeEventListener('loadedmetadata',onMeta);
+            });
+          }
+          videoEl.muted=true;
+          var playPromise=videoEl.play();
+          if(playPromise){
+            playPromise.then(function(){
+              videoEl.muted=false;
+              document.getElementById('playOv').classList.add('hide');
+            }).catch(function(){
+              document.getElementById('playOv').classList.remove('hide');
+            });
+          } else {
+            document.getElementById('playOv').classList.remove('hide');
+          }
+        } else {
+          document.getElementById('playOv').classList.remove('hide');
+        }
+      }).catch(function(err){
+        console.error('JWPlayer fetch error:', err);
+        document.getElementById('playOv').classList.remove('hide');
+      });
+    // Safety: if video not playing after 3s, show play button
+    setTimeout(function(){
+      if(videoEl.paused && LOs[ci] && LOs[ci].type==='video'){
+        document.getElementById('playOv').classList.remove('hide');
+      }
+    }, 3000);
+
+    videoEl.onended=function(){
+      // Safety: if any questions were missed mid-video, show them now
+      var uq=lo.questions.filter(function(q){return !ans[String(q.id)];});
+      if(uq.length>0){
+        showQuiz(uq[0], function nextQ(){
+          var more=lo.questions.filter(function(q){return !ans[String(q.id)];});
+          if(more.length>0){ showQuiz(more[0], nextQ); }
+          else { markDone(ci); advance(); }
+        });
+        return;
+      }
+      markDone(ci);
+      advance();
+    };
+
+    videoEl.ontimeupdate=function(){
+      var sec=Math.floor(videoEl.currentTime);
+      if(sec%15===0 && sec>0) saveS();
+
+      if(videoEl.duration>0){
+        var pct=Math.min(100,Math.round((videoEl.currentTime/videoEl.duration)*100));
+        document.getElementById('pFill').style.width=pct+'%';
+        var rem=Math.max(0,Math.floor(videoEl.duration-videoEl.currentTime));
+        var mm=Math.floor(rem/60);
+        var ss=rem%60;
+        document.getElementById('bTime').textContent='-'+pad(mm)+':'+pad(ss);
+      }
+
+      if(videoEl.duration>0){
+        var cm2=Math.floor(videoEl.currentTime/60);var cs=Math.floor(videoEl.currentTime%60);
+        var dm=Math.floor(videoEl.duration/60);var ds=Math.floor(videoEl.duration%60);
+        document.getElementById('bcTime').textContent=pad(cm2)+':'+pad(cs)+' / '+pad(dm)+':'+pad(ds);
+      }
+
+      if(!videoEl._quizShowing){
+        lo.questions.forEach(function(q){
+          var key=String(q.id);
+          if(ans[key]) return;
+          if(q.time_seconds>0 && sec>=q.time_seconds){
+            ans[key]=true; saveS();
+            videoEl.pause();
+            videoEl._quizShowing=true;
+            showQuiz(q, function(){
+              videoEl._quizShowing=false;
+              try{videoEl.play();}catch(e){}
+            });
+          }
+        });
+      }
+    };
+
+  // ===== SLIDE (PDF.js una pagina alla volta) =====
+  } else if(lo.type==='slide' && lo.slideFile){
+    document.getElementById('slideViewer').style.display='';
+    document.getElementById('fCount').style.display='none';
+    document.getElementById('bcTime').textContent='Slide — usa i pulsanti per navigare';
+    startSlidePageTimer();
+    var pdfUrl='/files/'+encodeURIComponent(lo.slideFile);
+    pdfjsLib.getDocument(pdfUrl).promise.then(function(doc){
+      pdfDoc=doc;
+      pdfTotal=doc.numPages;
+      pdfPage=1;
+      renderSlidePage();
+      // Show Avanti button only on last page
+      document.getElementById('slideNext').textContent=(pdfPage>=pdfTotal)?'Completato \u2714':'Avanti \u2192';
+    }).catch(function(err){
+      console.error('PDF load error:',err);
+      document.getElementById('slideViewer').style.display='none';
+      document.getElementById('docContent').style.display='flex';
+      document.getElementById('docTitle').textContent=lo.title;
+      document.getElementById('docLink').href=pdfUrl;
+      document.getElementById('btnAvanti').style.display='';
+    });
+
+  // ===== DOCUMENT (show PDF in iframe) =====
+  } else if(lo.type==='document' && lo.docFile){
+    var iframe3=document.getElementById('iframeContent');
+    iframe3.style.display='';
+    iframe3.src='/files/'+encodeURIComponent(lo.docFile);
+    document.getElementById('fCount').style.display='none';
+    document.getElementById('bcTime').textContent='Documento PDF — leggi e prosegui';
+    startNvTimer(lo);
+
+  // ===== WEB (iframe) =====
+  } else if(lo.type==='web' && lo.webFile){
+    var iframe2=document.getElementById('iframeContent');
+    iframe2.style.display='';
+    iframe2.src='/web/'+encodeURIComponent(lo.webFile)+'/index.html';
+    document.getElementById('fCount').style.display='none';
+    document.getElementById('bcTime').textContent='Contenuto web — leggi e prosegui';
+    startNvTimer(lo);
+
+  // ===== FALLBACK =====
+  } else {
+    document.getElementById('docContent').style.display='flex';
+    document.getElementById('docContent').style.flexDirection='column';
+    document.getElementById('docContent').style.alignItems='center';
+    document.getElementById('docContent').style.justifyContent='center';
+    document.getElementById('docContent').style.height='100%';
+    document.getElementById('docTitle').textContent=lo.title;
+    document.getElementById('docLink').style.display='none';
+    document.getElementById('bcTime').textContent='';
+    startNvTimer(lo);
+  }
+}
+
+// ========== NON-VIDEO TIMER ==========
+var nvTimerInterval=null;
+var nvRemaining=0;
+function startNvTimer(lo){
+  var durSec=(lo.duration||2)*60;
+  nvRemaining=durSec;
+  var banner=document.getElementById('nvBanner');
+  var timerEl=document.getElementById('nvTimer');
+  banner.style.display='';
+  document.getElementById('btnAvanti').style.display='none';
+  // Hide avanti in docContent too
+  var dcBtns=document.querySelectorAll('#docContent button');
+  dcBtns.forEach(function(b){b.style.display='none';});
+  function updNv(){
+    var m=Math.floor(nvRemaining/60);var s=nvRemaining%60;
+    timerEl.textContent=pad(m)+':'+pad(s);
+    var pct=Math.min(100,Math.round(((durSec-nvRemaining)/durSec)*100));
+    document.getElementById('pFill').style.width=pct+'%';
+    document.getElementById('bTime').textContent='-'+pad(m)+':'+pad(s);
+  }
+  updNv();
+  nvTimerInterval=setInterval(function(){
+    nvRemaining--;
+    updNv();
+    if(nvRemaining<=0){
+      clearInterval(nvTimerInterval);nvTimerInterval=null;
+      banner.style.display='none';
+      // Show green banner
+      banner.style.background='rgba(21,128,61,.95)';
+      banner.style.borderColor='rgba(34,197,94,.5)';
+      banner.innerHTML='<span style="color:#bbf7d0;font-weight:700;font-size:13px">&#10004; Lettura completata</span>';
+      banner.style.display='';
+      document.getElementById('pFill').style.width='100%';
+      document.getElementById('bTime').textContent='00:00';
+      // Auto finish
+      finishNonVideo();
+    }
+  },1000);
+}
+
+// ========== FINISH NON-VIDEO LO ==========
+function finishNonVideo(){
+  if(ci<0||ci>=LOs.length) return;
+  var lo=LOs[ci];
+  var uq=lo.questions.filter(function(q){return !ans[String(q.id)];});
+  if(uq.length>0){
+    showQuiz(uq[0], function nextQ(){
+      var more=lo.questions.filter(function(q){return !ans[String(q.id)];});
+      if(more.length>0){ showQuiz(more[0], nextQ); }
+      else { markDone(ci); advance(); }
+    });
+    return;
+  }
+  markDone(ci);
+  advance();
+}
+
+function advance(){
+  if(ci+1<LOs.length){go(ci+1,0);}
+  else{document.getElementById('cOv').classList.add('show');}
+}
+
+// ========== DING SOUND ==========
+var _dingCtx=null;
+document.addEventListener('click',function(){
+  if(!_dingCtx){try{_dingCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+  if(_dingCtx&&_dingCtx.state==='suspended') _dingCtx.resume();
+},{once:false});
+function playDing(){
+  try{
+    if(!_dingCtx) _dingCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(_dingCtx.state==='suspended') _dingCtx.resume();
+    var t=_dingCtx.currentTime;
+    function tone(freq,start,dur){
+      var o=_dingCtx.createOscillator();var g=_dingCtx.createGain();
+      o.connect(g);g.connect(_dingCtx.destination);o.type='sine';
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(0.9,t+start);
+      g.gain.exponentialRampToValueAtTime(0.01,t+start+dur);
+      o.start(t+start);o.stop(t+start+dur);
+    }
+    tone(880,0,0.3);tone(1320,0.15,0.3);tone(1760,0.3,0.4);
+  }catch(e){console.warn('ding err',e);}
+}
+
+// ========== QUIZ ==========
+function showQuiz(q, onDone){
+  playDing();
+  clearInterval(qTimer);
+  qCountdown=30;
+  var ov=document.getElementById('qOv');
+  var card=document.getElementById('qCard');
+  var answers=q.answers||[];
+  var h='<div style="text-align:center;margin-bottom:16px"><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Tempo rimasto</div><div class="qtimer" id="qTm" style="font-size:42px">30</div></div>';
+  h+='<h3>'+esc(q.question_text)+'</h3>';
+  answers.forEach(function(a){
+    h+='<button class="abtn" data-ok="'+(a.is_correct?'1':'0')+'" data-aid="'+a.id+'" data-txt="'+esc(a.answer_text)+'">';
+    h+=esc(a.answer_text)+'</button>';
+  });
+  h+='<div class="qfb" id="qFb" style="display:none"></div>';
+  h+='<button class="qcont" id="qOkBtn">Continua</button>';
+  card.innerHTML=h;
+  ov.classList.add('show');
+
+  var btns=card.querySelectorAll('.abtn');
+  btns.forEach(function(btn){
+    btn.addEventListener('click',function(){
+      clearInterval(qTimer);
+      handleAnswer(btn, q, btns, onDone);
+    });
+  });
+
+  document.getElementById('qOkBtn').addEventListener('click',function(){
+    ov.classList.remove('show');
+    if(onDone) onDone();
+  });
+
+  document.getElementById('qTm').textContent='30';
+  qTimer=setInterval(function(){
+    qCountdown--;
+    var tm=document.getElementById('qTm');
+    if(tm) tm.textContent=String(qCountdown);
+    if(qCountdown<=5 && tm) tm.classList.add('warn');
+    if(qCountdown<=0){
+      clearInterval(qTimer);
+      ans[String(q.id)]=true;
+      qWrong++; updQuizStats(); saveS();
+      trackQuiz(q.id, null, false, q.question_text, 'TEMPO SCADUTO',
+        videoEl.currentTime?Math.floor(videoEl.currentTime):0);
+      // Show correct answers
+      var btns2=card.querySelectorAll('.abtn');
+      btns2.forEach(function(b){b.disabled=true;if(b.dataset.ok==='1')b.classList.add('ok');else b.classList.add('ko');});
+      var fb2=document.getElementById('qFb');
+      fb2.textContent='Tempo scaduto! La risposta corretta è evidenziata in verde.';
+      fb2.className='qfb fko';fb2.style.display='';
+      var okBtn2=document.getElementById('qOkBtn');
+      okBtn2.style.display='';
+      okBtn2.onclick=function(){ov.classList.remove('show');if(onDone)onDone();};
+    }
+  },1000);
+}
+
+function handleAnswer(btn, q, btns, onDone){
+  var isOk=btn.dataset.ok==='1';
+  btns.forEach(function(b){
+    b.disabled=true;
+    if(b.dataset.ok==='1') b.classList.add('ok');
+  });
+  if(!isOk) btn.classList.add('ko');
+
+  var fb=document.getElementById('qFb');
+  fb.style.display='block';
+  fb.className='qfb '+(isOk?'fok':'fko');
+  fb.textContent=isOk?'Risposta corretta!':'Risposta errata. La risposta corretta \u00e8 evidenziata in verde.';
+  document.getElementById('qOkBtn').style.display='block';
+
+  if(isOk) qCorrect++; else qWrong++;
+  ans[String(q.id)]=true;
+  updQuizStats(); saveS();
+
+  var vSec=videoEl.currentTime?Math.floor(videoEl.currentTime):0;
+  trackQuiz(q.id, parseInt(btn.dataset.aid), isOk, q.question_text, btn.dataset.txt, vSec);
+}
+
+// ========== HELPERS ==========
+function markDone(idx){
+  done[String(idx)]=true;
+  var el=document.getElementById('s'+idx);
+  if(el){el.classList.add('done');el.classList.remove('locked');}
+  var nxt=document.getElementById('s'+(idx+1));
+  if(nxt) nxt.classList.remove('locked');
+  document.getElementById('pCount').textContent=Object.keys(done).length+'/'+LOs.length;
+  courseWatchedSec=0;
+  for(var k in done){var i=parseInt(k);if(!isNaN(i)&&LOs[i])courseWatchedSec+=(LOs[i].duration||0)*60;}
+  saveS();
+  trackComplete(idx);
+}
+
+function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+
+function endSession(){
+  if(!sid) return;
+  if(ci>=0){
+    var vp=videoEl&&videoEl.currentTime?Math.floor(videoEl.currentTime):0;
+    trackLO(LOs[ci].id,'leave',vp);
+  }
+  saveS();
+  var dur=Math.round((Date.now()-sStart)/1000);
+  var lo=LOs[ci];
+  navigator.sendBeacon('/api/player/session/end',
+    new Blob([JSON.stringify({sessionId:sid,durationSeconds:dur,lastLoId:lo?lo.id:null,lastLoIndex:ci})],
+    {type:'application/json'}));
+}
+
+function startPlay(){
+  document.getElementById('playOv').classList.add('hide');
+  videoEl.muted=false;
+  videoEl.play().catch(function(){videoEl.muted=true;videoEl.play().catch(function(){});});
+}
+
+function doLogout(){
+  try{saveS();endSession();}catch(e){}
+  localStorage.removeItem('playerUser');
+  localStorage.removeItem('playerEnrollment');
+  localStorage.removeItem('playerTutor');
+  window.location.href='/login';
+}
+
+window.addEventListener('beforeunload', function(){
+  saveS();
+  endSession();
+});
+</script>
+</body>
+</html>

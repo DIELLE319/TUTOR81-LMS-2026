@@ -29,6 +29,7 @@ interface Tutor {
   subscriptionStart: string | null;
   subscriptionEnd: string | null;
   annualFee: number | null;
+  certificateType: number | null;
   ecommerce: boolean | null;
   logoUrl: string | null;
   notes: string | null;
@@ -80,6 +81,7 @@ export default function Tutors() {
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [newAdmin, setNewAdmin] = useState<{ name: string; email: string; username: string; fiscalCode: string } | null>(null);
+  const [editingAdmin, setEditingAdmin] = useState<TutorAdmin | null>(null);
   const [modalAdmin, setModalAdmin] = useState({ firstName: "", lastName: "", fiscalCode: "", email: "", sendEmail: true });
   const [adminMode, setAdminMode] = useState<"new" | "existing">("new");
   const qc = useQueryClient();
@@ -113,6 +115,17 @@ export default function Tutors() {
     onSuccess: () => {
       toast({ title: "Admin rimosso" });
       qc.invalidateQueries({ queryKey: ["tutor-admins", expandedId] });
+    },
+    onError: (e: Error) => toast({ title: "Errore", description: e.message, variant: "destructive" }),
+  });
+
+  const updateAdminMut = useMutation({
+    mutationFn: (data: { id: number; name?: string; email?: string; username?: string; fiscalCode?: string }) =>
+      apiRequest("PATCH", `/api/tutor-admins/${data.id}`, data),
+    onSuccess: () => {
+      toast({ title: "Admin aggiornato" });
+      qc.invalidateQueries({ queryKey: ["tutor-admins", expandedId] });
+      setEditingAdmin(null);
     },
     onError: (e: Error) => toast({ title: "Errore", description: e.message, variant: "destructive" }),
   });
@@ -164,7 +177,7 @@ export default function Tutors() {
   }), [tutors, search, subFilter]);
 
   const openNew = () => { setEditTutor({ ...emptyTutor }); setIsNew(true); setModalAdmin({ firstName: "", lastName: "", fiscalCode: "", email: "", sendEmail: true }); setAdminMode("new"); };
-  const openEdit = (t: Tutor) => { setEditTutor({ ...t }); setIsNew(false); };
+  const openEdit = (t: Tutor) => { setEditTutor({ ...t }); setIsNew(false); setExpandedId(t.id); };
   const updateField = (field: string, value: any) => setEditTutor((prev) => prev ? { ...prev, [field]: value } : prev);
 
   const handleLogoUpload = async (tutorId: number, file: File) => {
@@ -232,6 +245,7 @@ export default function Tutors() {
                 <th className="p-2.5 text-left">Abbonamento</th>
                 <th className="p-2.5 text-left">Sconto</th>
                 <th className="p-2.5 text-left">Email</th>
+                <th className="p-2.5 text-left">Attestato</th>
                 <th className="p-2.5 text-left">Telefono</th>
                 <th className="p-2.5 text-left">Città</th>
                 <th className="p-2.5 text-left">Stato</th>
@@ -281,6 +295,17 @@ export default function Tutors() {
                       </td>
                       <td className="p-2.5 text-green-400 font-bold text-xs">{t.discountPercentage != null ? `${t.discountPercentage}%` : "—"}</td>
                       <td className="p-2.5 text-gray-400 text-xs">{t.email || "—"}</td>
+                      <td className="p-2.5" onClick={(e) => e.stopPropagation()}>
+                        <select value={t.certificateType ?? 1}
+                          onChange={(e) => {
+                            apiRequest("PATCH", `/api/tutors/${t.id}`, { certificateType: parseInt(e.target.value) }).then(() => qc.invalidateQueries({ queryKey: ["tutors"] }));
+                          }}
+                          className={`text-[10px] font-bold px-1.5 py-1 rounded cursor-pointer border-0 appearance-none ${(t.certificateType ?? 1) === 1 ? "bg-cyan-600 text-white" : (t.certificateType ?? 1) === 2 ? "bg-orange-500 text-white" : "bg-pink-500 text-white"}`}>
+                          <option value={1} className="bg-[#1a1a1a] text-gray-200">Tipo 1</option>
+                          <option value={2} className="bg-[#1a1a1a] text-gray-200">Tipo 2</option>
+                          <option value={3} className="bg-[#1a1a1a] text-gray-200">Tipo 3</option>
+                        </select>
+                      </td>
                       <td className="p-2.5 text-gray-400 text-xs">{t.phone || "—"}</td>
                       <td className="p-2.5 text-gray-400 text-xs">{t.city || "—"}</td>
                       <td className="p-2.5">
@@ -302,7 +327,7 @@ export default function Tutors() {
                     </tr>
                     {isExpanded && (
                       <tr key={`admins-${t.id}`}>
-                        <td colSpan={9} className="p-0">
+                        <td colSpan={10} className="p-0">
                           <div className="bg-[#0d0d0d] border-t border-b border-yellow-500/30 px-6 py-4">
                             <div className="flex items-center justify-between mb-3">
                               <h4 className="text-xs font-bold text-yellow-500 flex items-center gap-2">
@@ -327,14 +352,34 @@ export default function Tutors() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {admins.map((a) => (
+                                  {admins.map((a) => {
+                                    const isEditing = editingAdmin?.id === a.id;
+                                    return (
                                     <tr key={a.id} className="border-t border-white/5">
+                                      {isEditing ? (<>
+                                      <td className="py-2 pr-2"><input type="text" value={editingAdmin.name} onChange={(e) => setEditingAdmin({ ...editingAdmin, name: e.target.value })} className="w-full h-7 px-2 bg-[#141414] border border-white/10 rounded text-xs text-gray-200" /></td>
+                                      <td className="py-2 pr-2"><input type="text" value={editingAdmin.username || ""} onChange={(e) => setEditingAdmin({ ...editingAdmin, username: e.target.value })} className="w-full h-7 px-2 bg-[#141414] border border-white/10 rounded text-xs text-gray-200" /></td>
+                                      <td className="py-2 pr-2"><input type="email" value={editingAdmin.email || ""} onChange={(e) => setEditingAdmin({ ...editingAdmin, email: e.target.value })} className="w-full h-7 px-2 bg-[#141414] border border-white/10 rounded text-xs text-gray-200" /></td>
+                                      <td className="py-2 pr-2"><input type="text" value={editingAdmin.fiscalCode || ""} onChange={(e) => setEditingAdmin({ ...editingAdmin, fiscalCode: e.target.value.toUpperCase() })} className="w-full h-7 px-2 bg-[#141414] border border-white/10 rounded text-xs text-gray-200 uppercase" /></td>
+                                      <td className="py-2">
+                                        <div className="flex gap-1">
+                                          <button onClick={() => updateAdminMut.mutate({ id: editingAdmin.id, name: editingAdmin.name, email: editingAdmin.email || undefined, username: editingAdmin.username || undefined, fiscalCode: editingAdmin.fiscalCode || undefined })}
+                                            className="w-6 h-6 rounded bg-green-500/20 hover:bg-green-500/40 flex items-center justify-center text-green-400"><Plus size={11} /></button>
+                                          <button onClick={() => setEditingAdmin(null)}
+                                            className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400"><X size={11} /></button>
+                                        </div>
+                                      </td>
+                                      </>) : (<>
                                       <td className="py-2 pr-4 text-gray-200 font-medium">{a.name}</td>
                                       <td className="py-2 pr-4 text-yellow-500 font-mono">{a.username || "—"}</td>
                                       <td className="py-2 pr-4 text-gray-400">{a.email || "—"}</td>
-                                      <td className="py-2 pr-4 text-gray-400 font-mono">{a.fiscalCode || "—"}</td>
+                                      <td className="py-2 pr-4 text-gray-400 font-mono">{a.fiscalCode || <span className="text-red-400">MANCANTE</span>}</td>
                                       <td className="py-2">
                                         <div className="flex gap-1">
+                                          <button onClick={() => setEditingAdmin({ ...a })} title="Modifica"
+                                            className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center text-yellow-400">
+                                            <Edit2 size={11} />
+                                          </button>
                                           {a.email && (
                                             <button onClick={() => sendAdminEmailMut.mutate({ adminId: a.id, email: a.email!, name: a.name, username: a.username || "", tutorName: t.businessName })}
                                               disabled={sendAdminEmailMut.isPending}
@@ -349,8 +394,10 @@ export default function Tutors() {
                                           </button>
                                         </div>
                                       </td>
+                                      </>)}
                                     </tr>
-                                  ))}
+                                    );
+                                  })}
                                   {newAdmin && (
                                     <tr className="border-t border-yellow-500/20">
                                       <td className="py-2 pr-2">
@@ -610,6 +657,15 @@ export default function Tutors() {
                     <label className="block text-[11px] font-semibold text-gray-400 uppercase mb-1">Sconto Corsi (%)</label>
                     <input type="number" min={0} max={100} value={editTutor.discountPercentage ?? 60} onChange={(e) => updateField("discountPercentage", parseInt(e.target.value) || 0)}
                       className="w-full h-9 px-3 bg-[#141414] border border-white/10 rounded-lg text-sm text-gray-200 focus:outline-none focus:border-yellow-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-400 uppercase mb-1">Tipo Attestato</label>
+                    <select value={editTutor.certificateType ?? 1} onChange={(e) => updateField("certificateType", parseInt(e.target.value))}
+                      className="w-full h-9 px-3 bg-[#141414] border border-white/10 rounded-lg text-sm text-gray-200 focus:outline-none focus:border-yellow-500/50">
+                      <option value={1}>Tipo 1</option>
+                      <option value={2}>Tipo 2</option>
+                      <option value={3}>Tipo 3</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-gray-400 uppercase mb-1">E-commerce</label>

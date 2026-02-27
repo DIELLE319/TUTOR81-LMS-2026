@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, Search, Download, FileSpreadsheet, Star } from "lucide-react";
@@ -6,43 +6,55 @@ import { Plus, Search, Download, FileSpreadsheet, Star } from "lucide-react";
 interface Client { id: number; businessName: string; city: string | null; phone: string | null; email: string | null; contactPerson: string | null }
 interface TutorGroup { tutor: { id: number; businessName: string; subscriptionType: string | null }; clients: Client[] }
 
+async function fetchClients(): Promise<TutorGroup[]> {
+  const r = await fetch("/api/clients", { credentials: "include" });
+  if (!r.ok) throw new Error(`Errore ${r.status}`);
+  const data = await r.json();
+  return Array.isArray(data) ? data : [];
+}
+
 export default function Clients() {
   const [search, setSearch] = useState("");
   const [enteFilter, setEnteFilter] = useState("all");
   const [pageSize, setPageSize] = useState(100);
   const [page, setPage] = useState(1);
 
-  const { data: groups = [], isLoading } = useQuery<TutorGroup[]>({
+  const { data: groups = [], isLoading, error } = useQuery<TutorGroup[]>({
     queryKey: ["clients"],
-    queryFn: () => fetch("/api/clients", { credentials: "include" }).then((r) => r.json()),
+    queryFn: fetchClients,
+    retry: 1,
   });
+
+  const safeGroups = Array.isArray(groups) ? groups : [];
 
   const allClients = useMemo(() => {
     const list: (Client & { tutorLabel: string })[] = [];
-    for (const g of groups) {
+    for (const g of safeGroups) {
+      if (!g?.tutor || !Array.isArray(g.clients)) continue;
       for (const c of g.clients) {
         list.push({ ...c, tutorLabel: `#${g.tutor.id} ${g.tutor.businessName}` });
       }
     }
     return list;
-  }, [groups]);
+  }, [safeGroups]);
 
   const enti = useMemo(() => {
-    const set = new Set(groups.map((g) => g.tutor.businessName));
+    const set = new Set(safeGroups.map((g) => g?.tutor?.businessName).filter(Boolean) as string[]);
     return Array.from(set).sort();
-  }, [groups]);
+  }, [safeGroups]);
 
   const filtered = useMemo(() => {
-    setPage(1);
     return allClients.filter((c) => {
       if (enteFilter !== "all" && !c.tutorLabel.includes(enteFilter)) return false;
       if (search) {
         const q = search.toLowerCase();
-        return c.businessName.toLowerCase().includes(q) || (c.city || "").toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.contactPerson || "").toLowerCase().includes(q);
+        return (c.businessName || "").toLowerCase().includes(q) || (c.city || "").toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.contactPerson || "").toLowerCase().includes(q);
       }
       return true;
     });
   }, [allClients, search, enteFilter]);
+
+  useEffect(() => { setPage(1); }, [search, enteFilter]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -109,7 +121,7 @@ export default function Clients() {
         </Link>
       </div>
 
-      {isLoading ? <div className="text-center py-12 text-gray-500">Caricamento...</div> : filtered.length === 0 ? <div className="text-center py-12 text-gray-500 bg-[#141414] rounded-b-xl">Nessun cliente trovato</div> : (
+      {error ? <div className="text-center py-12 text-red-400 bg-[#141414] rounded-b-xl border border-white/5 border-t-0">Errore: {(error as Error).message}</div> : isLoading ? <div className="text-center py-12 text-gray-500 bg-[#141414] rounded-b-xl border border-white/5 border-t-0">Caricamento...</div> : filtered.length === 0 ? <div className="text-center py-12 text-gray-500 bg-[#141414] rounded-b-xl border border-white/5 border-t-0">Nessun cliente trovato</div> : (
         <>
           <div className="bg-[#141414] rounded-b-xl border border-white/5 border-t-0 overflow-x-auto">
             <table className="w-full text-sm">
@@ -125,13 +137,15 @@ export default function Clients() {
               </thead>
               <tbody>
                 {paged.map((c, i) => (
-                  <tr key={c.id} className={`border-b border-white/5 ${i % 2 === 0 ? "bg-[#141414]" : "bg-[#1a1a1a]"}`}>
+                  <tr key={c.id} className={`border-b border-white/5 hover:bg-white/[0.03] ${i % 2 === 0 ? "bg-[#141414]" : "bg-[#1a1a1a]"}`}>
                     <td className="p-2.5 text-yellow-500 font-bold text-xs">{c.id}</td>
-                    <td className="p-2.5 text-gray-400 text-xs">{c.tutorLabel}</td>
+                    <td className="p-2.5">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">{c.tutorLabel}</span>
+                    </td>
                     <td className="p-2.5 text-gray-200 text-xs font-medium">{c.businessName}</td>
                     <td className="p-2.5 text-gray-400 text-xs">{c.city || "—"}</td>
                     <td className="p-2.5 text-gray-400 text-xs">{c.phone || "—"}</td>
-                    <td className="p-2.5 text-gray-400 text-xs">{c.email || "—"}</td>
+                    <td className="p-2.5 text-blue-400 text-xs">{c.email || "—"}</td>
                   </tr>
                 ))}
               </tbody>

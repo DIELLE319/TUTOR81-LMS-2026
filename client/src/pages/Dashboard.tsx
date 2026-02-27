@@ -102,33 +102,33 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* LA TUA LICENZA - white card */}
-        <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center text-center min-h-[300px]">
-          <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-4">La Tua Licenza</div>
+        {/* LA TUA LICENZA - yellow card */}
+        <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl p-6 flex flex-col items-center justify-center text-center min-h-[300px] shadow-lg shadow-yellow-500/20">
+          <div className="text-[11px] text-black/60 uppercase tracking-widest font-bold mb-4">La Tua Licenza</div>
           {tutorData?.logoUrl ? (
-            <img src={tutorData.logoUrl} alt="" className="h-14 max-w-[160px] object-contain mb-4" />
+            <img src={tutorData.logoUrl} alt="" className="h-14 max-w-[160px] object-contain mb-4 drop-shadow-md" />
           ) : (
-            <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center mb-4">
-              <Shield size={28} className="text-gray-400" />
+            <div className="w-14 h-14 rounded-xl bg-black/10 flex items-center justify-center mb-4">
+              <Shield size={28} className="text-black/60" />
             </div>
           )}
-          <div className="text-lg font-black text-gray-900">{tutorData?.businessName || user?.tutorName || "TUTOR 81 LMS"}</div>
-          <div className="text-xs text-gray-500 mt-1">{tutorData?.email || "assistenza@tutor81.it"}</div>
+          <div className="text-lg font-black text-black">{tutorData?.businessName || user?.tutorName || "TUTOR 81 LMS"}</div>
+          <div className="text-xs text-black/60 font-medium mt-1">{tutorData?.email || "assistenza@tutor81.it"}</div>
           <div className="mt-3 inline-block">
-            <span className={`text-[10px] font-bold px-2 py-1 rounded ${
-              tutorData?.subscriptionType === "CONSULENTI 1500" ? "bg-blue-100 text-blue-700" :
-              tutorData?.subscriptionType === "ENTI AUTORIZZATI 1500" ? "bg-purple-100 text-purple-700" :
-              "bg-yellow-100 text-yellow-700"
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded ${
+              tutorData?.subscriptionType === "CONSULENTI 1500" ? "bg-black/20 text-black" :
+              tutorData?.subscriptionType === "ENTI AUTORIZZATI 1500" ? "bg-black/20 text-black" :
+              "bg-black/20 text-black"
             }`}>{tutorData?.subscriptionType || "—"}</span>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200 w-full space-y-1">
-            <div className="text-xs text-gray-600 font-medium">{user?.firstName} {user?.lastName}</div>
-            <div className="text-[10px] text-gray-400 uppercase">AMMINISTRATORE</div>
+          <div className="mt-4 pt-4 border-t border-black/10 w-full space-y-1">
+            <div className="text-sm text-black font-bold">{user?.firstName} {user?.lastName}</div>
+            <div className="text-[10px] text-black/50 uppercase font-bold">AMMINISTRATORE</div>
           </div>
           {tutorData?.subscriptionStart && (
             <div className="mt-3 flex items-center gap-2 text-xs">
-              <span className="text-gray-400">Licenza dal:</span>
-              <span className="text-gray-700 font-bold">{new Date(tutorData.subscriptionStart).toLocaleDateString("it-IT")}</span>
+              <span className="text-black/50">Licenza dal:</span>
+              <span className="text-black font-bold">{new Date(tutorData.subscriptionStart).toLocaleDateString("it-IT")}</span>
             </div>
           )}
         </div>

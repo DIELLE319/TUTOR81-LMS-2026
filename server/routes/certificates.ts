@@ -4,6 +4,8 @@ import { db, hasDatabase } from "../db";
 import * as schema from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getAuthenticatedDbUser } from "./helpers";
+import { generateAttestatoPdf, type AttData } from "../generateAttestatoPdf";
+import { getCmsPool } from "../cmsDb";
 
 export function registerCertificatesRoutes(app: Express) {
   app.get("/api/attestati", isAuthenticated, async (req: any, res) => {
@@ -70,13 +72,17 @@ export function registerCertificatesRoutes(app: Express) {
       if (!enrollment) return res.status(404).json({ error: "Enrollment not found" });
 
       const [student] = await db.select().from(schema.students).where(eq(schema.students.id, enrollment.studentId)).limit(1);
-      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, enrollment.courseId)).limit(1);
-      if (!student || !course) return res.status(404).json({ error: "Data not found" });
+      if (!student) return res.status(404).json({ error: "Student not found" });
 
       const [company] = await db.select().from(schema.companies).where(eq(schema.companies.id, student.companyId)).limit(1);
       const [tutor] = enrollment.tutorId
         ? await db.select().from(schema.tutors).where(eq(schema.tutors.id, enrollment.tutorId)).limit(1)
         : [null];
+
+      // Fetch course details from CMS (has all fields)
+      const cms = getCmsPool();
+      const { rows: cmsRows } = await cms.query(`SELECT * FROM courses WHERE id = $1`, [enrollment.courseId]);
+      const crs = cmsRows[0] || {} as any;
 
       // Fetch LO progress (tracciamento)
       const progressRows = await db.select().from(schema.enrollmentProgress)
@@ -95,7 +101,7 @@ export function registerCertificatesRoutes(app: Express) {
         .where(eq(schema.quizResponses.enrollmentId, enrollmentId))
         .orderBy(schema.quizResponses.createdAt);
 
-      // Fetch answer texts for quiz responses
+      // Fetch answer texts
       const answerTexts: Record<number, string> = {};
       for (const q of quizRows) {
         if (q.answerId) {
@@ -105,12 +111,10 @@ export function registerCertificatesRoutes(app: Express) {
       }
 
       // Fetch course structure from CMS for LO list
-      const { getCmsPool } = await import("../cmsDb");
-      const cms = getCmsPool();
       let loList: { id: number; title: string; duration: number }[] = [];
       try {
         const { rows: mods } = await cms.query(
-          `SELECT cm.module_id FROM course_modules cm WHERE cm.course_id = $1 ORDER BY cm.position, cm.id`, [course.id]
+          `SELECT cm.module_id FROM course_modules cm WHERE cm.course_id = $1 ORDER BY cm.position, cm.id`, [enrollment.courseId]
         );
         for (const mod of mods) {
           const { rows: lessons } = await cms.query(
@@ -127,313 +131,174 @@ export function registerCertificatesRoutes(app: Express) {
         }
       } catch (e) { console.error("CMS LO fetch error:", e); }
 
-      const certNumber = enrollmentId;
-      const tracciato = `${certNumber} T81`;
-      const courseTitle = course.title || "";
-      const studentName = `${(student.firstName || "").toUpperCase()} ${(student.lastName || "").toUpperCase()}`.trim();
-      const fiscalCode = (student.fiscalCode || "").toUpperCase();
-      const companyName = company?.businessName || "";
-      const tutorName = tutor?.businessName || companyName;
-      const tutorAddress = tutor ? `${tutor.address || ""}, ${tutor.city || ""}` : "";
-      const courseHours = course.hours || 0;
-      const maxExecutionDays = (course as any).maxExecutionTime || 30;
-      const percentageToPass = (course as any).percentageToPass || 80;
-      const startDate = enrollment.startDate ? new Date(enrollment.startDate).toLocaleDateString("it-IT") : "";
-      const endDate = enrollment.completedAt ? new Date(enrollment.completedAt).toLocaleDateString("it-IT") : (enrollment.endDate ? new Date(enrollment.endDate).toLocaleDateString("it-IT") : "");
+      // Determine ente vs tutor_vendor (same logic as PHP)
+      const hasRegAuth = tutor?.hasRegionalAuth || !!tutor?.regionalAuthorization;
+      let enteName = "", enteAddress = "", enteCity = "", enteProvince = "", enteTelephone = "", enteEmail = "", enteRegAuth = "";
+      let tvName = "", tvAddress = "", tvCity = "", tvProvince = "", tvTelephone = "", tvEmail = "";
 
-      // Build description with LO list
-      const loDescParts = loList.map(lo => `(${lo.id})${lo.title}(${lo.duration} min)`);
-      const courseDesc = `${course.description || ""}. ${loDescParts.join(" ")}`;
-
-      // Build programma list
-      const programmaItems = loList.map(lo => `(${lo.id})${lo.title}(${lo.duration} min)`);
-
-      const totalPages = 5;
-      const PDFDocument = (await import("pdfkit")).default;
-      const doc = new PDFDocument({ size: "A4", margins: { top: 40, bottom: 40, left: 50, right: 50 } });
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="attestato_${certNumber}.pdf"`);
-      doc.pipe(res);
-
-      const W = 495; // usable width
-      const LM = 50; // left margin
-
-      // === HELPER FUNCTIONS ===
-      function header(pageNum: number) {
-        doc.fontSize(10).font("Helvetica-Bold").fillColor("#888")
-          .text("tutor", LM, 15, { continued: true }).fillColor("#000").text("81");
-        doc.fontSize(8).font("Helvetica").fillColor("#000")
-          .text(`TRACCIATO N°  ${tracciato}`, LM + 150, 18, { width: 250, align: "center" });
-        doc.moveTo(LM, 38).lineTo(LM + W, 38).lineWidth(0.5).stroke("#000");
-      }
-      function footer(pageNum: number) {
-        doc.fontSize(8).font("Helvetica").fillColor("#000")
-          .text(`Pagina ${pageNum}/${totalPages}`, LM, 780, { width: W, align: "center" });
-      }
-      function drawTableRow(y: number, cols: { x: number; w: number; text: string; bold?: boolean; color?: string }[], h: number) {
-        cols.forEach(col => {
-          doc.rect(col.x, y, col.w, h).lineWidth(0.5).stroke("#000");
-          doc.font(col.bold ? "Helvetica-Bold" : "Helvetica")
-            .fontSize(8).fillColor(col.color || "#000")
-            .text(col.text, col.x + 4, y + 4, { width: col.w - 8, height: h - 8 });
-        });
-      }
-      function fieldRow(label: string, value: string, y: number, labelW = 130): number {
-        doc.font("Helvetica-Bold").fontSize(8).text(label, LM, y, { width: labelW, align: "right" });
-        const valH = doc.heightOfString(value, { width: W - labelW - 15, fontSize: 8 });
-        doc.font("Helvetica").fontSize(8).text(value, LM + labelW + 10, y, { width: W - labelW - 15 });
-        return Math.max(14, valH + 6);
+      if (hasRegAuth && tutor) {
+        // Tutor IS the accredited ente
+        enteName = tutor.businessName || "";
+        enteAddress = tutor.address || "";
+        enteCity = tutor.city || "";
+        enteProvince = tutor.province || "";
+        enteTelephone = tutor.phone || "";
+        enteEmail = tutor.email || "";
+        enteRegAuth = tutor.regionalAuthorization || "";
+        // tutor_vendor empty
+      } else {
+        // Ente = Prometeo (hardcoded), tutor_vendor = tutor
+        enteName = "PROMETEO S.R.L.";
+        enteAddress = "Via G. Giusti n. 2";
+        enteCity = "Campi Bisenzio";
+        enteProvince = "FI";
+        enteTelephone = "055 8954895";
+        enteEmail = "info@prometeoformazione.it";
+        enteRegAuth = "Decreto Dirigenziale n.10228 del 29/06/2016";
+        if (tutor) {
+          tvName = tutor.businessName || "";
+          tvAddress = tutor.address || "";
+          tvCity = tutor.city || "";
+          tvProvince = tutor.province || "";
+          tvTelephone = tutor.phone || "";
+          tvEmail = tutor.email || "";
+        }
       }
 
-      // =====================================================
-      // PAGE 1: TRACCIATO + SCHEDA PROGETTUALE
-      // =====================================================
-      header(1);
-      let y = 55;
-      doc.font("Helvetica-Bold").fontSize(12).text(`TRACCIATO N° ${tracciato}`, LM, y, { width: W, align: "center" });
-      y += 16;
-      doc.fontSize(10).text("DI AVVENUTA FORMAZIONE IN ELEARNING", LM, y, { width: W, align: "center" });
-      y += 20;
-      doc.font("Helvetica").fontSize(7.5)
-        .text("L'infrastruttura tecnologica TUTOR81 LMS in conformità all'Accordo tra Stato e Regioni del 7 luglio 2016 certifica il completamento del corso in e-learning da parte di:", LM, y, { width: W });
-      y += 25;
+      // Determine trainer
+      const trainer = tutor?.authorizedTrainer || enteName;
 
-      // Identity table
-      const tableData = [
-        ["Nominativo", studentName],
-        ["Codice fiscale", fiscalCode],
-        ["In qualità di", "LAVORATORE"],
-        ["Organizzatore del corso", companyName.toUpperCase()],
-        ["Soggetto formatore\nautorizzato", tutorAddress || tutorName],
-      ];
-      const col1W = 150;
-      const col2W = W - col1W;
-      for (const [label, val] of tableData) {
-        const h = Math.max(18, doc.heightOfString(val, { width: col2W - 8, fontSize: 8 }) + 8);
-        drawTableRow(y, [
-          { x: LM, w: col1W, text: label },
-          { x: LM + col1W, w: col2W, text: val },
-        ], h);
-        y += h;
+      // Dates
+      const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("it-IT") : "";
+      const startDate = fmtDate(enrollment.startDate);
+      const endDate = fmtDate(enrollment.completedAt || enrollment.endDate);
+      const printDate = new Date().toLocaleDateString("it-IT");
+
+      // Course fields from CMS (Italian column names)
+      const courseTitle = crs.title || "";
+      const courseLawRef = crs.riferimento_normativo || crs.law_reference || "";
+      const courseValidity = crs.validita || crs.course_validity || "";
+      const courseDesc = crs.description || "";
+      const courseTotalElearning = crs.durata_minima_elearning || crs.total_elearning || crs.durata_totale || "";
+      const courseMaxExec = crs.tempo_massimo_conclusione || crs.max_execution_time || "";
+      const courseProfessors = crs.relatori_docenti || crs.course_professors || "";
+      const courseRequirements = crs.requisiti || crs.requirements || crs.prerequisites || "";
+      const courseChecking = crs.profili_competenze || crs.checking || "";
+      const coursePercentage = crs.soglia_superamento || crs.percentage_correct_answer_to_pass || crs.percentage_to_pass || "80";
+      const courseDidactics = crs.verifica_apprendimento || crs.didactics || "";
+      const courseTargetAudience = crs.rivolto_a || crs.target_audience || "";
+      const courseProgram = crs.programma_corso || crs.course_program || crs.course_contents || "";
+
+      // Is DL81 course?
+      const cat = (crs.sottocategoria || crs.subcategory || crs.categoria || "").toUpperCase();
+      const isDL81 = courseLawRef.includes("81") || cat.includes("LAVORATOR") || cat.includes("PREPOSTO") || cat.includes("DIRIGENT") || cat.includes("RLS") || cat.includes("DATORE");
+
+      // Build program with LO list
+      let programHtml = courseProgram ? courseProgram.replace(/\n/g, "<br/>") : "";
+      if (loList.length > 0) {
+        programHtml += "<br/>";
+        for (const lo of loList) {
+          programHtml += `° (${lo.id}) ${lo.title} (${lo.duration} min)<br/>`;
+        }
       }
 
-      y += 25;
-      doc.font("Helvetica-Bold").fontSize(12).text("Scheda progettuale del corso in e-learning", LM, y, { width: W, align: "center" });
-      y += 25;
-
-      const fields1: [string, string][] = [
-        ["Titolo del corso:", courseTitle],
-        ["Rivolto a:", ""],
-        ["Riferimento normativo:", "Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025"],
-        ["Validità corso:", "Quinquennale"],
-        ["Descrizione del corso:", courseDesc],
-        [`Durata del corso in e-\nlearning:`, `${courseHours}`],
-        [`Tempo massimo per la\nconclusione:`, `${maxExecutionDays}`],
-        ["Relatori e Docenti:", 'I relatori/docenti che hanno contribuito alla redazione dei contenuti di ciascuna unità didattica sono in possesso dei requisiti previsti dal decreto interministeriale del 6 marzo 2013 "Criteri di qualificazione della figura del formatore per la salute e sicurezza nei luoghi di lavoro".'],
-        ["Requisiti minimi per\naccedere al corso:", course.prerequisites || "conclusione del corso di formazione generale"],
-      ];
-      for (const [label, val] of fields1) {
-        const h = fieldRow(label, val, y, 130);
-        y += h;
-        if (y > 730) { footer(1); doc.addPage(); header(2); y = 55; }
-      }
-      footer(1);
-
-      // =====================================================
-      // PAGE 2: VERIFICA + PIATTAFORMA + PROGRAMMA
-      // =====================================================
-      doc.addPage();
-      header(2);
-      y = 55;
-
-      doc.font("Helvetica-Bold").fontSize(9).text("Verifica di apprendimento:", LM, y, { width: 140 });
-      const verificaText = `La verifica di apprendimento principale privilegiata nell'ambiente Tutor81 è la verifica in in itinere. Si tratta di test a tempo trasmessi frequentemente e con lo scopo non solo di controllare la presenza del partecipante ma di stimolarne l'attenzione. Il corsista riceve immediato riscontro alla risposta rilasciata. Ogni quesito viene tracciato dal sistema e riportato nell'attestato finale. I test sono trasmessi in modalità random, ciò significa che per la stessa domanda esistono varie alternative. In caso il risultato finale dei test, sia inferiore alla soglia minima prevista dei test corretti, l'attestato non viene generato dal sistema. Il soggetto formatore valuterà la modalità che riterrà più idonee per approfondire gli errori e rivalutarne l'apprendimento.`;
-      doc.font("Helvetica").fontSize(8).text(verificaText, LM + 145, y, { width: W - 145 });
-      y += doc.heightOfString(verificaText, { width: W - 145, fontSize: 8 }) + 15;
-
-      y += fieldRow("Soglia minima per il\nsuperamento del corso:", `${percentageToPass} %`, y, 140);
-      y += 5;
-
-      const piattaformaText = `TUTOR81 LMS è una piattaforma LMS con sistema di tracciamento proprietario, conforme alla normativa attualmente in vigore (Accordo Stato Regioni 7 luglio 2016) in tema di formazione e-learning riguardante la tutela della sicurezza e della salute dei lavoratori. Ogni corso con Tutor81 è monitorato rispettando i requisiti previsti dall'Allegato 2 Accordo Stato Regioni 07.07.2016 al termine di ogni corso è quindi possibile certificare e documentare quanto segue: • Lo svolgimento e il completamento delle attività didattiche di ciascun utente • Le modalità e il superamento delle valutazioni di apprendimento • La partecipazione attiva del discente; • La tracciabilità di ogni attività svolta durante il collegamento al sistema e la durata; • La tracciabilità dell'utilizzo anche delle singole unità didattiche. la regolarità e la progressività di utilizzo del sistema da parte dell'utente;`;
-      y += fieldRow("Caratteristiche tecniche\ndella piattaforma:", piattaformaText, y, 140);
-      y += 10;
-
-      doc.font("Helvetica-Bold").fontSize(9).text("Programma del corso:", LM, y, { width: 140 });
-      doc.font("Helvetica").fontSize(8).text(course.description || "", LM + 145, y, { width: W - 145 });
-      y += doc.heightOfString(course.description || " ", { width: W - 145, fontSize: 8 }) + 10;
-
-      for (const item of programmaItems) {
-        if (y > 730) { footer(2); doc.addPage(); header(2); y = 55; }
-        doc.font("Helvetica").fontSize(7.5).text(`°  ${item}`, LM + 160, y, { width: W - 170 });
-        y += 12;
-      }
-      footer(2);
-
-      // =====================================================
-      // PAGE 3: TRACCIAMENTO DEL PERCORSO FORMATIVO
-      // =====================================================
-      doc.addPage();
-      header(3);
-      y = 55;
-      doc.font("Helvetica-Bold").fontSize(14).text("Tracciamento del percorso formativo", LM, y, { width: W, align: "center" });
-      y += 30;
-
-      // Table header
-      const tc1 = 130, tc2 = 250, tc3 = W - tc1 - tc2;
-      drawTableRow(y, [
-        { x: LM, w: tc1, text: "Collegamento", bold: true },
-        { x: LM + tc1, w: tc2, text: "Materiale didattico svolto", bold: true },
-        { x: LM + tc1 + tc2, w: tc3, text: "Termine", bold: true },
-      ], 16);
-      y += 16;
-
-      // Map progress to LO names
+      // Build events
+      const events: AttData["events"] = [];
       for (const lo of loList) {
         const prog = progressRows.find(p => p.learningObjectId === lo.id);
         if (!prog || !prog.completed) continue;
         const completedDate = prog.completedAt ? new Date(prog.completedAt) : null;
         const startTime = completedDate ? new Date(completedDate.getTime() - (prog.watchedSeconds || 0) * 1000) : null;
-        const collegamento = startTime ? startTime.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
-        const termine = completedDate ? completedDate.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
-
-        if (y > 730) { doc.addPage(); header(3); y = 55; }
-        const rh = Math.max(14, doc.heightOfString(lo.title, { width: tc2 - 8, fontSize: 7.5 }) + 6);
-        doc.font("Helvetica").fontSize(7.5);
-        doc.rect(LM, y, tc1, rh).stroke("#000");
-        doc.text(collegamento, LM + 4, y + 3, { width: tc1 - 8 });
-        doc.rect(LM + tc1, y, tc2, rh).stroke("#000");
-        doc.text(lo.title, LM + tc1 + 4, y + 3, { width: tc2 - 8 });
-        doc.rect(LM + tc1 + tc2, y, tc3, rh).stroke("#000");
-        doc.text(termine, LM + tc1 + tc2 + 4, y + 3, { width: tc3 - 8 });
-        y += rh;
+        const fmtDT = (d: Date | null) => d ? d.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
+        events.push({ start: fmtDT(startTime), title: lo.title, end: fmtDT(completedDate) });
       }
-      footer(3);
 
-      // =====================================================
-      // PAGE 4: VALUTAZIONE DELL'APPRENDIMENTO
-      // =====================================================
-      doc.addPage();
-      header(4);
-      y = 55;
-      doc.font("Helvetica-Bold").fontSize(14).text("Valutazione dell'apprendimento", LM, y, { width: W, align: "center" });
-      y += 30;
-
-      const qc1 = 100, qc2 = 170, qc3 = 140, qc4 = W - qc1 - qc2 - qc3;
-      drawTableRow(y, [
-        { x: LM, w: qc1, text: "Data/ora", bold: true },
-        { x: LM + qc1, w: qc2, text: "Quesito", bold: true },
-        { x: LM + qc1 + qc2, w: qc3, text: "Risposta corsista", bold: true },
-        { x: LM + qc1 + qc2 + qc3, w: qc4, text: "Valutazione", bold: true },
-      ], 16);
-      y += 16;
-
+      // Build questions
+      const questions: AttData["questions"] = [];
       for (const q of quizRows) {
-        if (y > 700) { doc.addPage(); header(4); y = 55; }
         const dateStr = q.createdAt ? new Date(q.createdAt).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
-        const answerText = q.answerId ? (answerTexts[q.answerId] || "") : "";
-        const valutation = q.isCorrect ? "CORRETTA" : "SBAGLIATA";
-        const valColor = q.isCorrect ? "#16a34a" : "#dc2626";
-
-        const rh = Math.max(16, doc.heightOfString(q.questionText || "", { width: qc2 - 8, fontSize: 7 }) + 6);
-        doc.font("Helvetica").fontSize(7);
-        doc.rect(LM, y, qc1, rh).stroke("#000");
-        doc.text(dateStr, LM + 3, y + 3, { width: qc1 - 6 });
-        doc.rect(LM + qc1, y, qc2, rh).stroke("#000");
-        doc.text(q.questionText || "", LM + qc1 + 3, y + 3, { width: qc2 - 6 });
-        doc.rect(LM + qc1 + qc2, y, qc3, rh).stroke("#000");
-        doc.text(answerText, LM + qc1 + qc2 + 3, y + 3, { width: qc3 - 6 });
-        doc.rect(LM + qc1 + qc2 + qc3, y, qc4, rh).stroke("#000");
-        doc.font("Helvetica-Bold").fillColor(valColor).text(valutation, LM + qc1 + qc2 + qc3 + 3, y + 3, { width: qc4 - 6 });
-        doc.fillColor("#000");
-        y += rh;
+        const ansText = q.answerId ? (answerTexts[q.answerId] || "") : "";
+        questions.push({
+          dateTime: dateStr,
+          text: q.questionText || "",
+          answer: ansText,
+          isCorrect: q.isCorrect ?? false,
+          hasAnswer: !!q.answerId,
+        });
       }
 
-      y += 25;
-      doc.font("Helvetica-Bold").fontSize(9).text(`Data: ${endDate}`, LM, y);
-      y += 20;
-      doc.rect(LM + 50, y, 250, 50).lineWidth(0.5).stroke("#000");
-      doc.font("Helvetica-Bold").fontSize(9).text("Firma del corsista", LM + 55, y + 5, { width: 240, align: "center" });
-      footer(4);
+      // Logo files - tutor81LogoFile depends on certificate type
+      // certificateType: 1 = logo azienda + Prometeo, 2 = solo azienda, 3 = Prometeo + firma
+      const certType = tutor?.certificateType ?? 1;
+      let tutorLogoFile = "2"; // Prometeo logo (header left)
+      let tutor81LogoFile = tutor?.logoUrl ? tutor.logoUrl.replace(/\.(png|jpg|jpeg)$/i, "") : "";
+      let enteLogoFile = "1333"; // Prometeo ente logo
+      let firmaEnteFile = "firma.1333";
+      let firmaTutorFile = "";
 
-      // =====================================================
-      // PAGE 5: ATTESTATO DI FREQUENZA
-      // =====================================================
-      doc.addPage();
-      y = 60;
-
-      // Logo top right
-      doc.fontSize(12).font("Helvetica-Bold").fillColor("#888")
-        .text("tutor", LM + W - 60, 20, { continued: true }).fillColor("#000").text("81");
-
-      doc.font("Helvetica-Bold").fontSize(16).text("ATTESTATO DI FREQUENZA", LM, y, { width: W, align: "center" });
-      y += 22;
-      doc.fontSize(11).text(`corso e-learning N° ${certNumber}`, LM, y, { width: W, align: "center" });
-      y += 16;
-      doc.font("Helvetica").fontSize(8)
-        .text("(ai sensi dell'art. 37 del decreto legislativo 9 aprile 2008 n. 81)", LM, y, { width: W, align: "center" });
-      y += 12;
-      doc.text("Il documento è valido su tutto il territorio nazionale", LM, y, { width: W, align: "center" });
-      y += 25;
-
-      // Horizontal line
-      doc.moveTo(LM, y).lineTo(LM + W, y).lineWidth(0.5).stroke("#000");
-      y += 15;
-
-      doc.font("Helvetica").fontSize(9).text("si attesta che:", LM, y);
-      doc.font("Helvetica-Bold").fontSize(11).text(studentName, LM + 130, y);
-      y += 16;
-      doc.font("Helvetica").fontSize(9).text("Codice fiscale:", LM, y);
-      doc.font("Helvetica-Bold").fontSize(11).text(fiscalCode, LM + 130, y);
-      y += 25;
-
-      doc.font("Helvetica").fontSize(9)
-        .text("ha superato il corso di formazione e ha superato la prova finale di apprendimento del corso:", LM, y, { width: W, align: "center" });
-      y += 25;
-
-      // Course title bar
-      doc.rect(LM, y, W, 28).fill("#e5e7eb");
-      doc.font("Helvetica-Bold").fontSize(10).fillColor("#000")
-        .text(courseTitle.toUpperCase(), LM + 10, y + 8, { width: W - 20, align: "center" });
-      y += 40;
-
-      // Details
-      const detailFields: [string, string][] = [
-        ["Percent. test validazione corso:", `${percentageToPass}%`],
-        ["Riferimento normativo:", "Decreto 81 art. 37 - Accordo Stato-Regioni del 17/04/2025"],
-        ["Durata del corso in elearning:", `${courseHours} ore`],
-        ["Periodo di svolgimento:", `dal ${startDate} a ${endDate}`],
-        ["Organizzato da:", tutorName.toUpperCase()],
-        ["Settore Ateco:", (tutor as any)?.atecoCode || ""],
-      ];
-      for (const [label, val] of detailFields) {
-        doc.font("Helvetica").fontSize(8).text(label, LM, y);
-        doc.font("Helvetica-Bold").fontSize(8).text(val, LM + 160, y);
-        y += 13;
+      // If tutor has own logo uploaded, use it
+      if (tutor?.logoUrl) {
+        const logoName = tutor.logoUrl.replace(/\.(png|jpg|jpeg)$/i, "");
+        if (certType === 1) {
+          // Logo azienda + Logo Prometeo
+          tutorLogoFile = "2";
+          tutor81LogoFile = logoName;
+          enteLogoFile = "1333";
+          firmaEnteFile = "firma.1333";
+        } else if (certType === 2) {
+          // Solo logo azienda
+          tutorLogoFile = logoName;
+          tutor81LogoFile = logoName;
+          enteLogoFile = logoName;
+          firmaEnteFile = "";
+        } else if (certType === 3) {
+          // Prometeo + firma
+          tutorLogoFile = "2";
+          tutor81LogoFile = "1333";
+          enteLogoFile = "1333";
+          firmaEnteFile = "firma.1333";
+        }
       }
-      y += 15;
 
-      // Ente di formazione + Formatore
-      doc.moveTo(LM, y).lineTo(LM + W, y).lineWidth(0.3).stroke("#999");
-      y += 10;
+      const attData: AttData = {
+        certNumber: enrollmentId,
+        abrvCompany: (tutor?.businessName || "").substring(0, 10).toUpperCase(),
+        learnerName: `${(student.lastName || "").toUpperCase()} ${(student.firstName || "").toUpperCase()}`.trim(),
+        learnerTaxcode: (student.fiscalCode || "").toUpperCase(),
+        learnerBusinessFunction: "LAVORATORE",
+        companyName: (company?.businessName || "").toUpperCase(),
+        companyAteco: tutor?.atecoCode || "",
+        trainer,
+        courseTitle,
+        courseDescription: courseDesc,
+        courseTargetAudience,
+        courseLawReference: courseLawRef,
+        courseValidity,
+        courseTotalElearning,
+        courseMaxExecutionTime: courseMaxExec,
+        courseProfessors,
+        courseRequirements,
+        courseChecking,
+        coursePercentageToPass: String(coursePercentage),
+        courseDidactics,
+        courseProgram: programHtml,
+        enteName, enteAddress, enteCity, enteProvince, enteTelephone, enteEmail, enteRegionalAuth: enteRegAuth,
+        tvName, tvAddress, tvCity, tvProvince, tvTelephone, tvEmail,
+        startCourseDate: startDate,
+        endCourseDate: endDate,
+        printDate,
+        isDL81,
+        tutorLogoFile, tutor81LogoFile, enteLogoFile, firmaEnteFile, firmaTutorFile,
+        events,
+        questions,
+      };
 
-      doc.font("Helvetica").fontSize(8).text("Ente di formazione accreditato", LM, y, { width: W / 2, underline: true, align: "center" });
-      doc.text("Formatore", LM + W / 2, y, { width: W / 2, underline: true, align: "center" });
-      y += 15;
+      const pdfBuffer = await generateAttestatoPdf(attData);
 
-      doc.font("Helvetica-Bold").fontSize(8).text(tutorName.toUpperCase(), LM, y, { width: W / 2 });
-      doc.font("Helvetica").fontSize(8).text("il responsabile del soggetto", LM + W / 2 + 30, y, { width: W / 2 - 30, align: "center" });
-      y += 11;
-      if (tutorAddress) doc.font("Helvetica").fontSize(7.5).text(tutorAddress, LM, y, { width: W / 2 });
-      doc.text("formatore", LM + W / 2 + 30, y, { width: W / 2 - 30, align: "center" });
-      y += 50;
-
-      // Footer legal text
-      doc.moveTo(LM, y).lineTo(LM + W, y).lineWidth(0.3).stroke("#999");
-      y += 8;
-      doc.font("Helvetica").fontSize(7)
-        .text("L'attestato rilasciato ai sensi dell'Accordo del 17 aprile 2025 sancito in conferenza permanente per i rapporti tra lo Stato, le Regioni e le Province Autonome di Trento e Bolzano è valido su tutto il territorio nazionale", LM, y, { width: W, align: "center" });
-
-      doc.end();
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="attestato_${enrollmentId}.pdf"`);
+      res.setHeader("Content-Length", pdfBuffer.length);
+      res.end(pdfBuffer);
     } catch (error) {
       console.error("PDF generation error:", error);
       res.status(500).json({ error: "Failed to generate PDF" });

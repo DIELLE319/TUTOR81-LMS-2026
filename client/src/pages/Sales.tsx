@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -28,14 +28,16 @@ export default function Sales() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
-  const { data: sales = [], isLoading: loadingSales } = useQuery<Sale[]>({
+  const { data: sales = [], isLoading: loadingSales, error: salesError } = useQuery<Sale[]>({
     queryKey: ["sales"],
-    queryFn: () => fetch("/api/sales", { credentials: "include" }).then((r) => r.json()),
+    queryFn: async () => { const r = await fetch("/api/sales", { credentials: "include" }); if (!r.ok) throw new Error(`Errore ${r.status}`); const d = await r.json(); return Array.isArray(d) ? d : []; },
+    retry: 1,
   });
 
   const { data: enrollments = [], isLoading: loadingEnr } = useQuery<Enrollment[]>({
     queryKey: ["enrollments"],
-    queryFn: () => fetch("/api/enrollments", { credentials: "include" }).then((r) => r.json()),
+    queryFn: async () => { const r = await fetch("/api/enrollments", { credentials: "include" }); if (!r.ok) throw new Error(`Errore ${r.status}`); const d = await r.json(); return Array.isArray(d) ? d : []; },
+    retry: 1,
   });
 
   const deleteMut = useMutation({
@@ -45,31 +47,32 @@ export default function Sales() {
   });
 
   const isLoading = loadingSales || loadingEnr;
+  const safeSales = Array.isArray(sales) ? sales : [];
+  const safeEnrollments = Array.isArray(enrollments) ? enrollments : [];
 
   const enrollmentsBySale = useMemo(() => {
     const map: Record<number, Enrollment[]> = {};
-    for (const s of sales) {
-      const matched = enrollments.filter((e) =>
+    for (const s of safeSales) {
+      const matched = safeEnrollments.filter((e) =>
         e.courseName === s.courseTitle && e.companyName === (s.companyName || "")
       );
       if (matched.length > 0) map[s.id] = matched;
     }
     return map;
-  }, [sales, enrollments]);
+  }, [safeSales, safeEnrollments]);
 
   const enti = useMemo(() => {
-    const set = new Set(sales.map((s) => s.tutorName).filter(Boolean) as string[]);
+    const set = new Set(safeSales.map((s) => s.tutorName).filter(Boolean) as string[]);
     return Array.from(set).sort();
-  }, [sales]);
+  }, [safeSales]);
 
   const aziende = useMemo(() => {
-    const set = new Set(sales.map((s) => s.companyName).filter(Boolean) as string[]);
+    const set = new Set(safeSales.map((s) => s.companyName).filter(Boolean) as string[]);
     return Array.from(set).sort();
-  }, [sales]);
+  }, [safeSales]);
 
   const filtered = useMemo(() => {
-    setPage(1);
-    return sales.filter((s) => {
+    return safeSales.filter((s) => {
       if (enteFilter !== "all" && s.tutorName !== enteFilter) return false;
       if (aziendaFilter !== "all" && s.companyName !== aziendaFilter) return false;
       if (search) {
@@ -83,7 +86,9 @@ export default function Sales() {
       }
       return true;
     });
-  }, [sales, search, enteFilter, aziendaFilter, enrollmentsBySale]);
+  }, [safeSales, search, enteFilter, aziendaFilter, enrollmentsBySale]);
+
+  useEffect(() => { setPage(1); }, [search, enteFilter, aziendaFilter]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -157,7 +162,7 @@ export default function Sales() {
         </div>
       </div>
 
-      {isLoading ? <div className="text-center py-12 text-gray-500">Caricamento...</div> : filtered.length === 0 ? <div className="text-center py-12 text-gray-500 bg-[#141414] rounded-b-xl border border-white/5 border-t-0">Nessun corso venduto</div> : (
+      {salesError ? <div className="text-center py-12 text-red-400 bg-[#141414] rounded-b-xl border border-white/5 border-t-0">Errore: {(salesError as Error).message}</div> : isLoading ? <div className="text-center py-12 text-gray-500 bg-[#141414] rounded-b-xl border border-white/5 border-t-0">Caricamento...</div> : filtered.length === 0 ? <div className="text-center py-12 text-gray-500 bg-[#141414] rounded-b-xl border border-white/5 border-t-0">Nessun corso venduto</div> : (
         <>
           <div className="bg-[#141414] rounded-b-xl border border-white/5 border-t-0 overflow-x-auto">
             <table className="w-full text-sm">
@@ -178,8 +183,8 @@ export default function Sales() {
                   const enrs = enrollmentsBySale[s.id] || [];
                   const isExp = expanded.includes(s.id);
                   return (
-                    <> 
-                      <tr key={s.id} className={`border-b border-white/5 cursor-pointer ${i % 2 === 0 ? "bg-[#141414]" : "bg-[#1a1a1a]"} hover:bg-white/[0.03]`}
+                    <Fragment key={s.id}>
+                      <tr className={`border-b border-white/5 cursor-pointer ${i % 2 === 0 ? "bg-[#141414]" : "bg-[#1a1a1a]"} hover:bg-white/[0.03]`}
                         onClick={() => enrs.length > 0 && toggleExpand(s.id)}>
                         <td className="p-2.5 text-center">
                           {enrs.length > 0 ? (
@@ -192,8 +197,10 @@ export default function Sales() {
                           <br/>
                           <span className="text-gray-600 text-[10px]">{s.creationDate ? new Date(s.creationDate).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
                         </td>
-                        <td className="p-2.5 text-gray-200 text-xs font-medium">{s.tutorName || "—"}</td>
-                        <td className="p-2.5 text-gray-300 text-xs">{s.companyName || "—"}</td>
+                        <td className="p-2.5">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">{s.tutorName || "—"}</span>
+                        </td>
+                        <td className="p-2.5 text-gray-300 text-xs font-medium">{s.companyName || "—"}</td>
                         <td className="p-2.5">
                           <div className="text-gray-100 text-xs font-medium">{s.courseTitle || "—"}</div>
                           {enrs.length > 0 && (
@@ -254,7 +261,7 @@ export default function Sales() {
                           </td>
                         </tr>
                       ))}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

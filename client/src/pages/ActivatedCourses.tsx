@@ -88,31 +88,31 @@ export default function ActivatedCourses() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="bg-[#1a1a1a] rounded-t-xl border border-white/5 px-4 py-3 flex flex-wrap items-center gap-3">
+      {/* Yellow toolbar */}
+      <div className="bg-yellow-500 rounded-t-xl px-4 py-2.5 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Show</span>
+          <span className="text-xs font-medium text-black">Show</span>
           <select value={pageSize} onChange={(e) => { setPageSize(parseInt(e.target.value)); setPage(1); }}
-            className="h-7 px-2 bg-white/5 border border-white/10 rounded text-xs text-gray-300">
+            className="h-7 px-2 border border-yellow-600 rounded text-xs bg-white text-gray-900">
             <option value={25}>25</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
           </select>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Cerca utente:</span>
+          <span className="text-xs font-medium text-black">Cerca:</span>
           <div className="relative">
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nome, cognome, email..."
-              className="h-7 w-48 px-2.5 pr-7 bg-white/5 border border-white/10 rounded text-xs text-gray-200 placeholder-gray-600" />
-            <Search size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500" />
+              className="h-7 w-48 px-2.5 pr-7 border border-yellow-600 rounded text-xs bg-white text-gray-900 placeholder-gray-400" />
+            <Search size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
         <select value={aziendaFilter} onChange={(e) => setAziendaFilter(e.target.value)}
-          className="h-7 px-2 bg-white/5 border border-white/10 rounded text-xs text-gray-300 max-w-[200px]">
+          className="h-7 px-2 border border-yellow-600 rounded text-xs bg-white text-gray-900 max-w-[200px]">
           <option value="all">--- Tutte le Aziende ---</option>
           {aziende.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
-        <span className="ml-auto text-xs text-gray-500">Mostrando {filtered.length} risultati</span>
+        <span className="ml-auto text-sm font-bold text-black">Totale: {filtered.length} corsi | In corso: {inCorso} | Non avviati: {nonAvviati}</span>
       </div>
 
       {isLoading ? (
@@ -142,11 +142,13 @@ export default function ActivatedCourses() {
               </thead>
               <tbody>
                 {paged.map((e, i) => (
-                  <tr key={e.id} className={`border-b border-white/5 ${i % 2 === 0 ? "bg-[#141414]" : "bg-[#1a1a1a]"}`}>
+                  <tr key={e.id} className={`border-b border-white/5 hover:bg-white/[0.03] ${i % 2 === 0 ? "bg-[#141414]" : "bg-[#1a1a1a]"}`}>
                     <td className="p-2"><input type="checkbox" checked={selected.includes(e.id)} onChange={() => toggleSelect(e.id)} /></td>
                     <td className="p-2 text-yellow-500 font-bold text-xs">{e.id}</td>
                     <td className="p-2 text-cyan-400 font-mono text-xs" title="Codice per player-login">{e.licenseCode || "—"}</td>
-                    <td className="p-2 text-gray-400 text-xs">{e.tutorName || "—"}</td>
+                    <td className="p-2">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">{e.tutorName || "—"}</span>
+                    </td>
                     <td className="p-2 text-gray-400 text-xs">{e.createdAt ? new Date(e.createdAt).toLocaleDateString("it-IT") : e.startDate ? new Date(e.startDate).toLocaleDateString("it-IT") : "—"}</td>
                     <td className="p-2 text-gray-300 text-xs">{e.companyName}</td>
                     <td className="p-2 text-gray-200 text-xs font-medium">{e.userName}</td>

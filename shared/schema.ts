@@ -35,6 +35,7 @@ export const tutors = pgTable("tutors", {
   subscriptionStart: date("subscription_start"),
   subscriptionEnd: date("subscription_end"),
   annualFee: integer("annual_fee").default(0),
+  certificateType: integer("certificate_type").default(1),
   ecommerce: boolean("ecommerce").default(false),
   logoUrl: text("logo_url"),
   notes: text("notes"),
@@ -507,6 +508,25 @@ export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({ id:
 export const insertCertificateSchema = createInsertSchema(certificates).omit({ id: true, issuedAt: true });
 export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({ id: true, createdAt: true });
 
+// ============================================================
+// TABELLA: VIDEO ROOMS (Videoconferenza Jitsi)
+// ============================================================
+export const videoRooms = pgTable("video_rooms", {
+  id: serial("id").primaryKey(),
+  tutorId: integer("tutor_id").references(() => tutors.id),
+  createdBy: integer("created_by"), // admin_users.id
+  roomName: text("room_name").notNull(),
+  jitsiRoomId: text("jitsi_room_id").notNull(), // unique slug for Jitsi
+  description: text("description"),
+  scheduledAt: timestamp("scheduled_at"),
+  duration: integer("duration").default(60), // minutes
+  participantEmails: text("participant_emails"), // comma-separated
+  status: text("status").default("scheduled"), // scheduled, active, ended
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertVideoRoomSchema = createInsertSchema(videoRooms).omit({ id: true, createdAt: true });
+
 export type Tutor = typeof tutors.$inferSelect;
 export type InsertTutor = z.infer<typeof insertTutorSchema>;
 
@@ -536,3 +556,6 @@ export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
 
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+
+export type VideoRoom = typeof videoRooms.$inferSelect;
+export type InsertVideoRoom = z.infer<typeof insertVideoRoomSchema>;

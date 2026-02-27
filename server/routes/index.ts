@@ -7,6 +7,7 @@ import { registerEnrollmentsRoutes } from "./enrollments";
 import { registerCertificatesRoutes } from "./certificates";
 import { registerInvoicesRoutes } from "./invoices";
 import { registerPlayerRoutes } from "./player";
+import { registerVideoRoomsRoutes } from "./videoRooms";
 
 export function registerAllRoutes(app: Express) {
   registerTutorsRoutes(app);
@@ -17,4 +18,5 @@ export function registerAllRoutes(app: Express) {
   registerCertificatesRoutes(app);
   registerInvoicesRoutes(app);
   registerPlayerRoutes(app);
+  registerVideoRoomsRoutes(app);
 }

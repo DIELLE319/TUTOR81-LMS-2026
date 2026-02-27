@@ -41,15 +41,43 @@ export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
 
+  // Super Admin login (email + password)
   app.post("/api/admin-login", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, mode } = req.body;
+      console.log("[LOGIN]", new Date().toISOString(), { username, mode, ip: req.ip });
+
+      // ===== SUPER ADMIN (email + password) =====
+      const isEmailLogin = mode === "superadmin" || (username || "").includes("@");
+      if (isEmailLogin) {
+        const email = (username || "").trim().toLowerCase();
+        const pwd = (password || "").trim();
+        if (!email || !pwd) return res.status(400).json({ error: "Email e password sono obbligatori." });
+
+        const pwHash = hashPassword(pwd);
+        const result = await db.execute(sql`SELECT * FROM users WHERE LOWER(email) = ${email} AND password_hash = ${pwHash} AND role >= 1000 LIMIT 1`);
+        const rows = Array.isArray(result) ? result : (result?.rows || []);
+        if (rows.length === 0) return res.status(401).json({ error: "Credenziali non valide." });
+
+        const user = rows[0] as any;
+        const userId = user.id;
+
+        (req.session as any).passport = {
+          user: {
+            claims: { sub: userId, email: user.email, first_name: user.first_name || "Super", last_name: user.last_name || "Admin", profile_image_url: user.profile_image_url },
+            expires_at: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
+          },
+        };
+        userCache.delete(userId);
+        console.log("[LOGIN] Super Admin Success:", email);
+        return res.json({ ok: true });
+      }
+
+      // ===== TUTOR ADMIN (username + codice fiscale) =====
       const uname = (username || "").trim().toLowerCase();
       const cf = (password || "").trim().toUpperCase();
-      console.log("[LOGIN]", new Date().toISOString(), { username: uname, ip: req.ip });
       if (!uname || !cf) return res.status(400).json({ error: "Nome utente e codice fiscale sono obbligatori." });
 
-      // Look up in tutor_admins by username + fiscal code
       const [admin] = await db.select().from(schema.tutorAdmins)
         .where(eq(schema.tutorAdmins.username, uname));
       if (!admin) return res.status(401).json({ error: "Utente non trovato. Verifica il nome utente." });
@@ -57,17 +85,15 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ error: "Codice fiscale non corretto." });
       }
 
-      // Find or create user record
       const userId = `tutor-admin-${admin.id}`;
       const nameParts = admin.name.split(" ");
       const firstName = nameParts[0] || "Admin";
       const lastName = nameParts.slice(1).join(" ") || "";
       await authStorage.upsertUser({ id: userId, email: admin.email || `${uname}@tutor81.local`, firstName, lastName, role: 100 });
 
-      // Ensure admin_users row exists with correct tutor_id
       const existing = await db.execute(sql`SELECT id FROM admin_users WHERE replit_user_id = ${userId}`);
-      const rows = Array.isArray(existing) ? existing : (existing?.rows || []);
-      if (rows.length === 0) {
+      const existingRows = Array.isArray(existing) ? existing : (existing?.rows || []);
+      if (existingRows.length === 0) {
         await db.execute(sql`INSERT INTO admin_users (replit_user_id, email, role, tutor_id, is_active) VALUES (${userId}, ${admin.email || ''}, 'tutor_admin', ${admin.tutorId}, true)`);
       } else {
         await db.execute(sql`UPDATE admin_users SET tutor_id = ${admin.tutorId} WHERE replit_user_id = ${userId}`);
@@ -80,7 +106,7 @@ export async function setupAuth(app: Express) {
         },
       };
       userCache.delete(userId);
-      console.log("[LOGIN] Success:", uname, "tutorId:", admin.tutorId);
+      console.log("[LOGIN] Tutor Admin Success:", uname, "tutorId:", admin.tutorId);
       res.json({ ok: true });
     } catch (error) {
       console.error("[LOGIN] Error:", error);
@@ -91,7 +117,7 @@ export async function setupAuth(app: Express) {
   app.get("/api/login", (_req, res) => {
     res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Login — Tutor81 LMS</title>
+<title>PIATTAFORMA LMS 2026</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#030712;font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;overflow:hidden;position:relative}
@@ -100,34 +126,67 @@ body::after{content:'';position:absolute;bottom:-40%;left:-20%;width:60vw;height
 .wrap{position:relative;z-index:1;width:min(420px,calc(100vw - 32px))}
 .card{background:linear-gradient(145deg,#111827,#1e293b);border-radius:24px;padding:40px;box-shadow:0 25px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.05);backdrop-filter:blur(20px)}
 .logo{width:56px;height:56px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#0f172a;margin:0 auto 16px;box-shadow:0 8px 30px rgba(251,191,36,.3)}
-h1{font-size:20px;text-align:center;color:#fff;font-weight:700;letter-spacing:.5px}
-.sub{text-align:center;color:#64748b;font-size:12px;margin-top:4px;margin-bottom:28px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
-label{display:block;font-size:12px;margin-bottom:6px;color:#94a3b8;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
-input{width:100%;padding:12px 14px;border:2px solid #1e293b;border-radius:12px;background:#0f172a;color:#f1f5f9;font-size:15px;margin-bottom:18px;outline:none;transition:border-color .2s,box-shadow .2s}
+h1{font-size:42px;text-align:center;color:#fbbf24;font-weight:900;letter-spacing:4px;line-height:1.1}
+.sub{text-align:center;color:#64748b;font-size:12px;margin-top:8px;margin-bottom:24px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
+.tabs{display:flex;gap:4px;margin-bottom:24px;background:#0f172a;border-radius:10px;padding:4px}
+.tab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;transition:all .2s;color:#64748b;border:none;background:transparent}
+.tab.active{background:#fbbf24;color:#0f172a}
+.tab:hover:not(.active){color:#e2e8f0}
+label{display:block;font-size:11px;margin-bottom:6px;color:#94a3b8;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+input{width:100%;padding:12px 14px;border:2px solid #1e293b;border-radius:12px;background:#0f172a;color:#f1f5f9;font-size:15px;margin-bottom:16px;outline:none;transition:border-color .2s,box-shadow .2s}
 input:focus{border-color:#fbbf24;box-shadow:0 0 0 3px rgba(251,191,36,.15)}
 input::placeholder{color:#475569}
-button{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f172a;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.5px;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 20px rgba(251,191,36,.3)}
-button:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(251,191,36,.4)}
-button:active{transform:translateY(0)}
+.submit{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f172a;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.5px;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 20px rgba(251,191,36,.3)}
+.submit:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(251,191,36,.4)}
+.submit:active{transform:translateY(0)}
 .error{background:rgba(127,29,29,.6);color:#fca5a5;padding:12px;border-radius:10px;margin-bottom:16px;font-size:13px;display:none;border:1px solid rgba(239,68,68,.2)}
 .footer{text-align:center;margin-top:24px;font-size:12px;color:#475569}
 .footer a{color:#fbbf24;text-decoration:none}
 .footer a:hover{text-decoration:underline}
+.panel{display:none}.panel.active{display:block}
 </style></head><body>
-<div class="wrap"><div class="card">
+<div class="wrap">
 <div class="logo">T</div>
-<h1>TUTOR 81</h1>
-<div class="sub">Piattaforma LMS</div>
+<h1>PIATTAFORMA LMS<br>TUTOR81 2026</h1>
+<div class="sub">Learning Management System</div>
+<div class="card">
+<div class="tabs">
+<button class="tab active" onclick="switchTab('ente')">Admin Ente</button>
+<button class="tab" onclick="switchTab('super')">Super Admin</button>
+</div>
 <div class="error" id="err"></div>
-<form id="f">
-<label>Nome Utente</label><input type="text" id="u" required autofocus placeholder="nome.cognome">
-<label>Codice Fiscale</label><input type="text" id="p" required placeholder="RSSMRA80A01H501U" style="text-transform:uppercase">
-<button type="submit">Accedi alla piattaforma</button>
+<form id="fEnte" class="panel active" onsubmit="doLogin(event,'ente')">
+<label>Nome Utente</label><input type="text" id="uEnte" required placeholder="nome.cognome">
+<label>Codice Fiscale</label><input type="text" id="pEnte" required placeholder="RSSMRA80A01H501U" style="text-transform:uppercase">
+<button type="submit" class="submit">Accedi come Admin Ente</button>
+</form>
+<form id="fSuper" class="panel" onsubmit="doLogin(event,'super')">
+<label>Email</label><input type="email" id="uSuper" required placeholder="admin@tutor81.com">
+<label>Password</label><input type="password" id="pSuper" required placeholder="Password">
+<button type="submit" class="submit">Accedi come Super Admin</button>
 </form>
 <div class="footer">Problemi di accesso? <a href="mailto:assistenza@tutor81.com">Contatta l'assistenza</a></div>
 </div></div>
 <script>
-document.getElementById('f').onsubmit=async e=>{e.preventDefault();const err=document.getElementById('err');const btn=e.target.querySelector('button');err.style.display='none';btn.textContent='Accesso in corso...';btn.disabled=true;try{const r=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('u').value,password:document.getElementById('p').value})});const d=await r.json();if(r.ok){window.location.href='/';}else{err.textContent=d.error||'Errore';err.style.display='block';btn.textContent='Accedi alla piattaforma';btn.disabled=false;}}catch(x){err.textContent='Errore di connessione';err.style.display='block';btn.textContent='Accedi alla piattaforma';btn.disabled=false;}};
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(function(el,i){el.classList.toggle('active',i===(t==='ente'?0:1));});
+  document.getElementById('fEnte').classList.toggle('active',t==='ente');
+  document.getElementById('fSuper').classList.toggle('active',t==='super');
+  document.getElementById('err').style.display='none';
+}
+async function doLogin(e,type){
+  e.preventDefault();var err=document.getElementById('err');var btn=e.target.querySelector('button');
+  err.style.display='none';var orig=btn.textContent;btn.textContent='Accesso in corso...';btn.disabled=true;
+  var u,p,mode;
+  if(type==='super'){u=document.getElementById('uSuper').value;p=document.getElementById('pSuper').value;mode='superadmin';}
+  else{u=document.getElementById('uEnte').value;p=document.getElementById('pEnte').value;mode='tutor_admin';}
+  try{
+    var r=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p,mode:mode})});
+    var d=await r.json();
+    if(r.ok){window.location.href='/';}
+    else{err.textContent=d.error||'Errore';err.style.display='block';btn.textContent=orig;btn.disabled=false;}
+  }catch(x){err.textContent='Errore di connessione';err.style.display='block';btn.textContent=orig;btn.disabled=false;}
+}
 </script></body></html>`);
   });
 

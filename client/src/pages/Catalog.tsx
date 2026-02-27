@@ -22,7 +22,7 @@ interface CourseRaw {
 interface CourseRow extends CourseRaw {
   parsedType: string;
   parsedRisk: string;
-  parsedHours: number | null;
+  parsedDuration: string;
   parsedModality: string;
 }
 
@@ -59,10 +59,10 @@ function parseRisk(title: string, riskLevel: string | null): string {
   return "N/D";
 }
 
-function parseHours(title: string, hours: number | null): number | null {
-  if (hours) return hours;
+function parseDuration(title: string, durata: string | null): string {
+  if (durata) return durata.replace(/\s+/g, " ").trim();
   const m = title.match(/(\d+)\s*ore/i);
-  return m ? parseInt(m[1], 10) : null;
+  return m ? `${m[1]} ore` : "";
 }
 
 function riskBadge(risk: string) {
@@ -100,7 +100,7 @@ export default function Catalog() {
       ...c,
       parsedType: c.tipo || parseType(c.title),
       parsedRisk: parseRisk(c.title, c.rischio_azienda || null),
-      parsedHours: parseHours(c.title, c.durata_totale ? parseInt(c.durata_totale) : null),
+      parsedDuration: parseDuration(c.title, c.durata_totale),
       parsedModality: "E-LEARNING",
     })),
     [rawCourses]
@@ -148,11 +148,11 @@ export default function Catalog() {
         <div className="bg-[#141414] rounded-xl border border-white/5 overflow-hidden">
           {/* Header */}
           <div className="border-b border-white/10">
-            <div className="grid grid-cols-[60px_60px_1fr_50px_90px_90px_70px] items-center px-3 py-2.5 gap-2 text-gray-400 text-[11px] font-semibold uppercase tracking-wide">
+            <div className="grid grid-cols-[60px_60px_1fr_70px_90px_90px_70px] items-center px-3 py-2.5 gap-2 text-gray-400 text-[11px] font-semibold uppercase tracking-wide">
               <span>Tipo</span>
               <span>Rischio</span>
               <span>Nome Corso</span>
-              <span>Ore</span>
+              <span>Durata</span>
               <span className="text-right">Listino €</span>
               <span className="text-right">Tuo Costo €</span>
               <span>Azione</span>
@@ -170,11 +170,11 @@ export default function Catalog() {
               </button>
 
               {expandedGroups.includes(groupName) && groupCourses.map((c) => (
-                <div key={c.id} className="grid grid-cols-[60px_60px_1fr_50px_90px_90px_70px] items-center px-3 py-2.5 gap-2 border-b border-white/5 hover:bg-white/[0.02] text-sm">
+                <div key={c.id} className="grid grid-cols-[60px_60px_1fr_70px_90px_90px_70px] items-center px-3 py-2.5 gap-2 border-b border-white/5 hover:bg-white/[0.02] text-sm">
                   <span><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${typeBadge(c.parsedType)}`}>{c.parsedType}</span></span>
                   <span><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${riskBadge(c.parsedRisk)}`}>{c.parsedRisk}</span></span>
                   <span className="text-gray-200 text-xs leading-tight pr-2">{c.title}</span>
-                  <span className="text-white font-bold text-center text-xs">{c.parsedHours || "—"}</span>
+                  <span className="text-white font-bold text-center text-xs">{c.parsedDuration || "—"}</span>
                   <span className="text-gray-400 text-xs text-right">{c.price && parseFloat(c.price) > 0 ? `${parseFloat(c.price).toFixed(2)} €` : "—"}</span>
                   <span className="text-green-400 font-bold text-xs text-right">{c.price && parseFloat(c.price) > 0 && discount > 0 ? `${(parseFloat(c.price) * (1 - discount / 100)).toFixed(2)} €` : "—"}</span>
                   <span>

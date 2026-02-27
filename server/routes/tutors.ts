@@ -136,6 +136,23 @@ export function registerTutorsRoutes(app: Express) {
     }
   });
 
+  app.patch("/api/tutor-admins/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, email, username, fiscalCode } = req.body;
+      const updates: any = {};
+      if (name !== undefined) updates.name = name;
+      if (email !== undefined) updates.email = email;
+      if (username !== undefined) updates.username = username;
+      if (fiscalCode !== undefined) updates.fiscalCode = fiscalCode;
+      if (Object.keys(updates).length === 0) return res.status(400).json({ error: "No fields to update" });
+      const [updated] = await db.update(schema.tutorAdmins).set(updates).where(eq(schema.tutorAdmins.id, id)).returning();
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update tutor admin" });
+    }
+  });
+
   app.delete("/api/tutor-admins/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -159,10 +176,6 @@ export function registerTutorsRoutes(app: Express) {
       res.status(500).json({ error: "Upload fallito" });
     }
   });
-
-  // Serve uploaded logos
-  const express = require("express");
-  app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 
   app.get("/api/stats", isAuthenticated, async (req, res) => {
     try {

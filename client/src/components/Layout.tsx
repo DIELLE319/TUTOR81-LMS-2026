@@ -27,9 +27,7 @@ const NAV_SECTIONS = [
   {
     title: "Corsi (LMS)",
     items: [
-      { href: "/courses-online", label: "Online", icon: BookOpen },
-      { href: "/courses-active", label: "Attivati", icon: GraduationCap },
-      { href: "/courses-completed", label: "Completati", icon: Award },
+      { href: "/activated-courses", label: "Corsi Attivati", icon: GraduationCap },
     ],
   },
   {
@@ -59,10 +57,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="px-4 py-4 border-b border-white/5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-yellow-500 rounded-lg flex items-center justify-center text-black font-black text-sm">T</div>
+              <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center text-black font-black text-base">T</div>
               <div>
-                <div className="font-bold text-yellow-500 text-sm tracking-wide">TUTOR 81 LMS</div>
-                <div className="text-[9px] text-gray-500 font-mono">v2.0.0-staging</div>
+                <div className="font-bold text-yellow-500 text-base tracking-wide">TUTOR 81 LMS</div>
+                <div className="text-[10px] text-gray-500 font-mono">v2.0.0-staging</div>
               </div>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-white"><X size={18} /></button>
@@ -72,15 +70,15 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* User info */}
         <div className="px-4 py-3 border-b border-white/5">
           {user?.tutorName && (
-            <div className="text-[10px] font-bold text-yellow-500 uppercase truncate mb-2">{user.tutorName}</div>
+            <div className="text-xs font-bold text-yellow-500 uppercase truncate mb-2">{user.tutorName}</div>
           )}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center text-xs font-bold text-yellow-500">
+            <div className="w-9 h-9 bg-yellow-500/20 rounded-full flex items-center justify-center text-sm font-bold text-yellow-500">
               {(user?.firstName?.[0] || "")}{(user?.lastName?.[0] || "")}
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-bold text-white truncate">{user?.firstName} {user?.lastName}</div>
-              <div className="text-[10px] text-gray-500 truncate">{user?.role === 1000 ? "Super Admin" : "Amministratore"}</div>
+              <div className="text-sm font-bold text-white truncate">{user?.firstName} {user?.lastName}</div>
+              <div className="text-xs text-gray-500 truncate">{user?.role === 1000 ? "Super Admin" : "Amministratore"}</div>
             </div>
           </div>
         </div>
@@ -90,25 +88,26 @@ export default function Layout({ children }: { children: ReactNode }) {
           {NAV_SECTIONS.map((section) => {
             const items = section.items.filter((item) => {
               if (item.href === "/tutors" && (user?.role ?? 0) < 1000) return false;
+              if (item.href === "/invoicing" && (user?.role ?? 0) < 1000) return false;
               if (item.href === "/clients" && user?.role === 2) return false;
               return true;
             });
             if (items.length === 0) return null;
             return (
               <div key={section.title}>
-                <div className="text-[9px] font-bold text-gray-600 uppercase tracking-widest px-3 mb-1">{section.title}</div>
+                <div className="text-[11px] font-bold text-gray-600 uppercase tracking-widest px-3 mb-1.5">{section.title}</div>
                 <div className="space-y-px">
                   {items.map((item) => {
                     const Icon = item.icon;
                     const active = location === item.href || (item.href !== "/" && location.startsWith(item.href));
                     return (
                       <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] transition-all ${
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[14px] transition-all ${
                           active
                             ? "bg-yellow-500/10 text-yellow-500 font-semibold"
                             : "text-gray-400 hover:bg-white/5 hover:text-gray-200"
                         }`}>
-                        <Icon size={15} strokeWidth={active ? 2.5 : 1.5} />
+                        <Icon size={18} strokeWidth={active ? 2.5 : 1.5} />
                         {item.label}
                       </Link>
                     );
@@ -121,8 +120,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         {/* Logout */}
         <div className="px-2 py-3 border-t border-white/5">
-          <a href="/api/admin-logout" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] text-gray-500 hover:bg-white/5 hover:text-red-400 transition-all">
-            <LogOut size={15} />
+          <a href="/api/admin-logout" className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[14px] text-gray-500 hover:bg-white/5 hover:text-red-400 transition-all">
+            <LogOut size={18} />
             Esci
           </a>
         </div>

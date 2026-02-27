@@ -2,7 +2,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Route, Switch, Redirect } from "wouter";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import Layout from "@/components/Layout";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -23,6 +24,33 @@ const PlayerLogin = lazy(() => import("@/pages/PlayerLogin"));
 const PlayerDashboard = lazy(() => import("@/pages/PlayerDashboard"));
 const PlayerCourse = lazy(() => import("@/pages/PlayerCourse"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[ErrorBoundary]", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-8">
+          <div className="bg-[#1a1a1a] border border-red-500/30 rounded-xl p-8 max-w-lg text-center">
+            <h2 className="text-xl font-bold text-red-400 mb-3">Errore di caricamento</h2>
+            <p className="text-gray-400 text-sm mb-4">{this.state.error?.message || "Si è verificato un errore"}</p>
+            <button onClick={() => window.location.reload()} className="px-6 py-2 bg-yellow-500 text-black font-bold rounded-lg text-sm hover:bg-yellow-600">Ricarica pagina</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function Loading() {
   return (
@@ -100,10 +128,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
